@@ -24,7 +24,17 @@
       </div>
   
       <div class="table-responsive">
-        <table class="katalog-table">
+        <!-- Empty state message -->
+        <div v-if="!paginatedKatalog.length" class="empty-state">
+          <div class="empty-state-content">
+            <span class="empty-icon">📦</span>
+            <h3>Tidak ada katalog disini</h3>
+            <p>Mulai dengan menambahkan katalog baru</p>
+          </div>
+        </div>
+
+        <!-- Table with data -->
+        <table v-else class="katalog-table">
           <colgroup>
             <col style="width: 5%" />
             <col style="width: 20%" />
@@ -58,9 +68,9 @@
                     :key="imgIndex"
                     :src="image"
                     :alt="'Product ' + (imgIndex + 1)"
-                    @click="showImageGallery(item.images)"
+                    @click="openImageGallery(item.images, imgIndex)"
                   />
-                  <span v-if="item.images.length > 3" class="more-images">
+                  <span v-if="item.images.length > 3" class="more-images" @click="openImageGallery(item.images, 3)">
                     +{{ item.images.length - 3 }}
                   </span>
                 </div>
@@ -80,7 +90,7 @@
         </table>
       </div>
   
-      <div class="pagination">
+      <div v-if="paginatedKatalog.length" class="pagination">
         <button 
           :disabled="currentPage === 1" 
           @click="currentPage--"
@@ -92,12 +102,44 @@
         >&gt;&gt;</button>
       </div>
   
+      <!-- Create/Edit Modal -->
       <CreateKatalogComponent
         v-if="showModal"
         :edit-data="editData"
         @close="closeModal"
         @submit="handleSubmit"
       />
+
+      <!-- Image Gallery Modal -->
+      <div v-if="showGallery" class="gallery-modal" @click="closeGallery">
+        <div class="gallery-content" @click.stop>
+          <button class="gallery-close" @click="closeGallery">&times;</button>
+          
+          <div class="gallery-image-container">
+            <button 
+              class="gallery-nav prev" 
+              @click="prevImage"
+              :class="{ disabled: currentImageIndex === 0 }"
+              v-show="galleryImages.length > 1"
+            >&lt;</button>
+            
+            <div class="gallery-image">
+              <img :src="galleryImages[currentImageIndex]" :alt="'Gallery image ' + (currentImageIndex + 1)" />
+            </div>
+            
+            <button 
+              class="gallery-nav next" 
+              @click="nextImage"
+              :class="{ disabled: currentImageIndex === galleryImages.length - 1 }"
+              v-show="galleryImages.length > 1"
+            >&gt;</button>
+          </div>
+          
+          <div class="gallery-counter" v-if="galleryImages.length > 1">
+            {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
+          </div>
+        </div>
+      </div>
     </div>
 </template>
 
@@ -112,6 +154,9 @@ const editData = ref(null)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const entriesPerPage = ref(10)
+const showGallery = ref(false)
+const galleryImages = ref([])
+const currentImageIndex = ref(0)
 
 const filteredKatalog = computed(() => {
   return katalogStore.katalogItems.filter(item => 
@@ -136,7 +181,24 @@ const paginatedKatalog = computed(() => {
 
 onMounted(async () => {
   await katalogStore.fetchKatalog()
+  window.addEventListener('keydown', handleKeyPress)
 })
+
+const handleKeyPress = (e) => {
+  if (!showGallery.value) return
+  
+  switch(e.key) {
+    case 'ArrowLeft':
+      prevImage()
+      break
+    case 'ArrowRight':
+      nextImage()
+      break
+    case 'Escape':
+      closeGallery()
+      break
+  }
+}
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('id-ID', {
@@ -181,6 +243,31 @@ const confirmDelete = async (id) => {
       console.error('Error deleting katalog:', error)
       alert('Failed to delete katalog')
     }
+  }
+}
+
+// Image gallery functions
+const openImageGallery = (images, index = 0) => {
+  galleryImages.value = images
+  currentImageIndex.value = index
+  showGallery.value = true
+}
+
+const closeGallery = () => {
+  showGallery.value = false
+  galleryImages.value = []
+  currentImageIndex.value = 0
+}
+
+const nextImage = () => {
+  if (currentImageIndex.value < galleryImages.value.length - 1) {
+    currentImageIndex.value++
+  }
+}
+
+const prevImage = () => {
+  if (currentImageIndex.value > 0) {
+    currentImageIndex.value--
   }
 }
 </script>
@@ -355,5 +442,137 @@ const confirmDelete = async (id) => {
 .pagination button:disabled {
   background-color: #ddd;
   cursor: not-allowed;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background-color: #f9f9f9;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+}
+
+.empty-state-content {
+  text-align: center;
+  color: #666;
+}
+
+.empty-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.gallery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+.gallery-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.gallery-image-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gallery-image img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.gallery-close {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  padding: 10px;
+  z-index: 1110;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 24px;
+  padding: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 4px;
+}
+
+.gallery-nav:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.gallery-nav.prev {
+  left: -60px;
+}
+
+.gallery-nav.next {
+  right: -60px;
+}
+
+.gallery-nav.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gallery-counter {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 14px;
+}
+
+/* Add hover effect for gallery thumbnails */
+.image-gallery img {
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.image-gallery img:hover {
+  transform: scale(1.1);
+  opacity: 0.9;
+}
+
+.more-images {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.more-images:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 </style>
