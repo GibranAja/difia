@@ -1,12 +1,28 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-
 import App from './App.vue'
 import router from './router'
+import Toast from 'vue-toastification'
+import { useAuthStore } from './stores/AuthStore'
+// Add this line to import the CSS
+import "vue-toastification/dist/index.css";
 
 const app = createApp(App)
+const pinia = createPinia()
+app.use(pinia)
 
-app.use(createPinia())
-app.use(router)
+// Initialize auth before mounting
+const authStore = useAuthStore()
 
-app.mount('#app')
+// Wait for auth to initialize before mounting
+authStore.initializeAuthState().then(() => {
+  app.use(router)
+  app.use(Toast, {
+    position: "top-right",
+    timeout: 3000,
+    maxToasts: 5,
+    closeOnClick: true,
+    pauseOnHover: false
+  })
+  app.mount('#app')
+})
