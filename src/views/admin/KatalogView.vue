@@ -37,11 +37,12 @@
         <table v-else class="katalog-table">
           <colgroup>
             <col style="width: 5%" />
-            <col style="width: 20%" />
             <col style="width: 15%" />
-            <col style="width: 25%" />
-            <col style="width: 20%" />
             <col style="width: 15%" />
+            <col style="width: 25%" /> <!-- Detail -->
+            <col style="width: 15%" /> <!-- NEW: Waktu Pengerjaan -->
+            <col style="width: 15%" /> <!-- Images -->
+            <col style="width: 15%" /> <!-- Actions -->
           </colgroup>
           <thead>
             <tr>
@@ -49,6 +50,7 @@
               <th>Nama Katalog</th>
               <th>Harga Katalog</th>
               <th>Detail Produk</th>
+              <th>Waktu Pengerjaan</th> <!-- NEW -->
               <th>Foto Produk</th>
               <th>Aksi</th>
             </tr>
@@ -61,6 +63,7 @@
               <td class="detail-cell">
                 <div class="detail-content">{{ item.detail }}</div>
               </td>
+              <td>{{ item.waktuPengerjaan }} hari</td> <!-- NEW -->
               <td class="image-cell">
                 <div class="image-gallery">
                   <img 
