@@ -20,6 +20,17 @@
         </div>
 
         <div class="form-group">
+          <label for="waktuPengerjaan">Waktu Pengerjaan (hari)</label>
+          <input 
+            id="waktuPengerjaan" 
+            v-model.number="formData.waktuPengerjaan" 
+            type="number" 
+            min="1"
+            required 
+          />
+        </div>
+
+        <div class="form-group">
           <label>Foto Produk</label>
           <input type="file" @change="handleFileChange" accept="image/*" multiple ref="fileInput" />
           <div class="preview-images">
@@ -59,6 +70,7 @@ const formData = ref({
   nama: '',
   harga: 0,
   detail: '',
+  waktuPengerjaan: 1, // NEW: default value
   images: [],
 })
 
@@ -71,6 +83,7 @@ onMounted(() => {
       nama: props.editData.nama,
       harga: props.editData.harga,
       detail: props.editData.detail,
+      waktuPengerjaan: props.editData.waktuPengerjaan || 1, // NEW
       images: [], // Initialize empty array for new images
     };
     // Store existing images separately
@@ -141,8 +154,9 @@ const handleSubmit = async () => {
       nama: formData.value.nama,
       harga: formData.value.harga,
       detail: formData.value.detail,
-      existingImages: existingImages.value, // Always include existing images
-      images: formData.value.images, // Only include new images if any were added
+      waktuPengerjaan: Number(formData.value.waktuPengerjaan), // Add this line
+      existingImages: existingImages.value,
+      images: formData.value.images,
     };
 
     await emit('submit', submissionData);
