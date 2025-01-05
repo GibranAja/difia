@@ -57,6 +57,7 @@ export const useKatalogStore = defineStore('katalog', {
           nama: katalogData.nama,
           harga: Number(katalogData.harga),
           detail: katalogData.detail,
+          waktuPengerjaan: Number(katalogData.waktuPengerjaan || 1), // Add default value
           images: base64Images,
           createdAt: new Date(),
         }
@@ -155,6 +156,7 @@ export const useKatalogStore = defineStore('katalog', {
           nama: updateData.nama,
           harga: Number(updateData.harga),
           detail: updateData.detail,
+          waktuPengerjaan: Number(updateData.waktuPengerjaan || 1), // Add default value
           updatedAt: new Date(),
         };
     
