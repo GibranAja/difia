@@ -49,9 +49,9 @@
               <th>No.</th>
               <th>Nama Katalog</th>
               <th>Harga Katalog</th>
-              <th>Detail Produk</th>
+              <th>Detail Katalog</th>
               <th>Waktu Pengerjaan</th> <!-- NEW -->
-              <th>Foto Produk</th>
+              <th>Foto Katalog</th>
               <th>Aksi</th>
             </tr>
           </thead>
