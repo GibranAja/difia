@@ -119,7 +119,7 @@ router.beforeEach(async (to, from, next) => {
 
   if ((to.path === '/login' || to.path === '/register') && authStore.isLoggedIn) {
     if (authStore.currentUser?.isAdmin) {
-      next({ name: 'DashboardAdmin' })
+      next({ name: 'DashboardView' })
     } else {
       next({ name: 'HomeView' })
     }
