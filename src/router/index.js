@@ -12,6 +12,7 @@ import BlogView from '@/views/admin/BlogView.vue'
 import ChatView from '@/views/admin/ChatView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
+import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -59,6 +60,18 @@ const router = createRouter({
           path: 'katalog',
           name: 'KatalogView',
           component: KatalogView,
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'katalog/create',
+          name: 'CreateKatalog',
+          component: CreateKatalog,
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'katalog/edit/:id',
+          name: 'EditKatalog',
+          component: CreateKatalog,
           meta: { requiresAdmin: true }
         },
         {

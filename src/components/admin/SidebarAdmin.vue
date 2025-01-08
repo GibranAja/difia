@@ -1,3 +1,5 @@
+<!-- components/admin/SidebarAdmin.vue -->
+
 <template>
     <aside class="sidebar" :class="{ collapsed: !isOpen }">
       <!-- Logo Section -->
@@ -133,15 +135,17 @@ const handleLogout = async () => {
   padding: 5px;
 }
 
-.logo h2 {
-  font-family: 'Judson', serif;
-  color: #2c3e50;
-  font-size: 24px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: opacity 0.3s ease;
+/* Mengatur logo saat collapsed */
+.sidebar.collapsed .logo-content {
+  justify-content: center;
+  gap: 0;
 }
 
+.sidebar.collapsed .logo {
+  padding: 24px 16px;
+}
+
+/* Mengatur admin label saat collapsed */
 .admin-label {
   font-family: 'Judson', serif;
   background-color: rgb(139, 116, 99);
@@ -151,20 +155,29 @@ const handleLogout = async () => {
   margin: 0 auto 20px;
   transition: all 0.3s ease;
   font-size: 18px;
+  white-space: nowrap;
 }
 
-.admin-label.collapsed-label {
-  padding: 8px 15px;
-  margin: 0 auto 20px;
+.sidebar.collapsed .admin-label {
+  padding: 8px;
+  width: 40px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
 }
 
+/* Mengatur nav items saat collapsed */
 .nav-links {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 0 16px;
-  margin-bottom: 80px; /* Space for profile */
+  margin-bottom: 80px;
+}
+
+.sidebar.collapsed .nav-links {
+  padding: 0 8px;
 }
 
 .nav-item {
@@ -178,19 +191,14 @@ const handleLogout = async () => {
   border-radius: 10px;
   transition: all 0.3s ease;
   font-size: 17px;
+  position: relative;
 }
 
-.nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
-}
-
-.nav-item.active {
-  background-color: rgba(0, 0, 0, 0.15);
-  color: #2c3e50;
-  border-radius: 60px;
-  border: 1px solid #ffffff;
-  font-weight: 500;
+.sidebar.collapsed .nav-item {
+  padding: 12px;
+  justify-content: center;
+  width: 48px;
+  margin: 0 auto;
 }
 
 .nav-item i {
@@ -199,68 +207,75 @@ const handleLogout = async () => {
   font-size: 1.1em;
 }
 
-.nav-item.collapsed-item {
-  padding: 12px;
-  justify-content: center;
-}
-
-.user-profile {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px;
-}
-
-.profile-content {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 12px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.profile-icon {
-  min-width: 40px;
-  height: 40px;
-  background-color: rgb(139, 116, 99);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.profile-icon i {
-  color: white;
-}
-
-.profile-info {
-  transition: opacity 0.3s ease;
-}
-
-.profile-info h4 {
-  font-family: 'Judson', serif;
-  color: #2c3e50;
-  font-size: 17px;
-  font-weight: 700;
+.sidebar.collapsed .nav-item i {
   margin: 0;
-  white-space: nowrap;
+  min-width: unset;
 }
 
-.profile-info p {
-  font-family: 'Judson', serif;
-  color: #666;
-  font-size: 15px;
-  margin: 4px 0 0 0;
-  white-space: nowrap;
+/* Mengatur active state saat collapsed */
+.nav-item.active {
+  background-color: rgba(0, 0, 0, 0.15);
+  color: #2c3e50;
+  border-radius: 60px;
+  border: 1px solid #ffffff;
+  font-weight: 500;
 }
 
+.sidebar.collapsed .nav-item.active {
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mengatur logout button saat collapsed */
+.logout-btn {
+  color: #f44336;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.sidebar.collapsed .logout-btn {
+  padding: 12px;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Menyembunyikan teks saat collapsed */
 .hide-text {
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  position: absolute;
+  left: 100%;
 }
 
+/* Hover tooltips untuk collapsed state */
+.sidebar.collapsed .nav-item:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  margin-left: 10px;
+  z-index: 1000;
+}
+
+/* Mobile responsive */
 @media (max-width: 768px) {
   .sidebar {
     width: 280px !important;
@@ -269,86 +284,17 @@ const handleLogout = async () => {
   .hide-text {
     opacity: 1 !important;
     visibility: visible !important;
+    position: static;
   }
 
   .sidebar.collapsed {
     width: 0 !important;
     visibility: hidden;
   }
-}
 
-.logout-btn {
-  color: #f44336;
-  cursor: pointer;
-  margin-top: auto;
-}
-
-.logout-btn:hover {
-  background-color: rgba(244, 67, 54, 0.1);
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 24px;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-}
-
-.modal-content h3 {
-  margin: 0 0 16px 0;
-  color: #333;
-}
-
-.modal-content p {
-  margin-bottom: 24px;
-  color: #666;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-.modal-actions button {
-  padding: 8px 24px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background-color: #e0e0e0;
-  color: #333;
-}
-
-.confirm-btn {
-  background-color: #f44336;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background-color: #d5d5d5;
-}
-
-.confirm-btn:hover {
-  background-color: #e53935;
+  .sidebar.collapsed .nav-item,
+  .sidebar.collapsed .logout-btn {
+    width: auto;
+  }
 }
 </style>

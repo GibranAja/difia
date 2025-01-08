@@ -1,3 +1,5 @@
+<!-- layouts/AdminLayout.vue -->
+
 <template>
     <div class="admin-layout">
       <!-- Sidebar with overlay for mobile -->

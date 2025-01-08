@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h1>Anak Tampan</h1>
+        <h1>Dashboard</h1>
     </div>
 </template>
 

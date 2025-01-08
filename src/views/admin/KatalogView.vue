@@ -1,159 +1,170 @@
 <template>
-    <div class="katalog-container">
-      <h1>DAFTAR KATALOG</h1>
-  
-      <div class="katalog-controls">
-        <div class="top-controls">
-          <button class="add-btn" @click="showModal = true">Tambah Katalog</button>
-        </div>
-  
-        <div class="filter-controls">
-          <div class="entries-control">
-            <select v-model="entriesPerPage">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </select>
-            <span>entries per page</span>
-          </div>
-  
-          <div class="search-box">
-            <input type="text" v-model="searchQuery" placeholder="Search..." />
-          </div>
-        </div>
+  <div class="katalog-container">
+    <h1>DAFTAR KATALOG</h1>
+
+    <div class="katalog-controls">
+      <div class="top-controls">
+        <router-link to="/admin/katalog/create" class="add-btn">
+          Tambah Blog
+        </router-link>
       </div>
-  
-      <div class="table-responsive">
-        <!-- Empty state message -->
-        <div v-if="!paginatedKatalog.length" class="empty-state">
-          <div class="empty-state-content">
-            <span class="empty-icon">📦</span>
-            <h3>Tidak ada katalog disini</h3>
-            <p>Mulai dengan menambahkan katalog baru</p>
-          </div>
+
+      <div class="filter-controls">
+        <div class="entries-control">
+          <select v-model="entriesPerPage">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+          <span>entries per page</span>
         </div>
 
-        <!-- Table with data -->
-        <table v-else class="katalog-table">
-          <colgroup>
-            <col style="width: 5%" />
-            <col style="width: 15%" />
-            <col style="width: 15%" />
-            <col style="width: 25%" /> <!-- Detail -->
-            <col style="width: 15%" /> <!-- NEW: Waktu Pengerjaan -->
-            <col style="width: 15%" /> <!-- Images -->
-            <col style="width: 15%" /> <!-- Actions -->
-          </colgroup>
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Nama Katalog</th>
-              <th>Harga Katalog</th>
-              <th>Detail Katalog</th>
-              <th>Waktu Pengerjaan</th> <!-- NEW -->
-              <th>Foto Katalog</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in paginatedKatalog" :key="item.id">
-              <td>{{ startIndex + index + 1 }}</td>
-              <td>{{ item.nama }}</td>
-              <td>{{ formatPrice(item.harga) }}</td>
-              <td class="detail-cell">
-                <div class="detail-content">{{ item.detail }}</div>
-              </td>
-              <td>{{ item.waktuPengerjaan }} hari</td> <!-- NEW -->
-              <td class="image-cell">
-                <div class="image-gallery">
-                  <img 
-                    v-for="(image, imgIndex) in item.images.slice(0, 3)"
-                    :key="imgIndex"
-                    :src="image"
-                    :alt="'Product ' + (imgIndex + 1)"
-                    @click="openImageGallery(item.images, imgIndex)"
-                  />
-                  <span v-if="item.images.length > 3" class="more-images" @click="openImageGallery(item.images, 3)">
-                    +{{ item.images.length - 3 }}
-                  </span>
-                </div>
-              </td>
-              <td class="action-cell">
-                <div class="action-buttons">
-                  <button class="edit-btn" @click="editItem(item)">
-                    Edit
-                  </button>
-                  <button class="delete-btn" @click="confirmDelete(item.id)">
-                    Hapus
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-  
-      <div v-if="paginatedKatalog.length" class="pagination">
-        <button 
-          :disabled="currentPage === 1" 
-          @click="currentPage--"
-        >&lt;&lt;</button>
-        <span>{{ currentPage }} of {{ totalPages }}</span>
-        <button 
-          :disabled="currentPage >= totalPages" 
-          @click="currentPage++"
-        >&gt;&gt;</button>
-      </div>
-  
-      <!-- Create/Edit Modal -->
-      <CreateKatalogComponent
-        v-if="showModal"
-        :edit-data="editData"
-        @close="closeModal"
-        @submit="handleSubmit"
-      />
-
-      <!-- Image Gallery Modal -->
-      <div v-if="showGallery" class="gallery-modal" @click="closeGallery">
-        <div class="gallery-content" @click.stop>
-          <button class="gallery-close" @click="closeGallery">&times;</button>
-          
-          <div class="gallery-image-container">
-            <button 
-              class="gallery-nav prev" 
-              @click="prevImage"
-              :class="{ disabled: currentImageIndex === 0 }"
-              v-show="galleryImages.length > 1"
-            >&lt;</button>
-            
-            <div class="gallery-image">
-              <img :src="galleryImages[currentImageIndex]" :alt="'Gallery image ' + (currentImageIndex + 1)" />
-            </div>
-            
-            <button 
-              class="gallery-nav next" 
-              @click="nextImage"
-              :class="{ disabled: currentImageIndex === galleryImages.length - 1 }"
-              v-show="galleryImages.length > 1"
-            >&gt;</button>
-          </div>
-          
-          <div class="gallery-counter" v-if="galleryImages.length > 1">
-            {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
-          </div>
+        <div class="search-box">
+          <input type="text" v-model="searchQuery" placeholder="Search..." />
         </div>
       </div>
     </div>
+
+    <div class="table-responsive">
+      <!-- Empty state message -->
+      <div v-if="!paginatedKatalog.length" class="empty-state">
+        <div class="empty-state-content">
+          <span class="empty-icon">📦</span>
+          <h3>Tidak ada katalog disini</h3>
+          <p>Mulai dengan menambahkan katalog baru</p>
+        </div>
+      </div>
+
+      <!-- Table with data -->
+      <table v-else class="katalog-table">
+        <colgroup>
+          <col style="width: 5%" />
+          <col style="width: 15%" />
+          <col style="width: 20%" />
+          <col style="width: 20%" />
+          <col style="width: 15%" />
+          <col style="width: 15%" />
+          <col style="width: 10%" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Nama Katalog</th>
+            <th>Harga Katalog</th>
+            <th>Detail Katalog</th>
+            <th>Waktu Pengerjaan</th>
+            <th>Foto Katalog</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in paginatedKatalog" :key="item.id">
+            <td>{{ startIndex + index + 1 }}</td>
+            <td>{{ item.nama }}</td>
+            <td>
+              <div class="price-list">
+                <div>Standar: {{ formatPrice(item.harga.standar) }}</div>
+                <div>Premium: {{ formatPrice(item.harga.premium) }}</div>
+                <div>Budgetting: {{ item.harga.budgetting }}</div>
+              </div>
+            </td>
+            <td class="detail-cell">
+              <div class="detail-content">{{ item.detail }}</div>
+            </td>
+            <td>{{ item.waktuPengerjaan }} hari</td>
+            <td class="image-cell">
+              <div class="image-gallery">
+                <img
+                  v-for="(image, imgIndex) in item.images.slice(0, 3)"
+                  :key="imgIndex"
+                  :src="image"
+                  :alt="'Product ' + (imgIndex + 1)"
+                  @click="openImageGallery(item.images, imgIndex)"
+                />
+                <span
+                  v-if="item.images.length > 3"
+                  class="more-images"
+                  @click="openImageGallery(item.images, 3)"
+                >
+                  +{{ item.images.length - 3 }}
+                </span>
+              </div>
+            </td>
+            <td class="action-cell">
+              <div class="action-buttons">
+                <router-link
+                  :to="`/admin/katalog/edit/${item.id}`"
+                  class="edit-btn"
+                >
+                  Edit
+                </router-link>
+                <button class="delete-btn" @click="confirmDelete(item.id)">
+                  Hapus
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="paginatedKatalog.length" class="pagination">
+      <button :disabled="currentPage === 1" @click="currentPage--">
+        &lt;&lt;
+      </button>
+      <span>{{ currentPage }} of {{ totalPages }}</span>
+      <button :disabled="currentPage >= totalPages" @click="currentPage++">
+        &gt;&gt;
+      </button>
+    </div>
+
+    <!-- Image Gallery Modal -->
+    <div v-if="showGallery" class="gallery-modal" @click="closeGallery">
+      <div class="gallery-content" @click.stop>
+        <button class="gallery-close" @click="closeGallery">&times;</button>
+
+        <div class="gallery-image-container">
+          <button
+            class="gallery-nav prev"
+            @click="prevImage"
+            :class="{ disabled: currentImageIndex === 0 }"
+            v-show="galleryImages.length > 1"
+          >
+            &lt;
+          </button>
+
+          <div class="gallery-image">
+            <img
+              :src="galleryImages[currentImageIndex]"
+              :alt="'Gallery image ' + (currentImageIndex + 1)"
+            />
+          </div>
+
+          <button
+            class="gallery-nav next"
+            @click="nextImage"
+            :class="{ disabled: currentImageIndex === galleryImages.length - 1 }"
+            v-show="galleryImages.length > 1"
+          >
+            &gt;
+          </button>
+        </div>
+
+        <div class="gallery-counter" v-if="galleryImages.length > 1">
+          {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useKatalogStore } from '@/stores/KatalogStore'
-import CreateKatalogComponent from '@/components/admin/CreateKatalogComponent.vue'
+// import { useRouter } from 'vue-router'
 
+// const router = useRouter()
 const katalogStore = useKatalogStore()
-const showModal = ref(false)
-const editData = ref(null)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const entriesPerPage = ref(10)
@@ -162,17 +173,18 @@ const galleryImages = ref([])
 const currentImageIndex = ref(0)
 
 const filteredKatalog = computed(() => {
-  return katalogStore.katalogItems.filter(item => 
-    item.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    item.detail.toLowerCase().includes(searchQuery.value.toLowerCase())
+  return katalogStore.katalogItems.filter(
+    (item) =>
+      item.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      item.detail.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })
 
-const totalPages = computed(() => 
+const totalPages = computed(() =>
   Math.ceil(filteredKatalog.value.length / entriesPerPage.value)
 )
 
-const startIndex = computed(() => 
+const startIndex = computed(() =>
   (currentPage.value - 1) * entriesPerPage.value
 )
 
@@ -187,10 +199,14 @@ onMounted(async () => {
   window.addEventListener('keydown', handleKeyPress)
 })
 
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyPress)
+})
+
 const handleKeyPress = (e) => {
   if (!showGallery.value) return
-  
-  switch(e.key) {
+
+  switch (e.key) {
     case 'ArrowLeft':
       prevImage()
       break
@@ -204,38 +220,11 @@ const handleKeyPress = (e) => {
 }
 
 const formatPrice = (price) => {
+  if (price === null || price === undefined) return '-'
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR'
   }).format(price)
-}
-
-const editItem = (item) => {
-  editData.value = { ...item }
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  editData.value = null
-}
-
-const handleSubmit = async (formData) => {
-  try {
-    if (editData.value) {
-      await katalogStore.updateKatalog(editData.value.id, formData)
-    } else {
-      const result = await katalogStore.addKatalog(formData)
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-    }
-    await katalogStore.fetchKatalog()
-    closeModal()
-  } catch (error) {
-    console.error('Error submitting katalog:', error)
-    alert('Failed to save katalog: ' + error.message)
-  }
 }
 
 const confirmDelete = async (id) => {
@@ -385,6 +374,21 @@ const prevImage = () => {
 
 .image-gallery img:hover {
   transform: scale(1.1);
+}
+
+.price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-list div {
+  font-size: 0.9em;
+}
+
+.katalog-table td {
+  vertical-align: top;
+  padding: 12px;
 }
 
 .more-images {

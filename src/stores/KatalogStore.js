@@ -24,7 +24,6 @@ export const useKatalogStore = defineStore('katalog', {
   }),
 
   actions: {
-    // Optimized base64 conversion
     async fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -34,13 +33,11 @@ export const useKatalogStore = defineStore('katalog', {
       })
     },
 
-    // Batch convert files to base64
     async convertFilesToBase64(files) {
       const promises = files.map((file) => this.fileToBase64(file))
       return Promise.all(promises)
     },
 
-    // Create new catalog item with optimized image handling
     async addKatalog(katalogData) {
       try {
         this.loading = true
@@ -49,22 +46,24 @@ export const useKatalogStore = defineStore('katalog', {
           throw new Error('At least one image is required')
         }
 
-        // Convert new images to base64 in parallel
         const base64Images = await this.convertFilesToBase64(katalogData.images)
 
         const newKatalog = {
           nomor: Date.now().toString(),
           nama: katalogData.nama,
-          harga: Number(katalogData.harga),
+          harga: {
+            standar: Number(katalogData.harga.standar),
+            premium: Number(katalogData.harga.premium),
+            budgetting: 'By Request' // Changed to string
+          },
           detail: katalogData.detail,
-          waktuPengerjaan: Number(katalogData.waktuPengerjaan || 1), // Add default value
+          waktuPengerjaan: Number(katalogData.waktuPengerjaan || 1),
           images: base64Images,
           createdAt: new Date(),
         }
 
         const docRef = await addDoc(collection(db, 'katalog'), newKatalog)
 
-        // Optimistic update
         this.katalogItems.unshift({ id: docRef.id, ...newKatalog })
 
         return { success: true, id: docRef.id }
@@ -77,12 +76,64 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Optimized fetch with pagination
+    async updateKatalog(id, updateData) {
+      try {
+        this.loading = true
+
+        let finalImages = updateData.existingImages || []
+
+        if (updateData.images && updateData.images.length > 0) {
+          const newBase64Images = await this.convertFilesToBase64(updateData.images)
+          finalImages = [...finalImages, ...newBase64Images]
+        }
+
+        const katalogRef = doc(db, 'katalog', id)
+        const updatePayload = {
+          nama: updateData.nama,
+          harga: {
+            standar: Number(updateData.harga.standar),
+            premium: Number(updateData.harga.premium),
+            budgetting: 'By Request' // Changed to string
+          },
+          detail: updateData.detail,
+          waktuPengerjaan: Number(updateData.waktuPengerjaan || 1),
+          updatedAt: new Date(),
+        }
+
+        if (finalImages.length > 0) {
+          updatePayload.images = finalImages
+        }
+
+        await updateDoc(katalogRef, updatePayload)
+
+        const index = this.katalogItems.findIndex((item) => item.id === id)
+        if (index !== -1) {
+          this.katalogItems[index] = {
+            ...this.katalogItems[index],
+            ...updatePayload,
+            images: finalImages.length > 0 ? finalImages : this.katalogItems[index].images,
+          }
+        }
+
+        return { success: true }
+      } catch (error) {
+        this.error = error.message
+        return { success: false, error: error.message }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Rest of the store remains unchanged
     async fetchKatalog(pageSize = 10) {
       try {
         this.loading = true
 
-        const q = query(collection(db, 'katalog'), orderBy('createdAt', 'desc'), limit(pageSize))
+        const q = query(
+          collection(db, 'katalog'),
+          orderBy('createdAt', 'desc'),
+          limit(pageSize)
+        )
 
         const querySnapshot = await getDocs(q)
 
@@ -103,7 +154,6 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Load more items
     async loadMore(pageSize = 10) {
       if (!this.hasMore || !this.lastDoc) return
 
@@ -114,7 +164,7 @@ export const useKatalogStore = defineStore('katalog', {
           collection(db, 'katalog'),
           orderBy('createdAt', 'desc'),
           startAfter(this.lastDoc),
-          limit(pageSize),
+          limit(pageSize)
         )
 
         const querySnapshot = await getDocs(q)
@@ -137,69 +187,16 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Optimized update with smart image handling
-    async updateKatalog(id, updateData) {
-      try {
-        this.loading = true;
-    
-        // If no new images are added, keep existing images
-        let finalImages = updateData.existingImages || [];
-    
-        // Only process new images if they exist
-        if (updateData.images && updateData.images.length > 0) {
-          const newBase64Images = await this.convertFilesToBase64(updateData.images);
-          finalImages = [...finalImages, ...newBase64Images];
-        }
-    
-        const katalogRef = doc(db, 'katalog', id);
-        const updatePayload = {
-          nama: updateData.nama,
-          harga: Number(updateData.harga),
-          detail: updateData.detail,
-          waktuPengerjaan: Number(updateData.waktuPengerjaan || 1), // Add default value
-          updatedAt: new Date(),
-        };
-    
-        // Only update images if there are any changes
-        if (finalImages.length > 0) {
-          updatePayload.images = finalImages;
-        }
-    
-        await updateDoc(katalogRef, updatePayload);
-    
-        // Optimistic update
-        const index = this.katalogItems.findIndex((item) => item.id === id);
-        if (index !== -1) {
-          this.katalogItems[index] = {
-            ...this.katalogItems[index],
-            ...updatePayload,
-            // Preserve existing images if no new images were added
-            images: finalImages.length > 0 ? finalImages : this.katalogItems[index].images,
-          };
-        }
-    
-        return { success: true };
-      } catch (error) {
-        this.error = error.message;
-        return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Optimized delete with immediate UI update
     async deleteKatalog(id) {
       try {
         this.loading = true
 
-        // Optimistic delete - update UI first
         this.katalogItems = this.katalogItems.filter((item) => item.id !== id)
 
         await deleteDoc(doc(db, 'katalog', id))
 
         return { success: true }
       } catch (error) {
-        // Rollback if delete fails
         await this.fetchKatalog()
         this.error = error.message
         return { success: false, error: error.message }
@@ -208,7 +205,6 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Search functionality
     async searchKatalog(searchTerm) {
       try {
         this.loading = true
@@ -217,7 +213,7 @@ export const useKatalogStore = defineStore('katalog', {
           collection(db, 'katalog'),
           where('nama', '>=', searchTerm),
           where('nama', '<=', searchTerm + '\uf8ff'),
-          limit(10),
+          limit(10)
         )
 
         const querySnapshot = await getDocs(q)
@@ -236,7 +232,6 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Clear store state
     clearStore() {
       this.katalogItems = []
       this.loading = false
