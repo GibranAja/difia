@@ -28,17 +28,26 @@
           <i :class="item.icon"></i>
           <span :class="{ 'hide-text': !isOpen }">{{ item.text }}</span>
         </router-link>
+
+        <!-- Add Logout Button -->
+        <div 
+          class="nav-item logout-btn" 
+          :class="{ 'collapsed-item': !isOpen }"
+          @click="showLogoutModal = true"
+        >
+          <i class="fas fa-sign-out-alt"></i>
+          <span :class="{ 'hide-text': !isOpen }">Logout</span>
+        </div>
       </nav>
   
-      <!-- User Profile -->
-      <div class="user-profile">
-        <div class="profile-content">
-          <div class="profile-icon">
-            <i class="fas fa-user"></i>
-          </div>
-          <div class="profile-info" :class="{ 'hide-text': !isOpen }">
-            <h4>{{ currentUser?.name || 'Admin User' }}</h4>
-            <p>Administrator</p>
+      <!-- Logout Confirmation Modal -->
+      <div v-if="showLogoutModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3>Konfirmasi Logout</h3>
+          <p>Apakah Anda yakin ingin keluar?</p>
+          <div class="modal-actions">
+            <button @click="showLogoutModal = false" class="cancel-btn">Tidak</button>
+            <button @click="handleLogout" class="confirm-btn">Ya</button>
           </div>
         </div>
       </div>
@@ -47,7 +56,8 @@
 
 <script setup>
 import { ref } from 'vue'
-// import ListSidebar from './ListSidebar.vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/AuthStore'
 
 defineProps({
   isOpen: {
@@ -60,6 +70,10 @@ defineProps({
   },
 })
 
+const showLogoutModal = ref(false)
+const router = useRouter()
+const authStore = useAuthStore()
+
 const items = ref([
   { text: 'Home', icon: 'fas fa-home', pathName: 'DashboardView' },
   { text: 'Katalog', icon: 'fas fa-th', pathName: 'KatalogView' },
@@ -68,6 +82,15 @@ const items = ref([
   { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatView' },
   { text: 'Home', icon: 'fas fa-home', pathName: 'HomeView' },
 ])
+
+const handleLogout = async () => {
+  try {
+    await authStore.logoutUser(router)
+    showLogoutModal.value = false
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+}
 </script>
 
 <style scoped>
@@ -252,5 +275,80 @@ const items = ref([
     width: 0 !important;
     visibility: hidden;
   }
+}
+
+.logout-btn {
+  color: #f44336;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.logout-btn:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.modal-content h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.modal-content p {
+  margin-bottom: 24px;
+  color: #666;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.modal-actions button {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.confirm-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #d5d5d5;
+}
+
+.confirm-btn:hover {
+  background-color: #e53935;
 }
 </style>

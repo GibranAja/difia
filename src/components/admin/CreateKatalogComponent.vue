@@ -15,7 +15,7 @@
         </div>
 
         <div class="form-group">
-          <label for="detail">Detail Produk</label>
+          <label for="detail">Detail Katalog</label>
           <textarea id="detail" v-model="formData.detail" required></textarea>
         </div>
 
@@ -31,7 +31,7 @@
         </div>
 
         <div class="form-group">
-          <label>Foto Produk</label>
+          <label>Foto Katalog</label>
           <input type="file" @change="handleFileChange" accept="image/*" multiple ref="fileInput" />
           <div class="preview-images">
             <div v-for="(image, index) in previewImages" :key="index" class="preview-image">
