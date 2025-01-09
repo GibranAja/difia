@@ -5,7 +5,7 @@
     <div class="katalog-controls">
       <div class="top-controls">
         <router-link to="/admin/katalog/create" class="add-btn">
-          Tambah Blog
+          Tambah Katalog
         </router-link>
       </div>
 
