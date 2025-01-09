@@ -21,13 +21,13 @@
             </div>
           </template>
           <template v-else>
+            <div class="message-avatar">
+              <img :src="message.senderPhoto || defaultAvatar" alt="Admin avatar" />
+            </div>
             <div class="message-content">
               <div class="message-sender">You</div>
               <div class="message-text">{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-            </div>
-            <div class="message-avatar">
-              <img :src="message.senderPhoto || '../../assets/default-avatar-wm14gXiP.png'" alt="Admin avatar" />
             </div>
           </template>
         </div>
@@ -40,7 +40,9 @@
           placeholder="Type your reply here..."
           type="text"
         />
-        <button @click="sendMessage">Reply</button>
+        <button @click="sendMessage">
+          <i class="fas fa-paper-plane"></i> 
+        </button>
       </div>
     </div>
   </div>
@@ -51,6 +53,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useChatStore } from '@/stores/ChatStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import { storeToRefs } from 'pinia'
+import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()
@@ -215,17 +218,25 @@ const sendMessage = async () => {
 }
 
 .chat-input button {
-  padding: 12px 24px;
-  background: #2196f3;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #522808;
   color: white;
   border: none;
-  border-radius: 24px;
+  border-radius: 50%;
   cursor: pointer;
-  transition: background 0.2s;
-  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.chat-input button i {
+  font-size: 1.2em;
 }
 
 .chat-input button:hover {
   background: #1976d2;
+  transform: translateY(-1px);
 }
 </style>
