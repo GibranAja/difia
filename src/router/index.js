@@ -1,3 +1,5 @@
+// router/index.js
+
 import DashboardView from '@/views/admin/DashboardView.vue'
 import LoginPage from '../views/LoginPage.vue'
 import NotFoundView from '@/views/notfound/NotFound.vue'
@@ -8,11 +10,13 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { createRouter, createWebHistory } from 'vue-router'
 import KatalogView from '@/views/admin/KatalogView.vue'
 import OrderView from '@/views/admin/OrderView.vue'
+import ChatViewPublic from '@/views/ChatView.vue'
 import BlogView from '@/views/admin/BlogView.vue'
 import ChatView from '@/views/admin/ChatView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
+import AdminChatList from '@/views/admin/AdminChatList.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -33,6 +37,11 @@ const router = createRouter({
       path: '/',
       name: 'HomeView',
       component: HomeView,
+    },
+    {
+      path: '/chat',
+      name: 'ChatViewPublic',
+      component: ChatViewPublic,
     },
     {
       path: '/login',
@@ -101,6 +110,12 @@ const router = createRouter({
         },
         {
           path: 'chat',
+          name: 'ChatList',
+          component: AdminChatList,
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'chat/:userId',
           name: 'ChatView',
           component: ChatView,
           meta: { requiresAdmin: true }
