@@ -6,19 +6,125 @@
       <a href="">Katalog</a>
       <a href="">Blog</a>
     </div>
+
     <a href="">
-      <svg xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 448 512">
-        <path fill="#00000"
-          d="M224 0c-17.7 0-32 14.3-32 32l0 19.2C119 66 64 130.6 64 208l0 25.4c0 45.4-15.5 89.5-43.8 124.9L5.3 377c-5.8 7.2-6.9 17.1-2.9 25.4S14.8 416 24 416l400 0c9.2 0 17.6-5.3 21.6-13.6s2.9-18.2-2.9-25.4l-14.9-18.6C399.5 322.9 384 278.8 384 233.4l0-25.4c0-77.4-55-142-128-156.8L256 32c0-17.7-14.3-32-32-32zm0 96c61.9 0 112 50.1 112 112l0 25.4c0 47.9 13.9 94.6 39.7 134.6L72.3 368C98.1 328 112 281.3 112 233.4l0-25.4c0-61.9 50.1-112 112-112zm64 352l-64 0-64 0c0 17 6.7 33.3 18.7 45.3s28.3 18.7 45.3 18.7s33.3-6.7 45.3-18.7s18.7-28.3 18.7-45.3z" />
-      </svg>
+      <i class="fas fa-bell"></i>
     </a>
-    <a href=""></a>
-    <a href="">Login</a>
+
+    <!-- Show login button when user is not logged in -->
+    <template v-if="!authStore.isLoggedIn">
+      <a href="/login" class="masuk">Login</a>
+    </template>
+
+    <!-- Show user icon and logout when user is logged in -->
+    <template v-if="authStore.isLoggedIn">
+      <div class="login">
+        <a href="">
+          <i class="fas fa-circle-user"></i>
+        </a>
+        <a href="#" class="keluar" @click.prevent="handleLogout">Log out</a>
+      </div>
+    </template>
   </nav>
 </template>
 
 <script setup>
+import { useAuthStore } from '../stores/AuthStore'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const handleLogout = async () => {
+  await authStore.logoutUser(router)
+}
 </script>
 
-<style scoped></style>
+<style scoped>
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 10px;
+  justify-content: space-around;
+  align-items: center;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.link {
+  display: flex;
+  gap: 100px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  background-color: #D1BB9E;
+  padding: 10px;
+  width: 60%;
+  font-size: large;
+}
+
+a {
+  text-decoration: none;
+  color: black;
+  padding: 10px;
+  transition: all 700ms;
+}
+
+a.masuk {
+  background-color: #D1BB9E;
+  padding: 10px;
+  border-radius: 10px;
+  width: 10%;
+  text-align: center;
+}
+
+.login {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  width: 15%;
+  /* background-color: #D1BB9E; */
+  padding: 10px;
+  border-radius: 100px;
+}
+
+i {
+  color: white;
+  transition: all 700ms;
+  font-size: x-large;
+}
+
+i:hover {
+  color: #A79277;
+}
+
+a.keluar {
+  background-color: #D1BB9E;
+  padding: 10px;
+  border-radius: 100px;
+}
+
+/* a.keluar:hover {
+  color: #A79277;
+  background-color: white;
+  border-radius: 100px;
+  border: solid 1px #A79277;
+} */
+
+/* a.masuk:hover {
+  color: #A79277;
+  background-color: white;
+  border-radius: 100px;
+  border: solid 1px #A79277;
+} */
+
+a:hover {
+  color: #A79277;
+  background-color: white;
+  border-radius: 100px;
+  border: solid 1px #A79277;
+  padding: 10px;
+}
+</style>

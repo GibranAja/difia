@@ -1,14 +1,10 @@
 <template>
-<<<<<<< HEAD
   <div class="chat-wrapper">
     <h2 class="chat-title">Customer Messages</h2>
     <div class="chat-container">
       <div class="chat-messages" ref="messagesContainer">
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          :class="['message', message.senderId === currentUser?.id ? 'sent' : 'received']"
-        >
+        <div v-for="message in messages" :key="message.id"
+          :class="['message', message.senderId === currentUser?.id ? 'sent' : 'received']">
           <template v-if="message.senderId !== currentUser?.id">
             <div class="message-avatar">
               <img :src="message.senderPhoto || defaultAvatar" alt="User avatar" />
@@ -30,62 +26,34 @@
             </div>
           </template>
         </div>
-=======
-  <div class="admin-chat-container">
-    <div class="chat-header">
-      <router-link to="/admin/chat" class="back-button">
-        ← Back to Chat List
-      </router-link>
-      <div class="chat-user-info" v-if="currentUser">
-        Chatting with: {{ currentUser.name }}
->>>>>>> e77bf041630297048a379a205f5d2aca0ebdea01
       </div>
-    </div>
-
-<<<<<<< HEAD
-      <div class="chat-input">
-        <input
-          v-model="newMessage"
-          @keyup.enter="sendMessage"
-          placeholder="Type your reply here..."
-          type="text"
-        />
-        <button @click="sendMessage">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-=======
-    <div class="chat-messages" ref="messagesContainer">
-      <div v-if="messages.length === 0" class="no-messages">
-        No messages yet
->>>>>>> e77bf041630297048a379a205f5d2aca0ebdea01
-      </div>
-      
-      <template v-for="message in messages" :key="message.id">
-        <div 
-          class="message-bubble" 
-          :class="{ 
-            'sent': message.senderId === authUser?.uid,
-            'received': message.senderId !== authUser?.uid 
-          }"
-        >
-          <div class="message-content">{{ message.content }}</div>
-          <div class="message-time">
-            {{ formatTime(message.timestamp) }}
-          </div>
-        </div>
-      </template>
     </div>
 
     <div class="chat-input">
-      <input 
-        v-model="newMessage" 
-        @keyup.enter="sendMessage"
-        placeholder="Type a message..."
-        type="text"
-      />
-      <button @click="sendMessage">Send</button>
+      <input v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type your reply here..." type="text" />
+      <button @click="sendMessage">
+        <i class="fas fa-paper-plane"></i>
+      </button>
     </div>
+
+    <template v-for="message in messages" :key="message.id">
+      <div class="message-bubble" :class="{
+        'sent': message.senderId === authUser?.uid,
+        'received': message.senderId !== authUser?.uid
+      }">
+        <div class="message-content">{{ message.content }}</div>
+        <div class="message-time">
+          {{ formatTime(message.timestamp) }}
+        </div>
+      </div>
+    </template>
   </div>
+
+  <div class="chat-input">
+    <input v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type a message..." type="text" />
+    <button @click="sendMessage">Send</button>
+  </div>
+  <!-- </div> -->
 </template>
 
 <script setup>
@@ -128,16 +96,16 @@ watch(messages, async () => {
 
 const sendMessage = async () => {
   if (!newMessage.value.trim() || !currentUser.value) return
-  
+
   await chatStore.sendMessage(newMessage.value, currentUser.value.id)
   newMessage.value = ''
 }
 
 const formatTime = (timestamp) => {
   if (!timestamp) return ''
-  return new Date(timestamp).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 </script>
