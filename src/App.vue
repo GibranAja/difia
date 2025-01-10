@@ -14,5 +14,6 @@ import { RouterView } from 'vue-router';
     padding: 0;
     font-family: 'Poppins', sans-serif;
     overflow-x: hidden;
+    background-color: #A79277 ;
   }
 </style>
