@@ -1,94 +1,121 @@
-// stores/ChatStore.js
-
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { collection, addDoc, query, orderBy, onSnapshot, where } from 'firebase/firestore'
-import { db } from '../config/firebase'
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+  where,
+  getDocs
+} from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { useAuthStore } from './AuthStore'
 
 export const useChatStore = defineStore('chat', () => {
+  // State as refs
   const messages = ref([])
-  const isLoading = ref(false)
-  const error = ref(null)
-  const authStore = useAuthStore()
+  const chatUsers = ref([])
+  const loading = ref(false)
+  const currentChatUser = ref(null)
 
-  const sendMessage = async (content, recipientId) => {
+  // Actions
+  const sendMessage = async (message, receiverId) => {
+    const authStore = useAuthStore()
+    loading.value = true
+    
     try {
-      if (!authStore.currentUser) throw new Error('Must be logged in to send messages')
-      
-      const messageData = {
-        content,
-        senderId: authStore.currentUser.id,
+      await addDoc(collection(db, 'messages'), {
+        content: message,
+        senderId: authStore.currentUser.id, // Changed from uid to id to match AuthStore
+        receiverId,
+        timestamp: serverTimestamp(),
         senderName: authStore.currentUser.name,
-        recipientId: recipientId || 'admin',
-        timestamp: new Date(),
-        senderPhoto: authStore.currentUser.profilePhoto || ''
-      }
-      
-      await addDoc(collection(db, 'messages'), messageData)
-    } catch (err) {
-      error.value = err.message
-      throw err
+        isAdmin: authStore.currentUser.isAdmin || false
+      })
+    } catch (error) {
+      console.error('Error sending message:', error)
+    } finally {
+      loading.value = false
     }
   }
 
-  // For regular users - only show their own messages
-  const subscribeToUserMessages = (userId) => {
-    const q = query(
-      collection(db, 'messages'),
-      where('senderId', '==', userId),
-      orderBy('timestamp', 'asc')
-    )
+  const listenToMessages = async (userId, adminId) => {
+    loading.value = true
+    
+    try {
+      // Query for messages between these two users
+      const q = query(
+        collection(db, 'messages'),
+        where('senderId', 'in', [userId, adminId]),
+        where('receiverId', 'in', [userId, adminId]),
+        orderBy('timestamp')
+      )
 
-    return onSnapshot(q, (snapshot) => {
-      messages.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-    })
+      return onSnapshot(q, (snapshot) => {
+        messages.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate()
+        }))
+        loading.value = false
+      })
+    } catch (error) {
+      console.error('Error listening to messages:', error)
+      loading.value = false
+    }
   }
 
-  // For admin - show all messages
-  const subscribeToAllMessages = () => {
-    const q = query(
-      collection(db, 'messages'),
-      orderBy('timestamp', 'desc')
-    )
+  const fetchChatUsers = async () => {
+    const authStore = useAuthStore()
+    if (!authStore.currentUser?.isAdmin) return
+    
+    loading.value = true
+    
+    try {
+      // Get unique users who have sent messages
+      const q = query(
+        collection(db, 'messages'),
+        where('receiverId', '==', authStore.currentUser.id)
+      )
 
-    return onSnapshot(q, (snapshot) => {
-      messages.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-    })
+      const snapshot = await getDocs(q)
+      const uniqueUsers = new Set()
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data()
+        if (!data.isAdmin) {
+          uniqueUsers.add(JSON.stringify({
+            id: data.senderId,
+            name: data.senderName
+          }))
+        }
+      })
+
+      chatUsers.value = Array.from(uniqueUsers).map(user => JSON.parse(user))
+    } catch (error) {
+      console.error('Error fetching chat users:', error)
+    } finally {
+      loading.value = false
+    }
   }
 
-  // For admin - show messages with specific user
-  const subscribeToUserChat = (userId) => {
-    const q = query(
-      collection(db, 'messages'),
-      where('senderId', 'in', [userId, authStore.currentUser.id]),
-      orderBy('timestamp', 'asc')
-    )
-
-    return onSnapshot(q, (snapshot) => {
-      messages.value = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-    })
+  const setCurrentChatUser = (user) => {
+    currentChatUser.value = user
   }
 
   return {
+    // State
     messages,
-    isLoading,
-    error,
+    chatUsers,
+    loading,
+    currentChatUser,
+    
+    // Actions
     sendMessage,
-    subscribeToUserMessages,
-    subscribeToAllMessages,
-    subscribeToUserChat
+    listenToMessages,
+    fetchChatUsers,
+    setCurrentChatUser
   }
 })

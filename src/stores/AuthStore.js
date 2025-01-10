@@ -1,3 +1,5 @@
+// stores/AuthStore.js
+
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useToast } from 'vue-toastification'
