@@ -16,7 +16,6 @@ import ChatView from '@/views/admin/ChatView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
-import AdminChatList from '@/views/admin/AdminChatList.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -110,12 +109,6 @@ const router = createRouter({
         },
         {
           path: 'chat',
-          name: 'ChatList',
-          component: AdminChatList,
-          meta: { requiresAdmin: true }
-        },
-        {
-          path: 'chat/:userId',
           name: 'ChatView',
           component: ChatView,
           meta: { requiresAdmin: true }

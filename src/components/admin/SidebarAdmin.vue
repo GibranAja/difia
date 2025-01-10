@@ -81,7 +81,7 @@ const items = ref([
   { text: 'Katalog', icon: 'fas fa-th', pathName: 'KatalogView' },
   { text: 'Blog', icon: 'fas fa-newspaper', pathName: 'BlogView' },
   { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
-  { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
+  { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatView' },
   { text: 'Home', icon: 'fas fa-home', pathName: 'HomeView' },
 ])
 
