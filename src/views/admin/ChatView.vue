@@ -12,7 +12,7 @@
         >
           <template v-if="message.senderId !== currentUser?.id">
             <div class="message-avatar">
-              <img :src="message.senderPhoto || '../../assets/default-avatar-wm14gXiP.png'" alt="User avatar" />
+              <img :src="message.senderPhoto || defaultAvatar" alt="User avatar" />
             </div>
             <div class="message-content">
               <div class="message-sender">{{ message.senderName }}</div>
@@ -41,7 +41,7 @@
           type="text"
         />
         <button @click="sendMessage">
-          <i class="fas fa-paper-plane"></i> 
+          <i class="fas fa-paper-plane"></i>
         </button>
       </div>
     </div>
