@@ -133,7 +133,7 @@ onUnmounted(() => {
   width: calc(100% - 280px);
   display: flex;
   flex-direction: column;
-  min-height: 1vh;
+  min-height: 100vh;
 }
 
 .main-content:not(.sidebar-open) {
@@ -243,7 +243,6 @@ onUnmounted(() => {
 
 .content-area {
   flex: 1;
-  padding: 1.5rem;
   background-color: #f8f9fa;
   overflow-x: auto;
 }
