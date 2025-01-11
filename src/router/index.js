@@ -10,9 +10,9 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { createRouter, createWebHistory } from 'vue-router'
 import KatalogView from '@/views/admin/KatalogView.vue'
 import OrderView from '@/views/admin/OrderView.vue'
-import ChatViewPublic from '@/views/ChatView.vue'
 import BlogView from '@/views/admin/BlogView.vue'
 import ChatView from '@/views/admin/ChatView.vue'
+import ChatCustomer from '@/views/ChatCustomer.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
@@ -39,8 +39,8 @@ const router = createRouter({
     },
     {
       path: '/chat',
-      name: 'ChatViewPublic',
-      component: ChatViewPublic,
+      name: 'ChatCustomer',
+      component: ChatCustomer,
     },
     {
       path: '/login',
