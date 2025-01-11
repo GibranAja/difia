@@ -28,6 +28,20 @@
       </div>
     </div>
 
+    <!-- Quick Messages -->
+    <div class="quick-messages">
+      <button 
+        v-for="(message, index) in quickMessages" 
+        :key="index"
+        @click="sendQuickMessage(message, index)"
+        class="quick-message-btn"
+        :disabled="!isLoggedIn || cooldowns[index] > 0"
+      >
+        {{ message }}
+        <span v-if="cooldowns[index] > 0" class="cooldown-text">{{ cooldowns[index] }}s</span>
+      </button>
+    </div>
+
     <!-- Input Area -->
     <div class="input-area">
       <input 
@@ -182,6 +196,65 @@
       }
     }, 100)
   })
+
+  const quickMessages = [
+    "Halo min",
+    "Saya tertarik dengan katalog",
+    "Apakah masih tersedia?",
+    "Berapa harganya min?",
+    "Saya mau order"
+  ]
+
+  // Add cooldown state for each quick message
+  const cooldowns = ref(quickMessages.map(() => 0))
+
+  const startCooldown = (index) => {
+    cooldowns.value[index] = 5
+    const timer = setInterval(() => {
+      cooldowns.value[index]--
+      if (cooldowns.value[index] <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  }
+  
+  const sendQuickMessage = async (message, index) => {
+    if (!isLoggedIn.value || cooldowns.value[index] > 0) return
+  
+    try {
+      const messageData = {
+        text: message,
+        senderId: currentUser.value.id,
+        senderName: currentUser.value.name,
+        timestamp: serverTimestamp(),
+        read: false
+      }
+  
+      const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
+      await push(messagesRef, messageData)
+  
+      const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
+      await update(threadRef, {
+        lastMessage: messageData.text,
+        lastMessageTime: serverTimestamp(),
+        unreadCount: increment(1)
+      })
+  
+      // Start cooldown after successful send
+      startCooldown(index)
+    } catch (error) {
+      console.error('Error sending quick message:', error)
+    }
+  }
+  
+  // Cleanup intervals on component unmount
+  onUnmounted(() => {
+    cooldowns.value.forEach((_, index) => {
+      if (cooldowns.value[index] > 0) {
+        cooldowns.value[index] = 0
+      }
+    })
+  })
   </script>
   
   <style scoped>
@@ -333,6 +406,53 @@
   text-decoration: underline;
 }
 
+.quick-messages {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  overflow-x: auto;
+  background-color: #DEB887;
+  border-top: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.quick-message-btn {
+  position: relative;
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 1rem;
+  background-color: white;
+  color: #8B4513;
+  cursor: pointer;
+  font-family: 'Judson';
+  transition: all 0.3s ease;
+}
+
+.cooldown-text {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #8B4513;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.quick-message-btn:hover {
+  background-color: #8B4513;
+  color: white;
+}
+
+.quick-message-btn:disabled {
+  background-color: #D2B48C;
+  color: rgba(139, 69, 19, 0.5);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
 @media (max-width: 768px) {
   .user-details h1 {
     font-size: 1.5rem;
@@ -344,6 +464,15 @@
 
   .message-bubble {
     max-width: 75%;
+  }
+
+  .quick-messages {
+    padding: 0.8rem 1rem;
+  }
+
+  .quick-message-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
   }
 }
 </style>
