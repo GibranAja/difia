@@ -6,6 +6,12 @@
 
 <script setup>
 import { RouterView } from 'vue-router';
+// import { computed } from 'vue';
+// import { useRoute } from 'vue-router';
+
+// const route = useRoute();
+
+// Hide chat in admin pages
 </script>
 
 <style>
