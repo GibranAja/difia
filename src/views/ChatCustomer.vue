@@ -5,8 +5,7 @@
       <div class="user-info">
         <div class="user-avatar"></div>
         <div class="user-details">
-          <h1>Gibran</h1>
-          <p>Gibran123@gmail.com</p>
+          <h1>Admin difia</h1>
         </div>
       </div>
     </div>
