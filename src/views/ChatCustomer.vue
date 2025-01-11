@@ -186,6 +186,7 @@
   
   <style scoped>
 .chat-container {
+  font-family: 'Judson';
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -195,7 +196,7 @@
 
 .chat-header {
   background-color: #8B4513;
-  padding: 2rem;
+  padding: 0.8rem;
   color: white;
 }
 
@@ -206,14 +207,14 @@
 }
 
 .user-avatar {
-  width: 4rem;
-  height: 4rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   background-color: white;
 }
 
 .user-details h1 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   margin: 0;
   font-weight: normal;
 }
