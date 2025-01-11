@@ -1,7 +1,7 @@
 // config/firebase.js
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getDatabase, increment, get } from "firebase/database";
 
@@ -22,5 +22,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app); // Inisialisasi Realtime Database
+
+export const googleProvider = new GoogleAuthProvider();
 
 export { app, auth, db, rtdb, increment, get };

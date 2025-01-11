@@ -1,3 +1,5 @@
+<!-- views/LoginPage.vue -->
+
 <template>
   <AuthComponent :isLogin= true />
 </template>

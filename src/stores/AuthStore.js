@@ -7,10 +7,11 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  signInWithPopup, 
 } from 'firebase/auth'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
-import { auth, db } from '../config/firebase'
+import { auth, db, googleProvider } from '../config/firebase'
 
 export const useAuthStore = defineStore('auth', () => {
   const toast = useToast()
@@ -190,6 +191,76 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
+  const signInWithGoogle = async (router) => {
+    try {
+      isLoading.value = true
+      
+      // Set custom parameters untuk Google Auth
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Cek apakah user sudah ada di Firestore
+      const userRef = collection(db, 'users');
+      const q = query(userRef, where('uid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+
+      let isAdmin = false;
+      
+      if (querySnapshot.empty) {
+        // Buat dokumen user baru
+        await addDoc(userRef, {
+          uid: user.uid,
+          name: user.displayName || '',
+          email: user.email,
+          profilePhoto: user.photoURL || '',
+          isAdmin: false, // Default false for new users
+          createdAt: new Date()
+        });
+      } else {
+        // Get existing user data
+        isAdmin = querySnapshot.docs[0].data().isAdmin;
+      }
+
+      // Set current user with admin status
+      currentUser.value = {
+        email: user.email,
+        id: user.uid,
+        name: user.displayName || '',
+        isAdmin: isAdmin,
+        profilePhoto: user.photoURL || ''
+      };
+      
+      isLoggedIn.value = true;
+      
+      // Redirect based on admin status
+      if (isAdmin) {
+        toast.success('Welcome back, Admin!');
+        await router.push('/admin');
+      } else {
+        toast.success('Successfully logged in with Google!');
+        await router.push('/');
+      }
+
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error('Sign-in cancelled by user');
+      } else if (error.code === 'auth/popup-blocked') {
+        toast.error('Pop-up was blocked by the browser. Please enable pop-ups for this site.');
+      } else {
+        toast.error('Failed to sign in with Google. Please try again.');
+      }
+      
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     user,
     isLoggedIn,
@@ -199,6 +270,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     authUser,
     logoutUser,
-    initializeAuthState
+    initializeAuthState,
+    signInWithGoogle
   }
 })

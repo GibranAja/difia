@@ -1,3 +1,5 @@
+<!-- views/RegisterPage.vue -->
+
 <template>
     <AuthComponent :is-login = false />    
 </template>
