@@ -98,7 +98,7 @@ const handleLogout = async () => {
 <style scoped>
 .sidebar {
   font-family: 'Judson', serif;
-  width: 280px;
+  width: 250px;
   height: 100vh;
   position: fixed;
   left: 0;

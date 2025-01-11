@@ -128,12 +128,12 @@ onUnmounted(() => {
 
 .main-content {
   flex: 1;
-  margin-left: 272px;
+  margin-left: 250px;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: calc(100% - 280px);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 1vh;
 }
 
 .main-content:not(.sidebar-open) {
