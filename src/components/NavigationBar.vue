@@ -97,7 +97,7 @@ i {
 }
 
 i:hover {
-  color: #A79277;
+  color: #D1BB9E;
 }
 
 a.keluar {
@@ -106,25 +106,24 @@ a.keluar {
   border-radius: 100px;
 }
 
-/* a.keluar:hover {
+a.keluar:hover {
   color: #A79277;
   background-color: white;
   border-radius: 100px;
   border: solid 1px #A79277;
-} */
+}
 
-/* a.masuk:hover {
+a.masuk:hover {
   color: #A79277;
   background-color: white;
   border-radius: 100px;
   border: solid 1px #A79277;
-} */
+}
 
-a:hover {
-  color: #A79277;
-  background-color: white;
+.link a:hover {
+  color: white;
+  background-color: #A79277;
   border-radius: 100px;
-  border: solid 1px #A79277;
   padding: 10px;
 }
 </style>
