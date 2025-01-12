@@ -1,9 +1,21 @@
-<!-- views/RegisterPage.vue -->
-
+<!--  views/LoginPage.vue -->
 <template>
-    <AuthComponent :is-login = false />    
-</template>
-
-<script setup>
-import AuthComponent from '@/components/AuthComponent.vue';
-</script>
+    <div class="login-container">
+      <AuthComponent :isLogin="false" />
+    </div>
+  </template>
+  
+  <script setup>
+  import AuthComponent from '@/components/AuthComponent.vue'
+  </script>
+  
+  <style scoped>
+  .login-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background-color: #ffffff;
+  }
+  </style>

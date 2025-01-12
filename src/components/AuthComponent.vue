@@ -1,116 +1,89 @@
-<!-- AuthComponent.vue -->
+// AuthComponent.vue
 <template>
   <div class="auth-container">
-    <div class="auth-card">
-      <h2 class="auth-title">{{ isLogin ? 'Masuk' : 'Daftar' }}</h2>
+    <!-- Logo Container with conditional class -->
+    <div class="logo-container" :class="{ 'logo-left': !isLogin }">
+      <img src="../assets/difia.jpg" alt="DIFIA" class="difia-logo" />
+    </div>
+
+    <div class="auth-content">
+      <h1 class="auth-title">{{ isLogin ? 'MASUK' : 'DAFTAR' }}</h1>
       
-      <form @submit.prevent="handleSubmit">
-        <div class="error-message" v-if="isError">
-          {{ message }}
-        </div>
-
-        <!-- Name field (Register only) -->
+      <form @submit.prevent="handleSubmit" class="auth-form">
+        <!-- Only show name field for registration -->
         <div class="form-group" v-if="!isLogin">
-          <label>Name</label>
-          <div class="input-group">
-            <i class="fas fa-user"></i>
-            <input 
-              type="text" 
-              v-model="user.name"
-              placeholder="Enter your name"
-              @blur="validateName"
-            >
-          </div>
-          <span class="error" v-if="nameError">{{ nameError }}</span>
+          <input 
+            type="text" 
+            v-model="user.name"
+            placeholder="Nama"
+            class="auth-input"
+            required
+          >
         </div>
 
-        <!-- Email field -->
         <div class="form-group">
-          <label>Email</label>
-          <div class="input-group">
-            <i class="fas fa-envelope"></i>
-            <input 
-              type="email" 
-              v-model="user.email"
-              placeholder="Enter your email"
-              @blur="validateEmail"
-            >
-          </div>
-          <span class="error" v-if="emailError">{{ emailError }}</span>
+          <input 
+            type="email"
+            v-model="user.email"
+            placeholder="Email"
+            class="auth-input"
+            required
+          >
         </div>
 
-        <!-- Password field -->
         <div class="form-group">
-          <label>Password</label>
-          <div class="input-group">
-            <i class="fas fa-lock"></i>
-            <input 
-              :type="showPassword ? 'text' : 'password'"
-              v-model="user.password"
-              placeholder="Enter your password"
-              @blur="validatePassword"
-            >
-            <i 
-              class="password-toggle"
-              :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"
-              @click="showPassword = !showPassword"
-            ></i>
+          <input 
+            :type="showPassword ? 'text' : 'password'"
+            v-model="user.password"
+            placeholder="Kata Sandi"
+            class="auth-input"
+            required
+          >
+        </div>
+
+        <div class="auth-links">
+          <div class="auth-redirect">
+            <span>{{ isLogin ? 'Belum' : 'Sudah' }} punya akun? </span>
+            <router-link :to="isLogin ? '/register' : '/login'" class="redirect-link">
+              {{ isLogin ? 'Daftar' : 'Masuk' }}
+            </router-link>
           </div>
-          <span class="error" v-if="passwordError">{{ passwordError }}</span>
+        </div>
+
+        <div class="divider">
+          <span class="divider-text">Atau {{ isLogin ? 'Masuk' : 'Daftar' }} Dengan</span>
         </div>
 
         <button 
-          type="submit" 
-          class="auth-button"
-          :class="{
-            'processing': buttonState === 'processing',
-            'failed': buttonState === 'failed'
-          }"
-          :disabled="!isFormValid || buttonState === 'processing'"
+          @click="handleGoogleSignIn"
+          type="button"
+          class="google-button"
         >
-          {{ buttonText }}
+          <img src="../assets/google.svg" alt="Google" class="google-icon" />
+          {{ isLogin ? 'Masuk' : 'Daftar' }} menggunakan Google
+        </button>
+
+        <button 
+          type="submit" 
+          class="submit-button"
+        >
+          {{ isLogin ? 'Masuk' : 'Daftar' }}
         </button>
       </form>
-
-      <!-- Add Google Sign-in Button -->
-      <div class="separator">
-        <span>or</span>
-      </div>
-
-      <button 
-        @click="handleGoogleSignIn"
-        class="google-btn"
-        :disabled="buttonState === 'processing'"
-      >
-        <i class="fab fa-google"></i>
-        {{ isLogin ? 'Login' : 'Register' }} with Google
-      </button>
-
-      <div class="auth-switch">
-        <router-link :to="isLogin ? '/register' : '/login'">
-          {{ isLogin ? "Don't have an account? Register" : 'Already have an account? Login' }}
-        </router-link>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '../stores/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const { user, isError, message } = storeToRefs(authStore)
-const { authUser } = authStore
-
+const { user } = storeToRefs(authStore)
 const showPassword = ref(false)
-const nameError = ref('')
-const emailError = ref('')
-const passwordError = ref('')
-const buttonState = ref('default') // 'default' | 'processing' | 'failed'
 
 const props = defineProps({
   isLogin: {
@@ -119,215 +92,210 @@ const props = defineProps({
   }
 })
 
-const buttonText = computed(() => {
-  switch (buttonState.value) {
-    case 'processing':
-      return 'Processing...'
-    case 'failed':
-      return 'Failed!'
-    default:
-      return props.isLogin ? 'Login' : 'Register'
-  }
-})
-
-const validateName = () => {
-  if (!props.isLogin) {
-    nameError.value = user.value.name ? '' : 'Name is required'
-  }
-}
-
-const validateEmail = () => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  emailError.value = !user.value.email 
-    ? 'Email is required'
-    : !emailRegex.test(user.value.email)
-    ? 'Invalid email format'
-    : ''
-}
-
-const validatePassword = () => {
-  passwordError.value = !user.value.password 
-    ? 'Password is required'
-    : user.value.password.length < 8
-    ? 'Password must be at least 8 characters'
-    : ''
-}
-
-const isFormValid = computed(() => {
-  const basicValidation = !emailError.value && !passwordError.value && user.value.email && user.value.password
-  return props.isLogin 
-    ? basicValidation
-    : basicValidation && !nameError.value && user.value.name
-})
-
 const handleSubmit = async () => {
-  buttonState.value = 'processing'
   try {
-    // Pass router instance to authUser
-    await authUser(props.isLogin, router)
-  } catch {
-    buttonState.value = 'failed'
-    setTimeout(() => {
-      buttonState.value = 'default'
-    }, 3000)
+    await authStore.authUser(props.isLogin, router)
+  } catch (error) {
+    console.error('Authentication error:', error)
   }
 }
 
-// Add to existing imports
 const handleGoogleSignIn = () => {
   authStore.signInWithGoogle(router)
 }
 </script>
 
 <style scoped>
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
-  background-color: #f5f5f5;
+/* Apply Judson font family to all elements */
+* {
+  font-family: 'Judson', serif;
 }
 
-.auth-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.auth-container {
+  display: flex;
   width: 100%;
-  max-width: 400px;
+  max-width: 1200px;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.auth-content {
+  flex: 1;
+  padding: 3rem 4rem;
+  max-width: 600px;
+  /* Default order for login (left side) */
+  order: 1;
 }
 
 .auth-title {
-  text-align: center;
-  color: #333;
-  margin-bottom: 2rem;
+  font-size: 3rem;
+  color: #8B7355;
+  margin-bottom: 3rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.auth-form {
+  width: 100%;
 }
 
 .form-group {
   margin-bottom: 1.5rem;
 }
 
-.input-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 0.5rem;
+/* Update input styles */
+.auth-input {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border: 2px solid #c2c2c2; /* Light gray border */
+  border-radius: 50px;
+  background-color: #d4c4b5;
+  font-size: 1.1rem;
+  color: #000000;
+  transition: border-color 0.3s ease;
 }
 
-.input-group i {
-  color: #666;
-  margin-right: 10px;
-}
-
-.input-group input {
-  border: none;
+.auth-input:focus {
   outline: none;
+  border-color: #8B7355; /* Brown border on focus */
+}
+
+.auth-input::placeholder {
+  color: #000000; /* Darker gray for placeholder */
+  opacity: 0.7;
+}
+
+.auth-links {
+  text-align: left;
+  margin: 1rem 0 2rem;
+}
+
+.redirect-link {
+  color: #8B7355;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.divider-text {
+  background: #ffffff;
+  padding: 0 1rem;
+  color: #000000;
+  position: relative;
+  z-index: 1;
+  font-size: 1.1rem;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #8B7355;
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* Update button styles */
+.google-button, .submit-button {
   width: 100%;
-  padding: 0.5rem;
-}
-
-.password-toggle {
-  cursor: pointer;
-}
-
-.error {
-  color: red;
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
-}
-
-.auth-button {
-  width: 100%;
-  padding: 0.8rem;
-  background: #007bff;
-  color: white;
+  padding: 1rem;
   border: none;
-  border-radius: 5px;
+  border-radius: 50px;
+  background-color: #b69c7c; /* Darker brown */
+  color: #ffffff; /* White text */
+  font-size: 1.1rem;
   cursor: pointer;
-  font-size: 1rem;
   transition: all 0.3s ease;
 }
 
-.auth-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.auth-button:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.auth-button.processing {
-  background: #004494;
-  cursor: not-allowed;
-}
-
-.auth-button.failed {
-  background: #dc3545;
-  cursor: not-allowed;
-}
-
-.auth-switch {
-  text-align: center;
-  margin-top: 1rem;
-}
-
-.auth-switch a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-/* Add to existing styles */
-.separator {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  margin: 20px 0;
-}
-
-.separator::before,
-.separator::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #ddd;
-}
-
-.separator span {
-  padding: 0 10px;
-  color: #666;
-  font-size: 14px;
-}
-
-.google-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+.google-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-bottom: 20px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
 }
 
-.google-btn:hover {
-  background-color: #f8f8f8;
+.submit-button {
+  width: 65%;
+  margin: 0 auto;
+  display: block;
 }
 
-.google-btn i {
-  color: #4285f4;
+.google-button:hover, .submit-button:hover {
+  background-color: #8b7254; /* Even darker on hover */
+  color: #ffffff;
+  transform: translateY(-1px); /* Slight lift effect */
 }
 
-.google-btn:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  opacity: 0.7;
+.google-button:active, .submit-button:active {
+  transform: translateY(0);
+}
+
+.google-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.logo-container {
+  position: relative;
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  /* Default order for login (right side) */
+  order: 2;
+}
+
+/* Styles for registration page */
+.logo-container.logo-left {
+  order: 1; /* Move logo to left for registration */
+}
+
+/* When logo is on left, move content to right */
+.logo-container.logo-left + .auth-content {
+  order: 2;
+}
+
+.difia-logo {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+
+/* Media query for mobile responsiveness */
+@media (max-width: 768px) {
+  .auth-container {
+    flex-direction: column;
+  }
+
+  .auth-content,
+  .logo-container,
+  .logo-container.logo-left,
+  .logo-container.logo-left + .auth-content {
+    width: 100%;
+    order: 0;
+    padding: 2rem;
+  }
+
+  .logo-container {
+    justify-content: center;
+  }
+
+  .difia-logo {
+    max-width: 200px;
+  }
 }
 </style>
