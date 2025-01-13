@@ -15,6 +15,7 @@ import ChatCustomer from '@/views/ChatCustomer.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
+import FormOrderView from '@/views/FormOrderView.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -51,7 +52,11 @@ const router = createRouter({
       name: 'Register',
       component: RegisterPage
     },
-
+    {
+      path: '/form-order',
+      name: 'FormOrder',
+      component: FormOrderView
+    },
     {
       path: '/admin',
       component: AdminLayout,
