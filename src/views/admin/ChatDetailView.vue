@@ -18,10 +18,44 @@
         class="message"
         :class="{ 'sent': msg.senderId === currentUser.id }"
       >
-        <div class="message-content">
-          {{ msg.text }}
+        <div 
+          class="message-content"
+          :class="{ 'form-link-message': msg.isFormLink }"
+        >
+          <template v-if="msg.isFormLink">
+            <router-link :to="msg.formUrl" class="form-link">
+              <i class="fas fa-file-alt"></i>
+              Form Pemesanan
+              <i class="fas fa-arrow-right"></i>
+            </router-link>
+          </template>
+          <template v-else>
+            {{ msg.text }}
+          </template>
           <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Add Quick Messages section above the message input -->
+    <div class="quick-messages">
+      <button 
+        @click="sendFormLink" 
+        class="form-order-btn"
+      >
+        <i class="fas fa-file-alt"></i> Form Pemesanan
+      </button>
+      <div class="quick-message-container">
+        <button 
+          v-for="(message, index) in quickMessages" 
+          :key="index"
+          @click="sendQuickMessage(message, index)"
+          class="quick-message-btn"
+          :disabled="cooldowns[index] > 0"
+        >
+          {{ message }}
+          <span v-if="cooldowns[index] > 0" class="cooldown-text">{{ cooldowns[index] }}s</span>
+        </button>
       </div>
     </div>
 
@@ -64,6 +98,11 @@ onMounted(() => {
 onUnmounted(() => {
   if (threadListener) threadListener()
   if (messagesListener) messagesListener()
+  cooldowns.value.forEach((_, index) => {
+    if (cooldowns.value[index] > 0) {
+      cooldowns.value[index] = 0
+    }
+  })
 })
 
 const initializeChat = () => {
@@ -136,6 +175,80 @@ watch(messages, () => {
     }
   }, 100)
 })
+
+// Add these to your existing refs
+const quickMessages = [
+  "Baik, akan saya proses",
+  "Mohon tunggu sebentar",
+  "Terima kasih sudah menghubungi kami",
+  "Apakah ada yang bisa kami bantu?",
+  "Mohon maaf atas ketidaknyamanannya"
+]
+
+// Add cooldown state
+const cooldowns = ref(quickMessages.map(() => 0))
+
+const startCooldown = (index) => {
+  cooldowns.value[index] = 5 // 5 second cooldown
+  const timer = setInterval(() => {
+    cooldowns.value[index]--
+    if (cooldowns.value[index] <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
+const sendQuickMessage = async (message, index) => {
+  if (cooldowns.value[index] > 0) return
+
+  try {
+    const messageData = {
+      text: message,
+      senderId: currentUser.value.id,
+      senderName: currentUser.value.name,
+      timestamp: serverTimestamp()
+    }
+
+    const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
+    await push(messagesRef, messageData)
+
+    const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
+    await update(threadRef, {
+      lastMessage: messageData.text,
+      lastMessageTime: serverTimestamp()
+    })
+
+    // Start cooldown after successful send
+    startCooldown(index)
+  } catch (error) {
+    console.error('Error sending quick message:', error)
+  }
+}
+
+// Add this function to your script
+const sendFormLink = async () => {
+  try {
+    const messageData = {
+      text: "Form Pemesanan", // Simplified text since we'll use icons
+      senderId: currentUser.value.id,
+      senderName: currentUser.value.name,
+      timestamp: serverTimestamp(),
+      isFormLink: true,
+      formUrl: '/form-order'
+    }
+
+    const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
+    await push(messagesRef, messageData)
+
+    const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
+    await update(threadRef, {
+      lastMessage: "Mengirim form pemesanan",
+      lastMessageTime: serverTimestamp()
+    })
+  } catch (error) {
+    console.error('Error sending form link:', error)
+  }
+}
 </script>
 
 <style scoped>
@@ -339,5 +452,151 @@ watch(messages, () => {
     height: 3rem;
     font-size: 1rem;
   }
+}
+
+/* Update the quick-messages style */
+.quick-messages {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background-color: #DEB887;
+  border-top: 1px solid rgba(139, 69, 19, 0.1);
+  align-items: center;
+}
+
+/* Update the form-order-btn style */
+.form-order-btn {
+  margin-right: 1rem; /* Add margin to separate from quick messages */
+  white-space: nowrap;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 1rem;
+  background-color: #4A2511;
+  color: white;
+  cursor: pointer;
+  font-family: 'Judson', serif;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  grid-column: 1;
+  order: -1; /* Ensures it stays first */
+}
+
+/* Add a container for quick message buttons */
+.quick-message-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  grid-column: 2;
+  scrollbar-width: thin;
+  scrollbar-color: #8B4513 #DEB887;
+}
+
+/* Style the scrollbar */
+.quick-message-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.quick-message-container::-webkit-scrollbar-track {
+  background: #DEB887;
+}
+
+.quick-message-container::-webkit-scrollbar-thumb {
+  background-color: #8B4513;
+  border-radius: 4px;
+}
+
+.quick-message-btn {
+  position: relative;
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 1rem;
+  background-color: white;
+  color: #8B4513;
+  cursor: pointer;
+  font-family: 'Judson', serif;
+  transition: all 0.3s ease;
+}
+
+.quick-message-btn:hover:not(:disabled) {
+  background-color: #8B4513;
+  color: white;
+}
+
+.quick-message-btn:disabled {
+  background-color: #D2B48C;
+  color: rgba(139, 69, 19, 0.5);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.cooldown-text {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #8B4513;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .quick-messages {
+    padding: 0.8rem 1rem;
+  }
+
+  .quick-message-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Add this new style */
+.form-order-btn i {
+  font-size: 1rem;
+}
+
+/* Add these new styles */
+.message-content.form-link-message {
+  background-color: #4A2511 !important;
+  color: white !important;
+  cursor: pointer;
+  padding: 1.5rem 2rem !important;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.message-content.form-link-message:hover {
+  background-color: #5c2e15 !important;
+  transform: translateY(-2px);
+}
+
+.message-content.form-link-message i {
+  font-size: 1.2rem;
+}
+
+.form-link {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-link i {
+  transition: transform 0.3s ease;
+}
+
+.form-link:hover i {
+  transform: translateX(4px);
 }
 </style>
