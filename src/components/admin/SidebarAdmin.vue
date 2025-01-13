@@ -5,8 +5,7 @@
       <!-- Logo Section -->
       <div class="logo">
         <div class="logo-content">
-          <img src="@/assets/default-avatar-wm14gXiP.png" alt="DIFIA" class="logo-image" />
-          <h2 :class="{ 'hide-text': !isOpen }">DIFIA</h2>
+          <img src="../../assets/difia.jpg" alt="DIFIA" class="logo-image" />
         </div>
       </div>
   
