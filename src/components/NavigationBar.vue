@@ -93,7 +93,7 @@ a.masuk {
 i {
   color: white;
   transition: all 700ms;
-  font-size: x-large;
+  font-size: xx-large;
 }
 
 i:hover {
@@ -125,5 +125,14 @@ a.masuk:hover {
   background-color: #A79277;
   border-radius: 100px;
   padding: 10px;
+}
+
+a.keluar {
+  color: white;
+  background-color: #D1BB9E;
+  text-align: center;
+  padding: 14px;
+  width: 100px;
+  border-radius: 100px;
 }
 </style>
