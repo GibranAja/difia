@@ -17,15 +17,16 @@ defineProps({
 
 <style scoped>
 .card {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  padding: 10px;
   background-color: white;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+
 .card img {
   width: 100%;
   height: 200px;
@@ -33,20 +34,23 @@ defineProps({
   border-radius: 5px;
   border: 1px solid #A79277;
 }
+
 .card h1 {
-  font-size: 2rem;
-  margin: 10px 0;
+  font-size: 1.5rem;
+  margin: 15px 0;
   color: #A79277;
+  text-align: center;
 }
-.card a{
+
+.card a {
   text-decoration: none;
   color: black;
-  transition: all 700ms;
   background-color: #D1BB9E;
-  padding: 5px;
+  padding: 8px 20px;
   border-radius: 100px;
-  width: 100px;
+  transition: all 0.3s ease;
   text-align: center;
+  margin-top: auto;
 }
 
 .card a:hover {
