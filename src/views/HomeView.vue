@@ -28,8 +28,12 @@
     </section>
     <section class="katalog">
       <h1><b>KATALOG</b></h1>
-      <div class="katalog-card">
-        <CardCatalog></CardCatalog>
+      <div class="catalog-grid">
+        <CardCatalog
+          v-for="katalog in katalogStore.katalogItems"
+          :key="katalog.id"
+          :item="katalog"
+        />
       </div>
     </section>
     <section class="blog">
@@ -38,7 +42,7 @@
         <h1><b>BLOG</b></h1>
         <span class="line"></span>
       </div>
-
+      <CardBlog></CardBlog>
     </section>
     <section class="ulasan">
       <h1><b>ULASAN</b></h1>
@@ -63,14 +67,17 @@
 
 <script setup>
 import CardCatalog from '@/components/CardCatalog.vue';
+import CardBlog from '@/components/CardBlog.vue';
 import NavigationBar from '@/components/NavigationBar.vue';
 import { useAuthStore } from '@/stores/AuthStore';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useKatalogStore } from '@/stores/KatalogStore';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
+const katalogStore = useKatalogStore();
 
 const handleLogout = async () => {
   try {
@@ -79,6 +86,10 @@ const handleLogout = async () => {
     console.error('Logout error:', error);
   }
 };
+
+onMounted(async () => {
+  await katalogStore.fetchKatalog();
+});
 
 </script>
 
@@ -191,12 +202,11 @@ header {
   text-align: center;
 }
 
-.katalog-card {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  align-items: center;
-  gap: 100px;
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
 }
 
 .blog {
