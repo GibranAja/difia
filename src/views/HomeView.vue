@@ -29,9 +29,7 @@
     <section class="katalog">
       <h1><b>KATALOG</b></h1>
       <div class="katalog-card">
-        <img src="../assets/difia.jpg" alt="foto-produk">
-        <img src="../assets/difia.jpg" alt="foto-produk">
-        <img src="../assets/difia.jpg" alt="foto-produk">
+        <CardCatalog></CardCatalog>
       </div>
     </section>
     <section class="blog">
@@ -64,6 +62,7 @@
 </template>
 
 <script setup>
+import CardCatalog from '@/components/CardCatalog.vue';
 import NavigationBar from '@/components/NavigationBar.vue';
 import { useAuthStore } from '@/stores/AuthStore';
 import { computed } from 'vue';
