@@ -30,66 +30,90 @@ onMounted(async () => {
 
 <style scoped>
 .card-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 120px 40px; /* Increased row gap to account for floating keterangan */
+  padding: 20px;
   width: 100%;
+  max-width: 1700px;
+  margin: 0 auto;
 }
 
 .card {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  align-items: center;
-  padding: 10px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
-    'Helvetica Neue', sans-serif;
+  width: 100%;
   position: relative;
-  width: 80%;
-  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 8px;
+  overflow: visible; /* Changed from hidden to allow content to overflow */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .card img {
-  position: absolute;
-  top: 0;
-  width: 30%;
-  border-radius: 5px;
-  border: 1px solid #A79277;
-  z-index: -1;
-  /* Ubah z-index menjadi positif */
+  width: 100%;
+  height: 15rem; /* Changed from aspect-ratio to fixed height */
+  object-fit: cover;
+  display: block; /* Removes any extra space below image */
 }
 
 .card .keterangan {
-  display: flex;
-  flex-wrap: wrap;
   position: absolute;
-  /* Tambahkan position absolute */
-  bottom: 20px;
-  /* Atur jarak dari bawah */
-  left: 300px;
-  /* Atur posisi dari kiri */
-  width: 30%;
-  background-color: #605D5D;
+  width: 75%;
+  background-color: rgba(96, 93, 93, 0.9); /* Added transparency */
+  padding: 20px;
   color: white;
-  padding: 10px;
-  box-sizing: border-box;
-  z-index: -1;
-  /* Ubah z-index menjadi lebih tinggi dari gambar */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  bottom: -150px;
+  transform: none; /* Removed the center transform */
+  z-index: 2;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.card .keterangan a {
-  text-decoration: none;
-  color: white;
-  padding: 5px;
+.card .keterangan h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.card .keterangan p {
+  margin: 0;
+  line-height: 1.5;
 }
 
 .card .keterangan .line {
   width: 50%;
   border: 1px solid white;
+  margin: 10px 0;
 }
 
-.card .keterangan h1 {
-  width: 100%;
+.card .keterangan a {
+  text-decoration: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  align-self: flex-start;
+  transition: all 0.3s ease;
+}
+
+.card .keterangan a:hover {
+  background-color: white;
+  color: #605D5D;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .card-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-container {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
