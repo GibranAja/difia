@@ -4,9 +4,7 @@
 
     <div class="katalog-controls">
       <div class="top-controls">
-        <router-link to="/admin/katalog/create" class="add-btn">
-          Tambah Katalog
-        </router-link>
+        <router-link to="/admin/katalog/create" class="add-btn"> Tambah Katalog </router-link>
       </div>
 
       <div class="filter-controls">
@@ -39,12 +37,19 @@
       <table v-else class="katalog-table">
         <colgroup>
           <col style="width: 5%" />
+          <!-- No -->
           <col style="width: 15%" />
-          <col style="width: 20%" />
-          <col style="width: 20%" />
+          <!-- Nama -->
           <col style="width: 15%" />
-          <col style="width: 15%" />
+          <!-- Harga -->
+          <col style="width: 30%" />
+          <!-- Detail -->
           <col style="width: 10%" />
+          <!-- Waktu -->
+          <col style="width: 15%" />
+          <!-- Foto -->
+          <col style="width: 15%" />
+          <!-- Aksi -->
         </colgroup>
         <thead>
           <tr>
@@ -52,14 +57,14 @@
             <th>Nama Katalog</th>
             <th>Harga Katalog</th>
             <th>Detail Katalog</th>
-            <th>Waktu Pengerjaan</th>
-            <th>Foto Katalog</th>
+            <th>Waktu</th>
+            <th>Foto</th>
             <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(item, index) in paginatedKatalog" :key="item.id">
-            <td>{{ startIndex + index + 1 }}</td>
+            <td class="text-center">{{ startIndex + index + 1 }}</td>
             <td>{{ item.nama }}</td>
             <td>
               <div class="price-list">
@@ -69,9 +74,31 @@
               </div>
             </td>
             <td class="detail-cell">
-              <div class="detail-content">{{ item.detail }}</div>
+              <div class="detail-content">
+                <div class="detail-section">
+                  <strong>Ukuran:</strong>
+                  <div class="detail-ukuran">
+                    <span>P: {{ item.detail?.ukuran?.panjang || 0 }} cm</span>
+                    <span>L: {{ item.detail?.ukuran?.lebar || 0 }} cm</span>
+                    <span>T: {{ item.detail?.ukuran?.tinggi || 0 }} cm</span>
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <strong>Bahan:</strong>
+                  <div>Luar: {{ item.detail?.bahanLuar || '-' }}</div>
+                  <div>Dalam: {{ item.detail?.bahanDalam || '-' }}</div>
+                </div>
+                <div class="detail-section">
+                  <strong>Aksesoris:</strong>
+                  <div>{{ item.detail?.aksesoris || '-' }}</div>
+                </div>
+                <div class="detail-section">
+                  <strong>Warna:</strong>
+                  <div>{{ item.detail?.warna || '-' }}</div>
+                </div>
+              </div>
             </td>
-            <td>{{ item.waktuPengerjaan }} hari</td>
+            <td class="text-center">{{ item.waktuPengerjaan }} hari</td>
             <td class="image-cell">
               <div class="image-gallery">
                 <img
@@ -92,15 +119,10 @@
             </td>
             <td class="action-cell">
               <div class="action-buttons">
-                <router-link
-                  :to="`/admin/katalog/edit/${item.id}`"
-                  class="edit-btn"
-                >
+                <router-link :to="`/admin/katalog/edit/${item.id}`" class="edit-btn">
                   Edit
                 </router-link>
-                <button class="delete-btn" @click="confirmDelete(item.id)">
-                  Hapus
-                </button>
+                <button class="delete-btn" @click="confirmDelete(item.id)">Hapus</button>
               </div>
             </td>
           </tr>
@@ -109,13 +131,9 @@
     </div>
 
     <div v-if="paginatedKatalog.length" class="pagination">
-      <button :disabled="currentPage === 1" @click="currentPage--">
-        &lt;&lt;
-      </button>
+      <button :disabled="currentPage === 1" @click="currentPage--">&lt;&lt;</button>
       <span>{{ currentPage }} of {{ totalPages }}</span>
-      <button :disabled="currentPage >= totalPages" @click="currentPage++">
-        &gt;&gt;
-      </button>
+      <button :disabled="currentPage >= totalPages" @click="currentPage++">&gt;&gt;</button>
     </div>
 
     <!-- Image Gallery Modal -->
@@ -173,20 +191,23 @@ const galleryImages = ref([])
 const currentImageIndex = ref(0)
 
 const filteredKatalog = computed(() => {
-  return katalogStore.katalogItems.filter(
-    (item) =>
-      item.nama.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      item.detail.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+  return katalogStore.katalogItems.filter((item) => {
+    const searchTerm = searchQuery.value.toLowerCase()
+    const itemName = item.nama?.toLowerCase() || ''
+    const itemDetail =
+      item.detail?.bahanLuar?.toLowerCase() ||
+      '' + item.detail?.bahanDalam?.toLowerCase() ||
+      '' + item.detail?.aksesoris?.toLowerCase() ||
+      '' + item.detail?.warna?.toLowerCase() ||
+      ''
+
+    return itemName.includes(searchTerm) || itemDetail.includes(searchTerm)
+  })
 })
 
-const totalPages = computed(() =>
-  Math.ceil(filteredKatalog.value.length / entriesPerPage.value)
-)
+const totalPages = computed(() => Math.ceil(filteredKatalog.value.length / entriesPerPage.value))
 
-const startIndex = computed(() =>
-  (currentPage.value - 1) * entriesPerPage.value
-)
+const startIndex = computed(() => (currentPage.value - 1) * entriesPerPage.value)
 
 const paginatedKatalog = computed(() => {
   const start = startIndex.value
@@ -223,7 +244,7 @@ const formatPrice = (price) => {
   if (price === null || price === undefined) return '-'
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
-    currency: 'IDR'
+    currency: 'IDR',
   }).format(price)
 }
 
@@ -327,6 +348,8 @@ const prevImage = () => {
   table-layout: fixed;
   border-collapse: collapse;
   min-width: 1000px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .katalog-table th,
@@ -341,6 +364,16 @@ const prevImage = () => {
 .katalog-table th {
   background-color: #02163b;
   color: white;
+  padding: 12px;
+  font-weight: 500;
+  text-align: left;
+  border-bottom: 2px solid #0a1f3b;
+}
+
+.katalog-table td {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  vertical-align: top;
 }
 
 .detail-cell {
@@ -348,9 +381,40 @@ const prevImage = () => {
 }
 
 .detail-content {
-  max-height: 100px;
+  max-height: 200px;
   overflow-y: auto;
   white-space: pre-wrap;
+  padding: 8px;
+}
+
+.detail-section {
+  margin-bottom: 8px;
+  padding: 4px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #02163b;
+}
+
+.detail-ukuran {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-ukuran span {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 .image-cell {
@@ -359,31 +423,40 @@ const prevImage = () => {
 
 .image-gallery {
   display: flex;
-  gap: 5px;
+  gap: 4px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .image-gallery img {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   object-fit: cover;
   border-radius: 4px;
   cursor: pointer;
-  transition: transform 0.2s;
+  border: 1px solid #dee2e6;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
 }
 
 .image-gallery img:hover {
   transform: scale(1.1);
+  opacity: 0.9;
 }
 
 .price-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
 }
 
 .price-list div {
   font-size: 0.9em;
+  padding: 2px 0;
 }
 
 .katalog-table td {
@@ -397,6 +470,12 @@ const prevImage = () => {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.more-images:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .action-cell {
@@ -417,11 +496,18 @@ const prevImage = () => {
   cursor: pointer;
   white-space: nowrap;
   min-width: 60px;
+  font-size: 0.9em;
+  transition: opacity 0.2s;
 }
 
 .edit-btn {
   background-color: #4caf50;
   color: white;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  opacity: 0.9;
 }
 
 .delete-btn {
@@ -566,7 +652,9 @@ const prevImage = () => {
 /* Add hover effect for gallery thumbnails */
 .image-gallery img {
   cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
 }
 
 .image-gallery img:hover {
@@ -581,5 +669,120 @@ const prevImage = () => {
 
 .more-images:hover {
   background: rgba(0, 0, 0, 0.8);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.detail-cell .detail-content {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.detail-section {
+  margin-bottom: 8px;
+  padding: 4px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #02163b;
+}
+
+.detail-ukuran {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-ukuran span {
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.katalog-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  min-width: 1000px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.katalog-table th {
+  background-color: #02163b;
+  color: white;
+  padding: 12px;
+  font-weight: 500;
+  text-align: left;
+  border-bottom: 2px solid #0a1f3b;
+}
+
+.katalog-table td {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  vertical-align: top;
+}
+
+.price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.price-list div {
+  font-size: 0.9em;
+  padding: 2px 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: opacity 0.2s;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  opacity: 0.9;
+}
+
+.image-gallery {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.image-gallery img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #dee2e6;
 }
 </style>
