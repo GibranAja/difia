@@ -54,9 +54,19 @@ export const useKatalogStore = defineStore('katalog', {
           harga: {
             standar: Number(katalogData.harga.standar),
             premium: Number(katalogData.harga.premium),
-            budgetting: 'By Request' // Changed to string
+            budgetting: 'By Request'
           },
-          detail: katalogData.detail,
+          detail: {
+            ukuran: {
+              panjang: katalogData.detail.ukuran.panjang,
+              tinggi: katalogData.detail.ukuran.tinggi,
+              lebar: katalogData.detail.ukuran.lebar
+            },
+            bahanLuar: katalogData.detail.bahanLuar,
+            bahanDalam: katalogData.detail.bahanDalam,
+            aksesoris: katalogData.detail.aksesoris,
+            warna: katalogData.detail.warna
+          },
           waktuPengerjaan: Number(katalogData.waktuPengerjaan || 1),
           images: base64Images,
           createdAt: new Date(),
@@ -93,9 +103,19 @@ export const useKatalogStore = defineStore('katalog', {
           harga: {
             standar: Number(updateData.harga.standar),
             premium: Number(updateData.harga.premium),
-            budgetting: 'By Request' // Changed to string
+            budgetting: 'By Request'
           },
-          detail: updateData.detail,
+          detail: {
+            ukuran: {
+              panjang: updateData.detail.ukuran.panjang,
+              tinggi: updateData.detail.ukuran.tinggi,
+              lebar: updateData.detail.ukuran.lebar
+            },
+            bahanLuar: updateData.detail.bahanLuar,
+            bahanDalam: updateData.detail.bahanDalam,
+            aksesoris: updateData.detail.aksesoris,
+            warna: updateData.detail.warna
+          },
           waktuPengerjaan: Number(updateData.waktuPengerjaan || 1),
           updatedAt: new Date(),
         }
