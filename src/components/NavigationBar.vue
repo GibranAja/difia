@@ -48,6 +48,7 @@ nav {
   top: 0;
   width: 100%;
   padding: 10px;
+  z-index: 999;
   justify-content: space-around;
   align-items: center;
   font-family: 'Times New Roman', Times, serif;
