@@ -16,6 +16,8 @@ import ChatCustomer from '@/views/ChatCustomer.vue'
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 import FormOrderView from '@/views/FormOrderView.vue'
+import PartnerView from '@/views/admin/PartnerView.vue'
+import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -109,6 +111,25 @@ const router = createRouter({
           path: 'blog/edit/:id',
           name: 'EditBlog',
           component: CreateBlog,
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'Partner',
+          name: 'PartnerView',
+          component: PartnerView,
+          meta: { requiresAdmin: true }
+        },
+        // Add new blog routes
+        {
+          path: 'partner/create',
+          name: 'CreatePartnerBlog',
+          component: CreatePartnerView,
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'partner/edit/:id',
+          name: 'CreatePartnerView',
+          component: CreatePartnerView,
           meta: { requiresAdmin: true }
         },
         {
