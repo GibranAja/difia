@@ -326,13 +326,13 @@
 }
 
 .message.sent .message-bubble {
-  background-color: white;
-  color: #8B4513;
+  background-color: #e8ba38;
+  color: #02163b;
 }
 
 .message:not(.sent) .message-bubble {
-  background-color: #8B4513;
-  color: white;
+  background-color: #02163b;
+  color: #e8ba38;
 }
 
 .message-time {

@@ -109,7 +109,7 @@ onUnmounted(() => {
 
 <style scoped>
 .admin-layout {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
   display: flex;
   min-height: 100vh;
   position: relative;
@@ -142,12 +142,12 @@ onUnmounted(() => {
 }
 
 .admin-navbar {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', serif;
   display: flex;
   justify-content: space-between;
   align-items: center;
   height: 64px;
-  background-color: rgb(188, 173, 163);
+  background-color: #e8ba38;
   padding: 0 1.5rem;
   position: sticky;
   top: 0;

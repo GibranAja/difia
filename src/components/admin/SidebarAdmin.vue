@@ -96,13 +96,13 @@ const handleLogout = async () => {
 
 <style scoped>
 .sidebar {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
   width: 250px;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  background-color: rgb(188, 173, 163);
+  background-color: #e8ba38;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
   z-index: 20;
@@ -146,8 +146,8 @@ const handleLogout = async () => {
 
 /* Mengatur admin label saat collapsed */
 .admin-label {
-  font-family: 'Judson', serif;
-  background-color: rgb(139, 116, 99);
+  font-family: 'Montserrat', sans-serif;
+  background-color: #02163b;
   color: white;
   padding: 8px 30px;
   border-radius: 20px;
@@ -180,7 +180,7 @@ const handleLogout = async () => {
 }
 
 .nav-item {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
   display: flex;
   align-items: center;
   gap: 15px;
@@ -325,13 +325,13 @@ const handleLogout = async () => {
   color: #2c3e50;
   margin-bottom: 1rem;
   font-size: 1.5rem;
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .modal-content p {
   color: #666;
   margin-bottom: 1.5rem;
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .modal-actions {
@@ -347,7 +347,7 @@ const handleLogout = async () => {
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .cancel-btn {

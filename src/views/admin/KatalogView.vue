@@ -283,7 +283,7 @@ const prevImage = () => {
 }
 
 .add-btn {
-  background-color: #b69b87;
+  background-color: #02163b;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -331,7 +331,7 @@ const prevImage = () => {
 
 .katalog-table th,
 .katalog-table td {
-  border: 1px solid #ddd;
+  border: 1px solid #02163b;
   padding: 12px;
   text-align: left;
   word-wrap: break-word;
@@ -339,7 +339,7 @@ const prevImage = () => {
 }
 
 .katalog-table th {
-  background-color: #b69b87;
+  background-color: #02163b;
   color: white;
 }
 

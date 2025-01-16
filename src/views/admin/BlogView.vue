@@ -161,7 +161,7 @@ const confirmDelete = async (id) => {
 }
 
 .add-btn {
-  background-color: #b69b87;
+  background-color: #02163b;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -209,13 +209,13 @@ const confirmDelete = async (id) => {
 
 .blog-table th,
 .blog-table td {
-  border: 1px solid #ddd;
+  border: 1px solid #02163b;
   padding: 12px;
   text-align: left;
 }
 
 .blog-table th {
-  background-color: #b69b87;
+  background-color: #02163b;
   color: white;
 }
 

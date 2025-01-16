@@ -84,7 +84,7 @@ const formatTime = (timestamp) => {
 .chat-thread {
   display: flex;
   padding: 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e3e3e3;
   cursor: pointer;
   text-decoration: none;
   color: inherit;

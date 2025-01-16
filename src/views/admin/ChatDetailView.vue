@@ -8,20 +8,15 @@
     </div>
 
     <div class="messages-container" ref="messagesContainer">
-      <div v-if="!messages.length" class="no-messages">
-        Belum ada pesan
-      </div>
-      <div 
+      <div v-if="!messages.length" class="no-messages">Belum ada pesan</div>
+      <div
         v-else
-        v-for="msg in messages" 
-        :key="msg.id" 
+        v-for="msg in messages"
+        :key="msg.id"
         class="message"
-        :class="{ 'sent': msg.senderId === currentUser.id }"
+        :class="{ sent: msg.senderId === currentUser.id }"
       >
-        <div 
-          class="message-content"
-          :class="{ 'form-link-message': msg.isFormLink }"
-        >
+        <div class="message-content" :class="{ 'form-link-message': msg.isFormLink }">
           <template v-if="msg.isFormLink">
             <router-link :to="msg.formUrl" class="form-link">
               <i class="fas fa-file-alt"></i>
@@ -39,15 +34,12 @@
 
     <!-- Add Quick Messages section above the message input -->
     <div class="quick-messages">
-      <button 
-        @click="sendFormLink" 
-        class="form-order-btn"
-      >
+      <button @click="sendFormLink" class="form-order-btn">
         <i class="fas fa-file-alt"></i> Form Pemesanan
       </button>
       <div class="quick-message-container">
-        <button 
-          v-for="(message, index) in quickMessages" 
+        <button
+          v-for="(message, index) in quickMessages"
           :key="index"
           @click="sendQuickMessage(message, index)"
           class="quick-message-btn"
@@ -60,11 +52,7 @@
     </div>
 
     <div class="message-input">
-      <input 
-        v-model="newMessage" 
-        @keyup.enter="sendMessage"
-        placeholder="Ketik pesan..."
-      />
+      <input v-model="newMessage" @keyup.enter="sendMessage" placeholder="Ketik pesan..." />
       <button @click="sendMessage" :disabled="!newMessage.trim()">
         <i class="fas fa-paper-plane"></i>
       </button>
@@ -108,12 +96,12 @@ onUnmounted(() => {
 const initializeChat = () => {
   const threadId = route.params.id
   const threadRef = dbRef(rtdb, `chat_threads/${threadId}`)
-  
+
   // Listen for thread details
   threadListener = onValue(threadRef, (snapshot) => {
     chatThread.value = {
       id: snapshot.key,
-      ...snapshot.val()
+      ...snapshot.val(),
     }
   })
 
@@ -124,7 +112,7 @@ const initializeChat = () => {
     snapshot.forEach((childSnapshot) => {
       messagesList.push({
         id: childSnapshot.key,
-        ...childSnapshot.val()
+        ...childSnapshot.val(),
       })
     })
     messages.value = messagesList
@@ -135,7 +123,7 @@ const initializeChat = () => {
 const markThreadAsRead = async (threadId) => {
   const threadRef = dbRef(rtdb, `chat_threads/${threadId}`)
   await update(threadRef, {
-    unreadCount: 0
+    unreadCount: 0,
   })
 }
 
@@ -146,7 +134,7 @@ const sendMessage = async () => {
     text: newMessage.value.trim(),
     senderId: currentUser.value.id,
     senderName: currentUser.value.name,
-    timestamp: serverTimestamp()
+    timestamp: serverTimestamp(),
   }
 
   const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
@@ -155,7 +143,7 @@ const sendMessage = async () => {
   const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
   await update(threadRef, {
     lastMessage: messageData.text,
-    lastMessageTime: serverTimestamp()
+    lastMessageTime: serverTimestamp(),
   })
 
   newMessage.value = ''
@@ -178,11 +166,11 @@ watch(messages, () => {
 
 // Add these to your existing refs
 const quickMessages = [
-  "Baik, akan saya proses",
-  "Mohon tunggu sebentar",
-  "Terima kasih sudah menghubungi kami",
-  "Apakah ada yang bisa kami bantu?",
-  "Mohon maaf atas ketidaknyamanannya"
+  'Baik, akan saya proses',
+  'Mohon tunggu sebentar',
+  'Terima kasih sudah menghubungi kami',
+  'Apakah ada yang bisa kami bantu?',
+  'Mohon maaf atas ketidaknyamanannya',
 ]
 
 // Add cooldown state
@@ -206,7 +194,7 @@ const sendQuickMessage = async (message, index) => {
       text: message,
       senderId: currentUser.value.id,
       senderName: currentUser.value.name,
-      timestamp: serverTimestamp()
+      timestamp: serverTimestamp(),
     }
 
     const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
@@ -215,7 +203,7 @@ const sendQuickMessage = async (message, index) => {
     const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
     await update(threadRef, {
       lastMessage: messageData.text,
-      lastMessageTime: serverTimestamp()
+      lastMessageTime: serverTimestamp(),
     })
 
     // Start cooldown after successful send
@@ -229,12 +217,12 @@ const sendQuickMessage = async (message, index) => {
 const sendFormLink = async () => {
   try {
     const messageData = {
-      text: "Form Pemesanan", // Simplified text since we'll use icons
+      text: 'Form Pemesanan', // Simplified text since we'll use icons
       senderId: currentUser.value.id,
       senderName: currentUser.value.name,
       timestamp: serverTimestamp(),
       isFormLink: true,
-      formUrl: '/form-order'
+      formUrl: '/form-order',
     }
 
     const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
@@ -242,8 +230,8 @@ const sendFormLink = async () => {
 
     const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
     await update(threadRef, {
-      lastMessage: "Mengirim form pemesanan",
-      lastMessageTime: serverTimestamp()
+      lastMessage: 'Mengirim form pemesanan',
+      lastMessageTime: serverTimestamp(),
     })
   } catch (error) {
     console.error('Error sending form link:', error)
@@ -253,17 +241,17 @@ const sendFormLink = async () => {
 
 <style scoped>
 .chat-detail-container {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #DEB887;
+  background-color: white;
   position: relative;
   overflow: hidden;
 }
 
 .chat-header {
-  background-color: #8B4513;
+  background-color: #02163b;
   padding: 1.5rem;
   color: white;
   display: flex;
@@ -283,7 +271,7 @@ const sendFormLink = async () => {
 }
 
 .back-button:hover {
-  color: #DEB887;
+  color: #deb887;
 }
 
 .chat-header h3 {
@@ -300,7 +288,7 @@ const sendFormLink = async () => {
   flex-direction: column;
   gap: 1rem;
   scrollbar-width: thin;
-  scrollbar-color: #8B4513 #DEB887;
+  scrollbar-color: #02163b #e8ba38;
 }
 
 .messages-container::-webkit-scrollbar {
@@ -308,11 +296,11 @@ const sendFormLink = async () => {
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: #DEB887;
+  background: #e8ba38;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background-color: #8B4513;
+  background-color: #02163b;
   border-radius: 4px;
 }
 
@@ -336,12 +324,12 @@ const sendFormLink = async () => {
 }
 
 .message.sent .message-content {
-  background-color: white;
-  color: #8B4513;
+  background-color: #e8ba38;
+  color: #02163b;
 }
 
 .message:not(.sent) .message-content {
-  background-color: #8B4513;
+  background-color: #02163b;
   color: white;
 }
 
@@ -358,8 +346,8 @@ const sendFormLink = async () => {
   display: flex;
   gap: 1rem;
   align-items: center;
-  background-color: #DEB887;
-  border-top: 1px solid rgba(139, 69, 19, 0.1);
+  background-color: white;
+  border-top: 1px solid rgba(2, 22, 59, 0.1);
 }
 
 .message-input input {
@@ -368,9 +356,9 @@ const sendFormLink = async () => {
   border: none;
   border-radius: 2rem;
   font-size: 1.1rem;
-  background: white;
-  color: #8B4513;
-  font-family: 'Judson', serif;
+  background: #02163b;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -380,7 +368,7 @@ const sendFormLink = async () => {
 }
 
 .message-input input::placeholder {
-  color: #8B4513;
+  color: white;
   opacity: 0.7;
 }
 
@@ -388,7 +376,7 @@ const sendFormLink = async () => {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background-color: #4A2511;
+  background-color: #02163b;
   color: white;
   border: none;
   cursor: pointer;
@@ -396,12 +384,14 @@ const sendFormLink = async () => {
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  transition: background-color 0.3s, transform 0.2s;
+  transition:
+    background-color 0.3s,
+    transform 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .message-input button:hover:not(:disabled) {
-  background-color: #5c2e15;
+  background-color: #032661;
   transform: scale(1.05);
 }
 
@@ -410,14 +400,14 @@ const sendFormLink = async () => {
 }
 
 .message-input button:disabled {
-  background-color: #D2B48C;
+  background-color: #ccc;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .no-messages {
   text-align: center;
-  color: #8B4513;
+  color: #02163b;
   font-size: 1.2rem;
   margin: 2rem 0;
   opacity: 0.7;
@@ -460,8 +450,8 @@ const sendFormLink = async () => {
   grid-template-columns: auto 1fr;
   gap: 0.5rem;
   padding: 1rem 2rem;
-  background-color: #DEB887;
-  border-top: 1px solid rgba(139, 69, 19, 0.1);
+  background-color: white;
+  border-top: 1px solid rgba(2, 22, 59, 0.1);
   align-items: center;
 }
 
@@ -472,10 +462,10 @@ const sendFormLink = async () => {
   padding: 0.5rem 1.2rem;
   border: none;
   border-radius: 1rem;
-  background-color: #4A2511;
+  background-color: #02163b;
   color: white;
   cursor: pointer;
-  font-family: 'Judson', serif;
+  font-family: 'Monteserrat', sans-serif;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -490,22 +480,13 @@ const sendFormLink = async () => {
   gap: 0.5rem;
   overflow-x: auto;
   grid-column: 2;
-  scrollbar-width: thin;
-  scrollbar-color: #8B4513 #DEB887;
+  -ms-overflow-style: none; /* Hide scrollbar IE and Edge */
+  scrollbar-width: none; /* Hide scrollbar Firefox */
 }
 
-/* Style the scrollbar */
+/* Hide scrollbar for Chrome, Safari and Opera */
 .quick-message-container::-webkit-scrollbar {
-  height: 6px;
-}
-
-.quick-message-container::-webkit-scrollbar-track {
-  background: #DEB887;
-}
-
-.quick-message-container::-webkit-scrollbar-thumb {
-  background-color: #8B4513;
-  border-radius: 4px;
+  display: none;
 }
 
 .quick-message-btn {
@@ -515,20 +496,21 @@ const sendFormLink = async () => {
   border: none;
   border-radius: 1rem;
   background-color: white;
-  color: #8B4513;
+  color: #02163b;
+  border: 1px solid #02163b;
   cursor: pointer;
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
   transition: all 0.3s ease;
 }
 
 .quick-message-btn:hover:not(:disabled) {
-  background-color: #8B4513;
+  background-color: #02163b;
   color: white;
 }
 
 .quick-message-btn:disabled {
-  background-color: #D2B48C;
-  color: rgba(139, 69, 19, 0.5);
+  background-color: #eee;
+  color: rgba(2, 22, 59, 0.5);
   cursor: not-allowed;
   opacity: 0.8;
 }
@@ -537,7 +519,7 @@ const sendFormLink = async () => {
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: #8B4513;
+  background-color: #02163b;
   color: white;
   font-size: 0.7rem;
   padding: 2px 6px;
@@ -564,7 +546,7 @@ const sendFormLink = async () => {
 
 /* Add these new styles */
 .message-content.form-link-message {
-  background-color: #4A2511 !important;
+  background-color: #010b1d !important;
   color: white !important;
   cursor: pointer;
   padding: 1.5rem 2rem !important;
@@ -575,7 +557,7 @@ const sendFormLink = async () => {
 }
 
 .message-content.form-link-message:hover {
-  background-color: #5c2e15 !important;
+  background-color: #032661 !important;
   transform: translateY(-2px);
 }
 
