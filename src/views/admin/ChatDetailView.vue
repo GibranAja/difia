@@ -34,9 +34,6 @@
 
     <!-- Add Quick Messages section above the message input -->
     <div class="quick-messages">
-      <button @click="sendFormLink" class="form-order-btn">
-        <i class="fas fa-file-alt"></i> Form Pemesanan
-      </button>
       <div class="quick-message-container">
         <button
           v-for="(message, index) in quickMessages"
@@ -210,31 +207,6 @@ const sendQuickMessage = async (message, index) => {
     startCooldown(index)
   } catch (error) {
     console.error('Error sending quick message:', error)
-  }
-}
-
-// Add this function to your script
-const sendFormLink = async () => {
-  try {
-    const messageData = {
-      text: 'Form Pemesanan', // Simplified text since we'll use icons
-      senderId: currentUser.value.id,
-      senderName: currentUser.value.name,
-      timestamp: serverTimestamp(),
-      isFormLink: true,
-      formUrl: '/form-order',
-    }
-
-    const messagesRef = dbRef(rtdb, `messages/${route.params.id}`)
-    await push(messagesRef, messageData)
-
-    const threadRef = dbRef(rtdb, `chat_threads/${route.params.id}`)
-    await update(threadRef, {
-      lastMessage: 'Mengirim form pemesanan',
-      lastMessageTime: serverTimestamp(),
-    })
-  } catch (error) {
-    console.error('Error sending form link:', error)
   }
 }
 </script>
@@ -444,47 +416,20 @@ const sendFormLink = async () => {
   }
 }
 
-/* Update the quick-messages style */
 .quick-messages {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.5rem;
   padding: 1rem 2rem;
   background-color: white;
   border-top: 1px solid rgba(2, 22, 59, 0.1);
-  align-items: center;
 }
 
-/* Update the form-order-btn style */
-.form-order-btn {
-  margin-right: 1rem; /* Add margin to separate from quick messages */
-  white-space: nowrap;
-  padding: 0.5rem 1.2rem;
-  border: none;
-  border-radius: 1rem;
-  background-color: #02163b;
-  color: white;
-  cursor: pointer;
-  font-family: 'Monteserrat', sans-serif;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  grid-column: 1;
-  order: -1; /* Ensures it stays first */
-}
-
-/* Add a container for quick message buttons */
 .quick-message-container {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  grid-column: 2;
-  -ms-overflow-style: none; /* Hide scrollbar IE and Edge */
-  scrollbar-width: none; /* Hide scrollbar Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
 .quick-message-container::-webkit-scrollbar {
   display: none;
 }
@@ -537,48 +482,5 @@ const sendFormLink = async () => {
     padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
   }
-}
-
-/* Add this new style */
-.form-order-btn i {
-  font-size: 1rem;
-}
-
-/* Add these new styles */
-.message-content.form-link-message {
-  background-color: #010b1d !important;
-  color: white !important;
-  cursor: pointer;
-  padding: 1.5rem 2rem !important;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-}
-
-.message-content.form-link-message:hover {
-  background-color: #032661 !important;
-  transform: translateY(-2px);
-}
-
-.message-content.form-link-message i {
-  font-size: 1.2rem;
-}
-
-.form-link {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.form-link i {
-  transition: transform 0.3s ease;
-}
-
-.form-link:hover i {
-  transform: translateX(4px);
 }
 </style>
