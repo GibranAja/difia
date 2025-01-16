@@ -92,17 +92,98 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="detail">Deskripsi Katalog</label>
-        <textarea
-          id="detail"
-          v-model="formData.detail"
-          required
-          placeholder="Masukkan deskripsi katalog"
-          rows="10"
-          class="description-input"
-        ></textarea>
-        <span class="error-message" v-if="errors.detail">{{ errors.detail }}</span>
+      <div class="form-group details-section">
+        <h3>Detail Katalog</h3>
+        
+        <div class="details-grid">
+          <!-- Ukuran Section -->
+          <div class="ukuran-section">
+            <h4>Ukuran</h4>
+            <div class="ukuran-grid">
+              <div class="ukuran-item">
+                <label for="panjang">Panjang (cm)</label>
+                <input
+                  type="number"
+                  id="panjang"
+                  v-model="formData.detail.ukuran.panjang"
+                  required
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+              <div class="ukuran-item">
+                <label for="tinggi">Tinggi (cm)</label>
+                <input
+                  type="number"
+                  id="tinggi"
+                  v-model="formData.detail.ukuran.tinggi"
+                  required
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+              <div class="ukuran-item">
+                <label for="lebar">Lebar (cm)</label>
+                <input
+                  type="number"
+                  id="lebar"
+                  v-model="formData.detail.ukuran.lebar"
+                  required
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Bahan Section -->
+          <div class="bahan-section">
+            <div class="form-group">
+              <label for="bahanLuar">Bahan Luar</label>
+              <input
+                type="text"
+                id="bahanLuar"
+                v-model="formData.detail.bahanLuar"
+                required
+                placeholder="Masukkan bahan luar"
+              />
+            </div>
+            <div class="form-group">
+              <label for="bahanDalam">Bahan Dalam</label>
+              <input
+                type="text"
+                id="bahanDalam"
+                v-model="formData.detail.bahanDalam"
+                required
+                placeholder="Masukkan bahan dalam"
+              />
+            </div>
+          </div>
+
+          <!-- Aksesoris dan Warna -->
+          <div class="additional-details">
+            <div class="form-group">
+              <label for="aksesoris">Aksesoris</label>
+              <textarea
+                id="aksesoris"
+                v-model="formData.detail.aksesoris"
+                required
+                placeholder="Masukkan detail aksesoris"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label for="warna">Warna</label>
+              <textarea
+                id="warna"
+                v-model="formData.detail.warna"
+                required
+                placeholder="Masukkan pilihan warna yang tersedia"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="form-actions">
@@ -140,9 +221,19 @@ const formData = ref({
   harga: {
     standar: 0,
     premium: 0,
-    budgetting: 'By Request', // Set default value
+    budgetting: 'By Request',
   },
-  detail: '',
+  detail: {
+    ukuran: {
+      panjang: 0,
+      tinggi: 0,
+      lebar: 0
+    },
+    bahanLuar: '',
+    bahanDalam: '',
+    aksesoris: '',
+    warna: ''
+  },
   waktuPengerjaan: 1,
   images: [],
 })
@@ -196,7 +287,13 @@ const isFormValid = computed(() => {
     formData.value.nama.trim() &&
     formData.value.harga.standar > 0 &&
     formData.value.harga.premium > 0 &&
-    formData.value.detail.trim() &&
+    formData.value.detail.ukuran.panjang > 0 &&
+    formData.value.detail.ukuran.tinggi > 0 &&
+    formData.value.detail.ukuran.lebar > 0 &&
+    formData.value.detail.bahanLuar.trim() &&
+    formData.value.detail.bahanDalam.trim() &&
+    formData.value.detail.aksesoris.trim() &&
+    formData.value.detail.warna.trim() &&
     formData.value.waktuPengerjaan > 0 &&
     (isEditing.value || (formData.value.images && formData.value.images.length > 0))
   )
@@ -287,13 +384,8 @@ const validateForm = () => {
     errors.value.nama = 'Nama katalog harus diisi'
   }
 
-  // Modified validation to only check standar and premium prices
   if (!formData.value.harga.standar || !formData.value.harga.premium) {
     errors.value.harga = 'Harga standar dan premium harus diisi'
-  }
-
-  if (!formData.value.detail.trim()) {
-    errors.value.detail = 'Deskripsi harus diisi'
   }
 
   if (!formData.value.waktuPengerjaan || formData.value.waktuPengerjaan < 1) {
@@ -322,9 +414,19 @@ const handleSubmit = async () => {
       harga: {
         standar: formData.value.harga.standar,
         premium: formData.value.harga.premium,
-        budgetting: 'By Request', // Always set to "By Request"
+        budgetting: 'By Request',
       },
-      detail: formData.value.detail.trim(),
+      detail: {
+        ukuran: {
+          panjang: formData.value.detail.ukuran.panjang,
+          tinggi: formData.value.detail.ukuran.tinggi,
+          lebar: formData.value.detail.ukuran.lebar
+        },
+        bahanLuar: formData.value.detail.bahanLuar.trim(),
+        bahanDalam: formData.value.detail.bahanDalam.trim(),
+        aksesoris: formData.value.detail.aksesoris.trim(),
+        warna: formData.value.detail.warna.trim()
+      },
       waktuPengerjaan: formData.value.waktuPengerjaan,
       images: formData.value.images,
     }
@@ -476,16 +578,6 @@ watch(
   font-size: 16px;
 }
 
-textarea.description-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-  resize: vertical;
-  min-height: 200px;
-}
-
 .form-actions {
   display: flex;
   gap: 15px;
@@ -543,7 +635,70 @@ textarea.description-input {
   color: #666;
 }
 
-/* Responsive styles */
+.details-section {
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+}
+
+.details-section h3 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.details-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.ukuran-section h4 {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+.ukuran-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.ukuran-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.ukuran-item label {
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.ukuran-item input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.bahan-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.additional-details {
+  display: grid;
+  gap: 15px;
+}
+
+.additional-details textarea {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  resize: vertical;
+}
+
 @media (max-width: 768px) {
   .create-katalog-container {
     padding: 15px;
@@ -570,6 +725,14 @@ textarea.description-input {
   .image-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
+  }
+
+  .ukuran-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bahan-section {
+    grid-template-columns: 1fr;
   }
 }
 </style>
