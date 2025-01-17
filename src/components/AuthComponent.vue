@@ -3,17 +3,17 @@
   <div class="auth-container">
     <!-- Logo Container with conditional class -->
     <div class="logo-container" :class="{ 'logo-left': !isLogin }">
-      <img src="../assets/difia.jpg" alt="DIFIA" class="difia-logo" />
+      <img src="../assets/Logo Difia Haki.jpg" alt="DIFIA" class="difia-logo" />
     </div>
 
     <div class="auth-content">
       <h1 class="auth-title">{{ isLogin ? 'MASUK' : 'DAFTAR' }}</h1>
-      
+
       <form @submit.prevent="handleSubmit" class="auth-form">
         <!-- Only show name field for registration -->
         <div class="form-group" v-if="!isLogin">
-          <input 
-            type="text" 
+          <input
+            type="text"
             v-model="user.name"
             placeholder="Nama"
             class="auth-input"
@@ -22,7 +22,7 @@
         </div>
 
         <div class="form-group">
-          <input 
+          <input
             type="email"
             v-model="user.email"
             placeholder="Email"
@@ -32,7 +32,7 @@
         </div>
 
         <div class="form-group">
-          <input 
+          <input
             :type="showPassword ? 'text' : 'password'"
             v-model="user.password"
             placeholder="Kata Sandi"
@@ -54,7 +54,7 @@
           <span class="divider-text">Atau {{ isLogin ? 'Masuk' : 'Daftar' }} Dengan</span>
         </div>
 
-        <button 
+        <button
           @click="handleGoogleSignIn"
           type="button"
           class="google-button"
@@ -63,8 +63,8 @@
           {{ isLogin ? 'Masuk' : 'Daftar' }} menggunakan Google
         </button>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           class="submit-button"
         >
           {{ isLogin ? 'Masuk' : 'Daftar' }}

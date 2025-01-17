@@ -21,7 +21,7 @@ defineProps({
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: white;
+  background-color: #02163b;
   border-radius: 10px;
   padding: 15px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -32,20 +32,19 @@ defineProps({
   height: 200px;
   object-fit: cover;
   border-radius: 5px;
-  border: 1px solid #A79277;
 }
 
 .card h1 {
   font-size: 1.5rem;
   margin: 15px 0;
-  color: #A79277;
+  color: white;
   text-align: center;
 }
 
 .card a {
   text-decoration: none;
   color: black;
-  background-color: #D1BB9E;
+  background-color: #e8ba38;
   padding: 8px 20px;
   border-radius: 100px;
   transition: all 0.3s ease;
@@ -55,6 +54,6 @@ defineProps({
 
 .card a:hover {
   background-color: white;
-  color: #D1BB9E;
+  color: #e8ba38;
 }
 </style>

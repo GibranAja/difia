@@ -15,7 +15,7 @@
     <section class="tentang-kami">
       <div class="gambar">
         <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan">
-        <img src="../assets/difia.jpg" alt="foto-tentang-kami" class="foto-tentang-kami">
+        <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami">
       </div>
       <div class="text">
         <h1><b>TENTANG KAMI</b></h1>
@@ -39,7 +39,7 @@
     <section class="blog">
       <div class="b-log">
         <span class="line"></span>
-        <h1><b>BLOG</b></h1>
+        <h1><b>ARTIKEL</b></h1>
         <span class="line"></span>
       </div>
       <CardBlog></CardBlog>
@@ -50,7 +50,7 @@
   </main>
   <footer>
     <h1><b>Media Sosial Kami</b></h1>
-    <img src="../assets/difia.jpg" alt="">
+    <img src="../assets/Logo Difia Haki.PNG" alt="">
     <div class="medsos">
       <ul>
         <li> <a href=""><i class="fas fa-brands fa-square-instagram"></i>difiasouvenir</a>
@@ -100,13 +100,13 @@ header {
   align-items: center;
   flex-wrap: wrap;
   padding: 160px;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .judul a {
   color: white;
   text-decoration: none;
-  background-color: #AB886D;
+  background-color: #02163b;
   padding: 10px;
   border-radius: 100px;
   transition: all 700ms;
@@ -114,8 +114,8 @@ header {
 }
 
 .judul a:hover {
-  background-color: #F2E9E4;
-  color: #AB886D;
+  background-color: white;
+  color: #e8ba38;
 }
 
 .judul {
@@ -154,13 +154,13 @@ header {
   align-items: center;
   flex-wrap: wrap;
   padding: 160px;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .tentang-kami .gambar {
   width: 30%;
   height: auto;
-  background-color: #EAD8C0;
+  background-color: #02163b;
   padding: 10px;
   text-align: center;
 }
@@ -178,13 +178,15 @@ header {
   bottom: -230px;
 }
 
-.foto-tentang-kami {
-  border-radius: 100%;
-}
 
 .tentang-kami h1 {
   font-size: 3rem;
   line-height: 1rem;
+}
+
+.foto-tentang-kami {
+  width: 100%;
+  height: 100%;
 }
 
 .katalog {
@@ -193,7 +195,7 @@ header {
   align-items: center;
   flex-wrap: wrap;
   padding: 100px;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .katalog h1 {
@@ -218,7 +220,7 @@ header {
   align-items: center;
   flex-wrap: wrap;
   padding: 100px;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .blog h1 {
@@ -244,7 +246,7 @@ header {
   flex-wrap: wrap;
   justify-content: space-around;
   align-items: center;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .ulasan h1 {
@@ -259,7 +261,7 @@ footer {
   align-items: center;
   flex-wrap: wrap;
   padding: 100px;
-  font-family: 'Times New Roman', Times, serif;
+  /* font-family: 'Times New Roman', Times, serif; */
 }
 
 footer h1 {

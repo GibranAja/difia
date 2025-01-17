@@ -29,91 +29,34 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 120px 40px; /* Increased row gap to account for floating keterangan */
-  padding: 20px;
-  width: 100%;
-  max-width: 1700px;
-  margin: 0 auto;
-}
-
-.card {
-  width: 100%;
-  position: relative;
+.card{
   display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 8px;
-  overflow: visible; /* Changed from hidden to allow content to overflow */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  justify-content: space-around;
+  background-color: #d9d9d9;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  align-items: center;
+  padding: 10px;
 }
 
 .card img {
-  width: 100%;
-  height: 15rem; /* Changed from aspect-ratio to fixed height */
+  width: 10%;
   object-fit: cover;
-  display: block; /* Removes any extra space below image */
 }
-
-.card .keterangan {
-  position: absolute;
-  width: 75%;
-  background-color: rgba(96, 93, 93, 0.9); /* Added transparency */
+.keterangan {
+  width: 60%;
   padding: 20px;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  bottom: -150px;
-  transform: none; /* Removed the center transform */
-  z-index: 2;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-
-.card .keterangan h1 {
-  font-size: 1.5rem;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.card .keterangan p {
-  margin: 0;
-  line-height: 1.5;
-}
-
-.card .keterangan .line {
-  width: 50%;
-  border: 1px solid white;
-  margin: 10px 0;
-}
-
-.card .keterangan a {
+.keterangan a{
   text-decoration: none;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 4px;
-  align-self: flex-start;
-  transition: all 0.3s ease;
+  width: 100%;
+  float: right;
+  text-align: right;
 }
-
-.card .keterangan a:hover {
-  background-color: white;
-  color: #605D5D;
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-  .card-container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .card-container {
-    grid-template-columns: 1fr;
-  }
+.line{
+  width: 30%;
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid #000;
 }
 </style>

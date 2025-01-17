@@ -22,7 +22,7 @@
         <a href="">
           <i class="fas fa-circle-user"></i>
         </a>
-        <a href="#" class="keluar" @click.prevent="handleLogout">Log out</a>
+        <a href="" class="keluar" @click.prevent="handleLogout">Log out</a>
       </div>
     </template>
   </nav>
@@ -51,7 +51,7 @@ nav {
   z-index: 999;
   justify-content: space-around;
   align-items: center;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .link {
@@ -60,7 +60,7 @@ nav {
   align-items: center;
   justify-content: center;
   border-radius: 100px;
-  background-color: #D1BB9E;
+  background-color: #02163b;
   padding: 10px;
   width: 60%;
   font-size: large;
@@ -68,13 +68,13 @@ nav {
 
 a {
   text-decoration: none;
-  color: black;
+  color: white;
   padding: 10px;
   transition: all 700ms;
 }
 
 a.masuk {
-  background-color: #D1BB9E;
+  background-color: #e8ba38;
   padding: 10px;
   border-radius: 10px;
   width: 10%;
@@ -98,11 +98,11 @@ i {
 }
 
 i:hover {
-  color: #D1BB9E;
+  color: #02163b;
 }
 
 a.keluar {
-  background-color: #D1BB9E;
+  background-color: #e8ba38;
   padding: 10px;
   border-radius: 100px;
 }
@@ -115,15 +115,14 @@ a.keluar:hover {
 }
 
 a.masuk:hover {
-  color: #A79277;
+  color: #e8ba38;
   background-color: white;
   border-radius: 100px;
-  border: solid 1px #A79277;
+  border: solid 1px #e8ba38;
 }
 
 .link a:hover {
-  color: white;
-  background-color: #A79277;
+  color: #e8ba38;
   border-radius: 100px;
   padding: 10px;
 }
