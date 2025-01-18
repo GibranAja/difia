@@ -4,7 +4,7 @@
 
     <form @submit.prevent="handleSubmit" class="blog-form">
       <div class="form-group">
-        <label for="title">Judul Blog</label>
+        <label for="title">Judul Artikel</label>
         <input
           type="text"
           id="title"
@@ -16,7 +16,7 @@
       </div>
 
       <div class="form-group">
-        <label>Gambar Blog</label>
+        <label>Gambar Artikel</label>
         <div class="image-upload">
           <input
             type="file"
@@ -36,7 +36,7 @@
       </div>
 
       <div class="form-group">
-        <label for="description">Deskripsi Blog</label>
+        <label for="description">Deskripsi Artikel</label>
         <textarea
           id="description"
           v-model="formData.description"
