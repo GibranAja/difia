@@ -1,3 +1,4 @@
+<!-- views/admin/admin/ChatListView.vue -->
 <template>
   <div class="chat-list-container">
     <h2>Daftar Pesan</h2>
@@ -16,6 +17,14 @@
         class="chat-thread"
         :class="{ 'unread': thread.unreadCount > 0 }"
       >
+        <div class="avatar">
+          <img 
+            :src="thread.userPhoto || defaultAvatar"
+            :alt="thread.userName"
+            class="profile-photo"
+            @error="handleImageError"
+          />
+        </div>
         <div class="chat-info">
           <div class="user-name">{{ thread.userName }}</div>
           <div class="last-message">{{ thread.lastMessage }}</div>
@@ -31,12 +40,18 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { rtdb } from '@/config/firebase'
+import { rtdb, db } from '@/config/firebase'
 import { ref as dbRef, onValue } from 'firebase/database'
+import { collection, getDocs, query, where } from 'firebase/firestore'
 import { format } from 'date-fns'
+import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
 
 const chatThreads = ref([])
 let threadsListener = null
+
+const handleImageError = (event) => {
+  event.target.src = defaultAvatar
+}
 
 onMounted(() => {
   initializeChat()
@@ -48,16 +63,45 @@ onUnmounted(() => {
 
 const initializeChat = () => {
   const threadsRef = dbRef(rtdb, 'chat_threads')
-  threadsListener = onValue(threadsRef, (snapshot) => {
+  threadsListener = onValue(threadsRef, async (snapshot) => {
     const threads = []
+    const promises = []
+
     snapshot.forEach((childSnapshot) => {
-      threads.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val()
+      const threadData = childSnapshot.val()
+      // Tambahkan promise untuk mengambil data user dari Firestore
+      const promise = getUserData(threadData.userId).then(userData => {
+        threads.push({
+          id: childSnapshot.key,
+          ...threadData,
+          userPhoto: userData?.profilePhoto || defaultAvatar
+        })
       })
+      promises.push(promise)
     })
+
+    // Tunggu semua promise selesai
+    await Promise.all(promises)
+    
+    // Sort threads setelah semua data lengkap
     chatThreads.value = threads.sort((a, b) => b.lastMessageTime - a.lastMessageTime)
   })
+}
+
+const getUserData = async (userId) => {
+  try {
+    const usersRef = collection(db, 'users')
+    const q = query(usersRef, where('uid', '==', userId))
+    const querySnapshot = await getDocs(q)
+    
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].data()
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching user data:', error)
+    return null
+  }
 }
 
 const formatTime = (timestamp) => {
@@ -90,6 +134,8 @@ const formatTime = (timestamp) => {
   color: inherit;
   position: relative;
   transition: background-color 0.3s;
+  align-items: center;
+  gap: 15px;
 }
 
 .chat-thread:hover {
@@ -98,6 +144,19 @@ const formatTime = (timestamp) => {
 
 .chat-thread.unread {
   background-color: #e3f2fd;
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+}
+
+.profile-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .chat-info {
