@@ -263,12 +263,12 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #DEB887;
+  background-color: white; /* Changed from #DEB887 */
   position: relative;
 }
 
 .chat-header {
-  background-color: #8B4513;
+  background-color: #02163b; /* Changed from #8B4513 */
   padding: 0.8rem;
   color: white;
 }
@@ -326,13 +326,13 @@
 }
 
 .message.sent .message-bubble {
-  background-color: #e8ba38;
-  color: #02163b;
+  background-color: #e8ba38; /* Changed from #e8ba38 */
+  color: #02163b; /* Changed from #02163b */
 }
 
 .message:not(.sent) .message-bubble {
-  background-color: #02163b;
-  color: #e8ba38;
+  background-color: #02163b; /* Changed from #02163b */
+  color: white; /* Changed from #e8ba38 */
 }
 
 .message-time {
@@ -346,7 +346,7 @@
   display: flex;
   gap: 1rem;
   align-items: center;
-  background-color: #DEB887;
+  background-color: white; /* Changed from #DEB887 */
 }
 
 .message-input {
@@ -355,12 +355,12 @@
   border: none;
   border-radius: 2rem;
   font-size: 1.1rem;
-  background: white;
-  color: #8B4513;
+  background: #02163b; /* Changed from white */
+  color: white; /* Changed from #8B4513 */
 }
 
 .message-input::placeholder {
-  color: #8B4513;
+  color: white; /* Changed from #8B4513 */
   opacity: 0.7;
 }
 
@@ -368,7 +368,7 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background-color: #4A2511;
+  background-color: #e8ba38; /* Changed from #4A2511 */
   color: white;
   border: none;
   cursor: pointer;
@@ -378,14 +378,19 @@
   font-size: 1.2rem;
 }
 
+.send-button:hover {
+  transition: background-color 0.3s ease-in-out;
+  background-color: #e8da47;
+}
+
 .send-button:disabled {
-  background-color: #D2B48C;
+  background-color: #ccc; /* Changed from #D2B48C */
   cursor: not-allowed;
 }
 
 .no-messages {
   text-align: center;
-  color: #8B4513;
+  color: #02163b; /* Changed from #8B4513 */
   font-size: 1.2rem;
   margin: 2rem 0;
 }
@@ -396,7 +401,7 @@
   left: 0;
   right: 0;
   padding: 1rem;
-  background-color: #8B4513;
+  background-color: #02163b; /* Changed from #8B4513 */
   color: white;
   text-align: center;
 }
@@ -411,8 +416,8 @@
   gap: 0.5rem;
   padding: 1rem 2rem;
   overflow-x: auto;
-  background-color: #DEB887;
-  border-top: 1px solid rgba(139, 69, 19, 0.1);
+  background-color: white; /* Changed from #DEB887 */
+  border-top: 1px solid rgba(2, 22, 59, 0.1); /* Changed rgba value */
 }
 
 .quick-message-btn {
@@ -422,7 +427,8 @@
   border: none;
   border-radius: 1rem;
   background-color: white;
-  color: #8B4513;
+  color: #02163b; /* Changed from #8B4513 */
+  border: 1px solid #02163b; /* Added border */
   cursor: pointer;
   font-family: 'Judson';
   transition: all 0.3s ease;
@@ -432,7 +438,7 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: #8B4513;
+  background-color: #02163b; /* Changed from #8B4513 */
   color: white;
   font-size: 0.7rem;
   padding: 2px 6px;
@@ -441,14 +447,14 @@
   text-align: center;
 }
 
-.quick-message-btn:hover {
-  background-color: #8B4513;
+.quick-message-btn:hover:not(:disabled) {
+  background-color: #02163b;
   color: white;
 }
 
 .quick-message-btn:disabled {
-  background-color: #D2B48C;
-  color: rgba(139, 69, 19, 0.5);
+  background-color: #eee; /* Changed from #D2B48C */
+  color: rgba(2, 22, 59, 0.5); /* Changed rgba value */
   cursor: not-allowed;
   opacity: 0.8;
 }
