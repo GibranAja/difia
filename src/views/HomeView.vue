@@ -46,6 +46,7 @@
     </section>
     <section class="ulasan">
       <h1><b>ULASAN</b></h1>
+      <CardUlasan></CardUlasan>
     </section>
   </main>
   <footer>
@@ -73,6 +74,7 @@ import { useAuthStore } from '@/stores/AuthStore';
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useKatalogStore } from '@/stores/KatalogStore';
+import CardUlasan from '@/components/CardUlasan.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -246,6 +248,7 @@ header {
   flex-wrap: wrap;
   justify-content: space-around;
   align-items: center;
+  padding: 100px;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 
@@ -261,6 +264,9 @@ footer {
   align-items: center;
   flex-wrap: wrap;
   padding: 100px;
+  background-image: url('../assets/bg-footer.jpeg');
+  background-repeat: no-repeat;
+  background-size: cover;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 

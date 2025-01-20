@@ -56,7 +56,7 @@ nav {
 
 .link {
   display: flex;
-  gap: 100px;
+  gap: 90px;
   align-items: center;
   justify-content: center;
   border-radius: 100px;
