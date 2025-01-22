@@ -48,6 +48,9 @@
               {{ isLogin ? 'Daftar' : 'Masuk' }}
             </router-link>
           </div>
+          <router-link to="/forgot-password" class="forgot-link">
+            Forgot Password?
+          </router-link>
         </div>
 
         <div class="divider">

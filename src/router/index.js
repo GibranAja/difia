@@ -18,6 +18,9 @@ import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 import FormOrderView from '@/views/FormOrderView.vue'
 import PartnerView from '@/views/admin/PartnerView.vue'
 import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
+import ForgotPassword from '@/views/auth/ForgotPassword.vue'
+import VerifyCode from '@/views/auth/VerifyCode.vue'
+import ResetPassword from '@/views/auth/ResetPassword.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -58,6 +61,21 @@ const router = createRouter({
       path: '/form-order',
       name: 'FormOrder',
       component: FormOrderView
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: ForgotPassword
+    },
+    {
+      path: '/verify-code',
+      name: 'VerifyCode', 
+      component: VerifyCode
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: ResetPassword
     },
     {
       path: '/admin',

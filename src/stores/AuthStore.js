@@ -9,6 +9,7 @@ import {
   signOut,
   onAuthStateChanged,
   signInWithPopup, 
+  sendPasswordResetEmail
 } from 'firebase/auth'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
@@ -21,6 +22,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
   const isError = ref(false)
   const message = ref('')
+  const resetEmail = ref('')
+  const verificationCode = ref(null)
   
   const user = reactive({
     name: '',
@@ -261,6 +264,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const setResetEmail = (email) => {
+    resetEmail.value = email
+  }
+
+  const setVerificationCode = (code) => {
+    verificationCode.value = code
+  }
+
+  const sendVerificationEmail = async (email, code) => {
+    // Here you would typically use a backend service or Firebase Functions
+    // to send an email. For now, we'll just console.log
+    console.log(`Sending code ${code} to ${email}`)
+    return true
+  }
+
+  const updatePassword = async () => {
+    await sendPasswordResetEmail(auth, resetEmail.value)
+    resetEmail.value = ''
+    verificationCode.value = null
+  }
+
   return {
     user,
     isLoggedIn,
@@ -271,6 +295,12 @@ export const useAuthStore = defineStore('auth', () => {
     authUser,
     logoutUser,
     initializeAuthState,
-    signInWithGoogle
+    signInWithGoogle,
+    resetEmail,
+    verificationCode,
+    setResetEmail,
+    setVerificationCode,
+    sendVerificationEmail,
+    updatePassword
   }
 })
