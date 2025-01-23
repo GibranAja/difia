@@ -2,11 +2,11 @@
   <header>
     <div class="judul">
       <h1><b>DIFIA</b></h1>
-      <p> Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
+      <p>Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
       <a href="">Chat Kami</a>
     </div>
     <div class="carousel">
-      <img src="../assets/difia.jpg" alt="foto-katalog">
+      <img src="../assets/difia.jpg" alt="foto-katalog" />
       <!-- <img src="../assets/header-dott.png" alt="background-katalog" class="background"> -->
     </div>
   </header>
@@ -14,15 +14,19 @@
   <main>
     <section class="tentang-kami">
       <div class="gambar">
-        <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan">
-        <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami">
+        <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" />
+        <img
+          src="../assets/Logo Difia Haki.PNG"
+          alt="foto-tentang-kami"
+          class="foto-tentang-kami"
+        />
       </div>
       <div class="text">
         <h1><b>TENTANG KAMI</b></h1>
         <p>
-          Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi covid-19,Perusahaan ini
-          berbasis perorangan tergolong UMKM Home Industry di bidang fashion berbahan baku kulit sintetis diolah menjadi
-          sendal dan tas terletak di kota Bogor
+          Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
+          covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
+          berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
         </p>
       </div>
     </section>
@@ -44,55 +48,68 @@
       </div>
       <CardBlog></CardBlog>
     </section>
+    <section class="partner">
+      <div class="b-log">
+        <span class="line"></span>
+        <h1><b>Mitra Kami</b></h1>
+        <span class="line"></span>
+      </div>
+    </section>
     <section class="ulasan">
-      <h1><b>ULASAN</b></h1>
+      <div class="b-log">
+        <span class="line"></span>
+        <h1><b>ULASAN</b></h1>
+        <span class="line"></span>
+      </div>
+
       <CardUlasan></CardUlasan>
     </section>
   </main>
   <footer>
     <h1><b>Media Sosial Kami</b></h1>
-    <img src="../assets/Logo Difia Haki.PNG" alt="">
+    <img src="../assets/Logo Difia Haki.PNG" alt="" />
     <div class="medsos">
       <ul>
-        <li> <a href=""><i class="fas fa-brands fa-square-instagram"></i>difiasouvenir</a>
+        <li>
+          <a href=""><i class="fas fa-brands fa-square-instagram"></i>difiasouvenir</a>
         </li>
-        <li> <a href=""><i class="fas fa-brands fa-square-instagram"></i>difiaindonesia</a>
+        <li>
+          <a href=""><i class="fas fa-brands fa-square-instagram"></i>difiaindonesia</a>
         </li>
-        <li> <a href=""><i class="fas fa-brands fa-square-facebook"></i>FlatShoes Made By Me</a>
+        <li>
+          <a href=""><i class="fas fa-brands fa-square-facebook"></i>FlatShoes Made By Me</a>
         </li>
       </ul>
     </div>
-
   </footer>
 </template>
 
 <script setup>
-import CardCatalog from '@/components/CardCatalog.vue';
-import CardBlog from '@/components/CardBlog.vue';
-import NavigationBar from '@/components/NavigationBar.vue';
-import { useAuthStore } from '@/stores/AuthStore';
-import { computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useKatalogStore } from '@/stores/KatalogStore';
-import CardUlasan from '@/components/CardUlasan.vue';
+import CardCatalog from '@/components/CardCatalog.vue'
+import CardBlog from '@/components/CardBlog.vue'
+import NavigationBar from '@/components/NavigationBar.vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useKatalogStore } from '@/stores/KatalogStore'
+import CardUlasan from '@/components/CardUlasan.vue'
 
-const authStore = useAuthStore();
-const router = useRouter();
-const isLoggedIn = computed(() => authStore.isLoggedIn);
-const katalogStore = useKatalogStore();
+const authStore = useAuthStore()
+const router = useRouter()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const katalogStore = useKatalogStore()
 
 const handleLogout = async () => {
   try {
-    await authStore.logoutUser(router);
+    await authStore.logoutUser(router)
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout error:', error)
   }
-};
+}
 
 onMounted(async () => {
-  await katalogStore.fetchKatalog();
-});
-
+  await katalogStore.fetchKatalog()
+})
 </script>
 
 <style scoped>
@@ -180,7 +197,6 @@ header {
   bottom: -230px;
 }
 
-
 .tentang-kami h1 {
   font-size: 3rem;
   line-height: 1rem;
@@ -209,7 +225,7 @@ header {
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
+  gap: 3rem;
   padding: 20px;
   width: 100%;
   max-width: 1200px; /* Optional: limits maximum width */
@@ -231,7 +247,7 @@ header {
   text-align: center;
 }
 
-.blog .b-log .line {
+.line {
   border: 1px solid black;
   width: 50%;
 }
@@ -241,6 +257,19 @@ header {
   justify-content: space-around;
   align-items: center;
   width: 100%;
+}
+
+.partner{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
+  padding: 100px;
+}
+.partner h1{
+  font-size: 4rem;
+  width: 100%;
+  text-align: center;
 }
 
 .ulasan {
@@ -308,7 +337,6 @@ footer .medsos i {
   color: black;
   transition: all 700ms;
   font-size: xx-large;
-
 }
 
 footer img {

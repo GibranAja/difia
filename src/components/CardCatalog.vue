@@ -2,7 +2,12 @@
   <div class="card" v-if="item">
     <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0">
     <h1><b>{{ item.nama }}</b></h1>
-    <a href="#">Detail</a>
+    <div class="button-group">
+      <a href="" class="cart-btn">
+        <i class="fas fa-cart-shopping"></i>
+      </a>
+      <a href="#" class="detail-btn"><b>Detail</b></a>
+    </div>
   </div>
 </template>
 
@@ -17,43 +22,63 @@ defineProps({
 
 <style scoped>
 .card {
-  width: 100%;
+  width: 250px; /* Reduced from 100% */
   display: flex;
   flex-direction: column;
   align-items: center;
   background-color: #02163b;
   border-radius: 10px;
-  padding: 15px;
+  padding: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .card img {
-  width: 100%;
-  height: 200px;
+  width: 200px; /* Reduced from 270px */
+  height: 200px; /* Reduced from 270px */
   object-fit: cover;
   border-radius: 5px;
 }
 
 .card h1 {
-  font-size: 1.5rem;
-  margin: 15px 0;
+  font-size: 1.2rem; /* Reduced from 1.5rem */
   color: white;
   text-align: center;
+  margin: 10px 0;
 }
 
-.card a {
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  align-items: center;
+}
+
+.detail-btn {
   text-decoration: none;
-  color: black;
-  background-color: #e8ba38;
-  padding: 8px 20px;
+  color: white;
+  background-color: rgba(255, 253, 253, 0.3);
+  
+  /* padding: ; Reduced padding */
   border-radius: 100px;
   transition: all 0.3s ease;
   text-align: center;
-  margin-top: auto;
+  font-size: x-large;
+  width: 120px;
 }
 
-.card a:hover {
+.cart-btn {
+  color: #e8ba38;
+  transition: 700ms;
+}
+.cart-btn i{
+  font-size: x-large;
+}
+
+.detail-btn:hover {
   background-color: white;
   color: #e8ba38;
+}
+.cart-btn:hover{
+
 }
 </style>

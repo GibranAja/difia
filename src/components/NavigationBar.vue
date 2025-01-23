@@ -1,14 +1,18 @@
 <template>
   <nav>
     <div class="link">
-      <a href="">Beranda</a>
-      <a href="">Tentang Kami</a>
-      <a href="">Katalog</a>
-      <a href="">Blog</a>
+      <a href=""><b>Beranda</b></a>
+      <a href=""><b>Tentang Kami</b></a>
+      <a href=""><b>Katalog</b></a>
+      <a href=""><b>Artikel</b></a>
     </div>
 
     <a href="">
       <i class="fas fa-bell"></i>
+    </a>
+
+    <a href="">
+      <i class="fas fa-cart-shopping"></i>
     </a>
 
     <!-- Show login button when user is not logged in -->
@@ -48,7 +52,8 @@ nav {
   top: 0;
   width: 100%;
   padding: 10px;
-  z-index: 999;
+  gap: 5px;
+  z-index: 10000;
   justify-content: space-around;
   align-items: center;
   font-family: 'Montserrat', sans-serif;
@@ -56,14 +61,18 @@ nav {
 
 .link {
   display: flex;
-  gap: 90px;
+  gap: 50px;
   align-items: center;
   justify-content: center;
   border-radius: 100px;
   background-color: #02163b;
-  padding: 10px;
+  padding: 5px;
   width: 60%;
   font-size: large;
+}
+
+.link a{
+  font-size: xx-large;
 }
 
 a {
@@ -84,34 +93,32 @@ a.masuk {
 .login {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
-  width: 15%;
+  align-items: center;
+  justify-content: center;
+  width: 25%;
+  gap: 50px;
   /* background-color: #D1BB9E; */
   padding: 10px;
   border-radius: 100px;
 }
 
 i {
-  color: white;
+  color: #e8ba38;
   transition: all 700ms;
-  font-size: xx-large;
+  font-size: 3rem;
 }
 
 i:hover {
   color: #02163b;
 }
 
-a.keluar {
-  background-color: #e8ba38;
-  padding: 10px;
-  border-radius: 100px;
-}
+
 
 a.keluar:hover {
-  color: #A79277;
+  color: #e8ba38;
   background-color: white;
   border-radius: 100px;
-  border: solid 1px #A79277;
+  border: solid 1px #e8ba38;
 }
 
 a.masuk:hover {
@@ -122,17 +129,22 @@ a.masuk:hover {
 }
 
 .link a:hover {
-  color: #e8ba38;
+  /* color: #e8ba38; */
+  background-color: #e8ba38;
   border-radius: 100px;
   padding: 10px;
 }
 
 a.keluar {
   color: white;
-  background-color: #D1BB9E;
+  background-color: #e8ba38;
   text-align: center;
-  padding: 14px;
-  width: 100px;
-  border-radius: 100px;
+  padding: 10px;
+  width: 120px;
+  height: 20px;
+  border-radius: 50px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
 }
 </style>
