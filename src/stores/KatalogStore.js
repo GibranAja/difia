@@ -67,19 +67,23 @@ export const useKatalogStore = defineStore('katalog', {
             aksesoris: katalogData.detail.aksesoris,
             warna: katalogData.detail.warna
           },
-          waktuPengerjaan: Number(katalogData.waktuPengerjaan || 1),
+          waktuPengerjaan: {
+            pcs50_100: katalogData.waktuPengerjaan.pcs50_100,
+            pcs200: katalogData.waktuPengerjaan.pcs200,
+            pcs300: katalogData.waktuPengerjaan.pcs300,
+            pcsAbove300: katalogData.waktuPengerjaan.pcsAbove300,
+            express: "Additional 5% dari totalan"
+          },
           images: base64Images,
           createdAt: new Date(),
         }
 
         const docRef = await addDoc(collection(db, 'katalog'), newKatalog)
-
         this.katalogItems.unshift({ id: docRef.id, ...newKatalog })
-
         return { success: true, id: docRef.id }
+
       } catch (error) {
         console.error('Error in addKatalog:', error)
-        this.error = error.message
         return { success: false, error: error.message }
       } finally {
         this.loading = false
@@ -116,7 +120,13 @@ export const useKatalogStore = defineStore('katalog', {
             aksesoris: updateData.detail.aksesoris,
             warna: updateData.detail.warna
           },
-          waktuPengerjaan: Number(updateData.waktuPengerjaan || 1),
+          waktuPengerjaan: {
+            pcs50_100: updateData.waktuPengerjaan.pcs50_100,
+            pcs200: updateData.waktuPengerjaan.pcs200,
+            pcs300: updateData.waktuPengerjaan.pcs300,
+            pcsAbove300: updateData.waktuPengerjaan.pcsAbove300,
+            express: "Additional 5% dari totalan"
+          },
           updatedAt: new Date(),
         }
 
@@ -125,19 +135,8 @@ export const useKatalogStore = defineStore('katalog', {
         }
 
         await updateDoc(katalogRef, updatePayload)
-
-        const index = this.katalogItems.findIndex((item) => item.id === id)
-        if (index !== -1) {
-          this.katalogItems[index] = {
-            ...this.katalogItems[index],
-            ...updatePayload,
-            images: finalImages.length > 0 ? finalImages : this.katalogItems[index].images,
-          }
-        }
-
         return { success: true }
       } catch (error) {
-        this.error = error.message
         return { success: false, error: error.message }
       } finally {
         this.loading = false
