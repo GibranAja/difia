@@ -55,21 +55,6 @@
       </div>
 
       <div class="form-group">
-        <label for="waktuPengerjaan">Waktu Pengerjaan (hari)</label>
-        <input
-          type="number"
-          id="waktuPengerjaan"
-          v-model="formData.waktuPengerjaan"
-          required
-          min="1"
-          placeholder="Masukkan estimasi waktu pengerjaan"
-        />
-        <span class="error-message" v-if="errors.waktuPengerjaan">{{
-          errors.waktuPengerjaan
-        }}</span>
-      </div>
-
-      <div class="form-group">
         <label>Foto Katalog</label>
         <div class="image-upload">
           <input
@@ -186,6 +171,69 @@
         </div>
       </div>
 
+      <div class="form-group details-section">
+        <h3>Waktu Pengerjaan</h3>
+        <div class="waktu-pengerjaan-grid">
+          <div class="waktu-item">
+            <label for="pcs50_100">50-100 pcs</label>
+            <input
+              type="text"
+              id="pcs50_100"
+              v-model="formData.waktuPengerjaan.pcs50_100"
+              required
+              placeholder="contoh: 5-7"
+            />
+            <span class="unit">hari</span>
+          </div>
+
+          <div class="waktu-item">
+            <label for="pcs200">200 pcs</label>
+            <input
+              type="text"
+              id="pcs200"
+              v-model="formData.waktuPengerjaan.pcs200"
+              required
+              placeholder="contoh: 7-10"
+            />
+            <span class="unit">hari</span>
+          </div>
+
+          <div class="waktu-item">
+            <label for="pcs300">300 pcs</label>
+            <input
+              type="text"
+              id="pcs300"
+              v-model="formData.waktuPengerjaan.pcs300"
+              required
+              placeholder="contoh: 10-14"
+            />
+            <span class="unit">hari</span>
+          </div>
+
+          <div class="waktu-item">
+            <label for="pcsAbove300">&gt;300 pcs</label>
+            <input
+              type="text"
+              id="pcsAbove300"
+              v-model="formData.waktuPengerjaan.pcsAbove300"
+              required
+              placeholder="contoh: 14-21"
+            />
+            <span class="unit">hari</span>
+          </div>
+
+          <div class="waktu-item">
+            <label for="express">Express</label>
+            <input
+              type="text"
+              value="Additional 5% dari totalan"
+              readonly
+              class="express-input"
+            />
+          </div>
+        </div>
+      </div>
+
       <div class="form-actions">
         <button type="button" @click="goBack" class="cancel-btn">Batal</button>
         <button type="submit" class="submit-btn" :disabled="isSubmitting || !isFormValid">
@@ -234,7 +282,13 @@ const formData = ref({
     aksesoris: '',
     warna: ''
   },
-  waktuPengerjaan: 1,
+  waktuPengerjaan: {
+    pcs50_100: '',
+    pcs200: '',
+    pcs300: '',
+    pcsAbove300: '',
+    express: 'Additional 5% dari totalan'
+  },
   images: [],
 })
 
@@ -294,7 +348,10 @@ const isFormValid = computed(() => {
     formData.value.detail.bahanDalam.trim() &&
     formData.value.detail.aksesoris.trim() &&
     formData.value.detail.warna.trim() &&
-    formData.value.waktuPengerjaan > 0 &&
+    formData.value.waktuPengerjaan.pcs50_100.trim() && // Validasi waktu pengerjaan baru
+    formData.value.waktuPengerjaan.pcs200.trim() &&
+    formData.value.waktuPengerjaan.pcs300.trim() &&
+    formData.value.waktuPengerjaan.pcsAbove300.trim() &&
     (isEditing.value || (formData.value.images && formData.value.images.length > 0))
   )
 })
@@ -388,9 +445,9 @@ const validateForm = () => {
     errors.value.harga = 'Harga standar dan premium harus diisi'
   }
 
-  if (!formData.value.waktuPengerjaan || formData.value.waktuPengerjaan < 1) {
-    errors.value.waktuPengerjaan = 'Waktu pengerjaan minimal 1 hari'
-  }
+  // if (!formData.value.waktuPengerjaan || formData.value.waktuPengerjaan < 1) {
+  //   errors.value.waktuPengerjaan = 'Waktu pengerjaan minimal 1 hari'
+  // }
 
   if (!isEditing.value && (!formData.value.images || formData.value.images.length === 0)) {
     errors.value.images = 'Minimal satu foto harus diunggah'
@@ -697,6 +754,37 @@ watch(
   border-radius: 4px;
   padding: 8px;
   resize: vertical;
+}
+
+.waktu-pengerjaan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.waktu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waktu-item input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.express-input {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.unit {
+  color: #666;
+  font-size: 0.9em;
+  margin-left: 5px;
 }
 
 @media (max-width: 768px) {
