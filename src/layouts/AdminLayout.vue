@@ -5,25 +5,22 @@
     <!-- Sidebar with overlay for mobile -->
     <div v-if="isSidebarOpen && isMobile" class="sidebar-overlay" @click="toggleSidebar"></div>
 
-    <SidebarAdmin
-      :is-open="isSidebarOpen"
-      class="sidebar-transition" />
+    <SidebarAdmin :is-open="isSidebarOpen" class="sidebar-transition" />
 
     <div class="main-content" :class="{ 'sidebar-open': isSidebarOpen }">
       <!-- Navbar -->
       <nav class="admin-navbar">
         <div class="navbar-left">
+          <button class="hamburger-btn" @click="toggleSidebar">
+            <i class="fas fa-bars" :class="{ rotate: !isSidebarOpen }"></i>
+          </button>
           <h1 class="dashboard-title">{{ currentPageTitle }}</h1>
         </div>
 
         <div class="navbar-right">
           <!-- Search Bar -->
           <div class="search-container">
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              class="search-input"
-            />
+            <input type="text" placeholder="Search..." class="search-input" />
             <button class="search-btn">
               <i class="fas fa-search"></i>
             </button>
@@ -43,7 +40,7 @@
 
       <!-- Main Content Area -->
       <main class="content-area">
-        <RouterView />
+        <RouterView :isSidebarOpen="isSidebarOpen" />
       </main>
     </div>
   </div>
@@ -129,11 +126,16 @@ onUnmounted(() => {
 .main-content {
   flex: 1;
   margin-left: 250px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: calc(100% - 280px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Modified transition */
+  width: calc(100% - 250px); /* Modified width */
   display: flex;
   flex-direction: column;
-  min-height: 1vh;
+  min-height: 100vh;
+}
+
+.main-content.sidebar-open {
+  margin-left: 250px;
+  width: calc(100% - 250px);
 }
 
 .main-content:not(.sidebar-open) {
@@ -247,10 +249,44 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
+/* Add these new styles */
+.hamburger-btn {
+  background: none;
+  border: none;
+  width: 48px; /* Increased from 40px */
+  height: 48px; /* Increased from 40px */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  margin-right: 10px;
+}
+
+.hamburger-btn i {
+  font-size: 24px; /* Increased icon size */
+  transition: transform 0.5s ease; /* Add transition for rotation */
+}
+
+.hamburger-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Add rotation class */
+.hamburger-btn i.rotate {
+  transform: rotate(360deg);
+}
+
+/* Modify media queries */
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0 !important;
-    width: 100%;
+    width: 100% !important;
+  }
+
+  .hamburger-btn {
+    margin-right: 5px;
   }
 
   .sidebar-transition {
