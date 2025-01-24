@@ -1,5 +1,5 @@
 <template>
-  <div class="katalog-container">
+  <div class="katalog-container" :class="{ 'sidebar-collapsed': !isSidebarOpen }">
     <h1>DAFTAR KATALOG</h1>
 
     <div class="katalog-controls">
@@ -38,13 +38,13 @@
         <colgroup>
           <col style="width: 5%" />
           <!-- No -->
-          <col style="width: 15%" />
+          <col style="width: 10%" />
           <!-- Nama -->
           <col style="width: 15%" />
           <!-- Harga -->
           <col style="width: 30%" />
           <!-- Detail -->
-          <col style="width: 10%" />
+          <col style="width: 20%" />
           <!-- Waktu -->
           <col style="width: 15%" />
           <!-- Foto -->
@@ -98,7 +98,20 @@
                 </div>
               </div>
             </td>
-            <td class="text-center">{{ item.waktuPengerjaan }} hari</td>
+            <td class="detail-cell">
+              <div class="detail-content">
+                <div class="detail-section">
+                  <strong>Waktu Pengerjaan:</strong>
+                  <div class="waktu-list">
+                    <div>50-100 pcs: {{ item.waktuPengerjaan.pcs50_100 }} hari</div>
+                    <div>200 pcs: {{ item.waktuPengerjaan.pcs200 }} hari</div>
+                    <div>300 pcs: {{ item.waktuPengerjaan.pcs300 }} hari</div>
+                    <div>>300 pcs: {{ item.waktuPengerjaan.pcsAbove300 }} hari</div>
+                    <div class="express-info">Express: {{ item.waktuPengerjaan.express }}</div>
+                  </div>
+                </div>
+              </div>
+            </td>
             <td class="image-cell">
               <div class="image-gallery">
                 <img
@@ -205,6 +218,13 @@ const filteredKatalog = computed(() => {
   })
 })
 
+defineProps({
+  isSidebarOpen: {
+    type: Boolean,
+    default: true
+  }
+})
+
 const totalPages = computed(() => Math.ceil(filteredKatalog.value.length / entriesPerPage.value))
 
 const startIndex = computed(() => (currentPage.value - 1) * entriesPerPage.value)
@@ -288,8 +308,18 @@ const prevImage = () => {
 <style scoped>
 .katalog-container {
   padding: 20px;
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Adjust max-width based on sidebar state */
+.katalog-container:not(.sidebar-collapsed) {
+  max-width: calc(100vw - 250px - 40px); /* 250px for sidebar, 40px for padding */
+}
+
+.katalog-container.sidebar-collapsed {
+  max-width: calc(100vw - 80px - 40px); /* 80px for collapsed sidebar, 40px for padding */
 }
 
 .katalog-controls {
@@ -341,6 +371,14 @@ const prevImage = () => {
 .table-responsive {
   overflow-x: auto;
   margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Adjust table width */
+.katalog-table {
+  width: 100%;
+  min-width: 1000px; /* Maintain minimum width for scrolling on very small screens */
+  transition: width 0.3s ease;
 }
 
 .katalog-table {
@@ -784,5 +822,37 @@ const prevImage = () => {
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid #dee2e6;
+}
+
+.waktu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waktu-list div {
+  font-size: 0.9em;
+  padding: 2px 6px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+.waktu-list .express-info {
+  background-color: #f8d7da;
+  color: #721c24;
+  font-weight: 500;
+}
+
+/* Add responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+  .katalog-container:not(.sidebar-collapsed) {
+    max-width: 100%;
+    padding: 15px;
+  }
+
+  .katalog-container.sidebar-collapsed {
+    max-width: 100%;
+    padding: 15px;
+  }
 }
 </style>
