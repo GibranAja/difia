@@ -13,6 +13,12 @@ import {
 } from 'firebase/auth'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
+import bcrypt from 'bcryptjs'
+
+const hashPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10)
+  return bcrypt.hash(password, salt)
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const toast = useToast()
@@ -83,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
       } else {
-        // Register flow
+        // Register flow with hashed password
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           user.email,
@@ -91,10 +97,14 @@ export const useAuthStore = defineStore('auth', () => {
         )
         
         if (userCredential) {
+          // Hash password before storing
+          const hashedPassword = await hashPassword(user.password)
+          
           await addDoc(collection(db, 'users'), {
             uid: userCredential.user.uid,
             name: user.name,
             email: user.email,
+            hashedPassword: hashedPassword, // Store hashed password instead of plaintext
             profilePhoto: user.profilePhoto || '',
             isAdmin: false
           })
