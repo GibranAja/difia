@@ -3,7 +3,7 @@
   <div class="auth-container">
     <!-- Logo Container with conditional class -->
     <div class="logo-container" :class="{ 'logo-left': !isLogin }">
-      <img src="../assets/Logo Difia Haki.jpg" alt="DIFIA" class="difia-logo" />
+      <img src="../assets/Logo Difia Haki.png" alt="DIFIA" class="difia-logo" />
     </div>
 
     <div class="auth-content">
@@ -61,16 +61,20 @@
           @click="handleGoogleSignIn"
           type="button"
           class="google-button"
+          :disabled="isLoading"
+          :class="{ 'button-loading': isLoading }"
         >
           <img src="../assets/google.svg" alt="Google" class="google-icon" />
-          {{ isLogin ? 'Masuk' : 'Daftar' }} menggunakan Google
+          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') + ' menggunakan Google' }}
         </button>
 
         <button
           type="submit"
           class="submit-button"
+          :disabled="isLoading"
+          :class="{ 'button-loading': isLoading }"
         >
-          {{ isLogin ? 'Masuk' : 'Daftar' }}
+          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') }}
         </button>
       </form>
     </div>
@@ -87,6 +91,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const { user } = storeToRefs(authStore)
 const showPassword = ref(false)
+const isLoading = ref(false)
 
 const props = defineProps({
   isLogin: {
@@ -97,14 +102,24 @@ const props = defineProps({
 
 const handleSubmit = async () => {
   try {
+    isLoading.value = true
     await authStore.authUser(props.isLogin, router)
   } catch (error) {
     console.error('Authentication error:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
-const handleGoogleSignIn = () => {
-  authStore.signInWithGoogle(router)
+const handleGoogleSignIn = async () => {
+  try {
+    isLoading.value = true
+    await authStore.signInWithGoogle(router)
+  } catch (error) {
+    console.error('Google sign-in error:', error)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -300,5 +315,23 @@ const handleGoogleSignIn = () => {
   .difia-logo {
     max-width: 200px;
   }
+}
+
+/* Add to your existing <style> section */
+.button-loading {
+  background-color: #998269 !important; /* Darker shade when loading */
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+.google-button:disabled,
+.submit-button:disabled {
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.button-loading:hover {
+  transform: none !important;
+  background-color: #998269 !important;
 }
 </style>
