@@ -12,6 +12,7 @@ import KatalogView from '@/views/admin/KatalogView.vue'
 import OrderView from '@/views/admin/OrderView.vue'
 import BlogView from '@/views/admin/BlogView.vue'
 import ChatCustomer from '@/views/ChatCustomer.vue'
+import DetailView from '@/views/DetailView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
@@ -24,7 +25,7 @@ import ResetPassword from '@/views/auth/ResetPassword.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
-  
+
   // Pastikan hanya admin yang bisa akses
   if (!authStore.isLoggedIn || !authStore.currentUser?.isAdmin) {
     next({ name: 'notFound' })
@@ -38,6 +39,11 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/detail',
+      name: 'Detail',
+      component: DetailView,
+    },
+    {
       path: '/',
       name: 'HomeView',
       component: HomeView,
@@ -50,32 +56,32 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: LoginPage
+      component: LoginPage,
     },
     {
       path: '/register',
       name: 'Register',
-      component: RegisterPage
+      component: RegisterPage,
     },
     {
       path: '/form-order',
       name: 'FormOrder',
-      component: FormOrderView
+      component: FormOrderView,
     },
     {
       path: '/forgot-password',
       name: 'ForgotPassword',
-      component: ForgotPassword
+      component: ForgotPassword,
     },
     {
       path: '/verify-code',
-      name: 'VerifyCode', 
-      component: VerifyCode
+      name: 'VerifyCode',
+      component: VerifyCode,
     },
     {
       path: '/reset-password',
       name: 'ResetPassword',
-      component: ResetPassword
+      component: ResetPassword,
     },
     {
       path: '/admin',
@@ -86,89 +92,89 @@ const router = createRouter({
           path: '',
           name: 'DashboardView',
           component: DashboardView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'katalog',
           name: 'KatalogView',
           component: KatalogView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'katalog/create',
           name: 'CreateKatalog',
           component: CreateKatalog,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'katalog/edit/:id',
           name: 'EditKatalog',
           component: CreateKatalog,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'order',
           name: 'OrderView',
           component: OrderView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'blog',
           name: 'BlogView',
           component: BlogView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         // Add new blog routes
         {
           path: 'blog/create',
           name: 'CreateBlog',
           component: CreateBlog,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'blog/edit/:id',
           name: 'EditBlog',
           component: CreateBlog,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'Partner',
           name: 'PartnerView',
           component: PartnerView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         // Add new blog routes
         {
           path: 'partner/create',
           name: 'CreatePartnerBlog',
           component: CreatePartnerView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'partner/edit/:id',
           name: 'CreatePartnerView',
           component: CreatePartnerView,
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'chat',
           name: 'ChatList',
           component: () => import('@/views/admin/ChatListView.vue'),
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
         {
           path: 'chat/:id',
           name: 'ChatDetail',
           component: () => import('@/views/admin/ChatDetailView.vue'),
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true },
         },
-      ]
+      ],
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'notFound',
-      component: NotFoundView
-    }
+      component: NotFoundView,
+    },
   ],
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
@@ -177,11 +183,11 @@ const router = createRouter({
     if (to.hash) {
       return {
         el: to.hash,
-        behavior: 'smooth'
+        behavior: 'smooth',
       }
     }
     return { top: 0, behavior: 'smooth' }
-  }
+  },
 })
 
 router.beforeEach(async (to, from, next) => {
@@ -197,7 +203,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Check admin routes
-  if (to.matched.some(record => record.meta.requiresAdmin)) {
+  if (to.matched.some((record) => record.meta.requiresAdmin)) {
     if (!authStore.isLoggedIn || !authStore.currentUser?.isAdmin) {
       next({ name: 'notFound' })
       return

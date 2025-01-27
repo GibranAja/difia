@@ -1,9 +1,10 @@
 <template>
-  <header>
+  <header id="header">
     <div class="judul">
       <h1><b>DIFIA</b></h1>
       <p>Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
-      <a href="">Chat Kami</a>
+      <span class="vector"></span>
+      <a href="#catalog"><b>Belanja Sekarang</b></a>
     </div>
     <div class="carousel">
       <img src="../assets/difia.jpg" alt="foto-katalog" />
@@ -12,9 +13,9 @@
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
-    <section class="tentang-kami">
+    <section class="tentang-kami" id="about">
       <div class="gambar">
-        <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" />
+        <!-- <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" /> -->
         <img
           src="../assets/Logo Difia Haki.PNG"
           alt="foto-tentang-kami"
@@ -30,7 +31,7 @@
         </p>
       </div>
     </section>
-    <section class="katalog">
+    <section class="katalog" id="catalog">
       <h1><b>KATALOG</b></h1>
       <div class="catalog-grid">
         <CardCatalog
@@ -40,7 +41,7 @@
         />
       </div>
     </section>
-    <section class="blog">
+    <section class="blog" id="articel">
       <div class="b-log">
         <span class="line"></span>
         <h1><b>ARTIKEL</b></h1>
@@ -128,42 +129,51 @@ header {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  padding: 160px;
+  padding: 150px;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 
 .judul a {
-  color: white;
+  color: #e8ba38;
   text-decoration: none;
   background-color: #02163b;
   padding: 10px;
-  border-radius: 100px;
+  border-radius: 15px;
   transition: all 700ms;
   font-size: x-large;
 }
 
 .judul a:hover {
   background-color: white;
-  color: #e8ba38;
+  border: 1px solid #e8ba38;
+  color: #02163b;
+  padding: 10px;
 }
 
 .judul {
   width: 50%;
-  word-spacing: 0%;
-  letter-spacing: 0px;
-  line-height: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 5px;
+  align-items: center;
+  text-align: center;
 }
 
 .judul h1 {
   font-size: 5rem;
   line-height: 1rem;
-  letter-spacing: 40px;
 }
 
 .judul p {
   font-size: 1.5rem;
   margin-top: 0;
   line-height: 1.5rem;
+}
+
+.judul span {
+  border: 1px solid black;
+  width: 100%;
 }
 
 .carousel {
@@ -190,12 +200,13 @@ header {
   width: 30%;
   height: auto;
   background-color: #02163b;
-  padding: 10px;
+  padding: 19px;
   text-align: center;
 }
 
 .tentang-kami .text {
   width: 50%;
+  text-align: center;
 }
 
 .tentang-kami .gambar .hiasan {
@@ -210,6 +221,7 @@ header {
 .tentang-kami h1 {
   font-size: 3rem;
   line-height: 1rem;
+  color: #02163b;
 }
 
 .foto-tentang-kami {
@@ -238,7 +250,8 @@ header {
   gap: 3rem;
   padding: 20px;
   width: 100%;
-  max-width: 1200px; /* Optional: limits maximum width */
+  max-width: 1200px;
+  /* Optional: limits maximum width */
   margin: 0 auto;
 }
 
@@ -255,10 +268,11 @@ header {
   font-size: 4rem;
   width: 100%;
   text-align: center;
+  color: #02163b;
 }
 
 .line {
-  border: 1px solid black;
+  border: 1px solid #e8ba38;
   width: 50%;
 }
 
@@ -276,42 +290,12 @@ header {
   align-items: center;
   padding: 100px;
 }
+
 .partner h1 {
   font-size: 4rem;
   width: 100%;
   text-align: center;
-}
-
-.partner-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3rem;
-  padding: 20px;
-  width: 100%;
-  max-width: 1200px; /* Optional: limits maximum width */
-  margin: 0 auto;
-}
-
-.partner-item {
-  background-color: #d9d9d9;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.partner-item-wrapper {
-  width: 100%;
-  height: 0;
-  padding-bottom: 100%;
-  position: relative;
-}
-
-.partner-item img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  color: #02163b;
 }
 
 .ulasan {
@@ -327,6 +311,7 @@ header {
   text-align: center;
   width: 100%;
   font-size: 4rem;
+  color: #02163b;
 }
 
 footer {

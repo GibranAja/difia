@@ -6,7 +6,7 @@
       <a href="" class="cart-btn">
         <i class="fas fa-cart-shopping"></i>
       </a>
-      <a href="#" class="detail-btn"><b>Detail</b></a>
+      <a href="/detail" class="detail-btn"><b>Detail</b></a>
     </div>
   </div>
 </template>
@@ -57,7 +57,7 @@ defineProps({
   text-decoration: none;
   color: white;
   background-color: rgba(255, 253, 253, 0.3);
-  
+
   /* padding: ; Reduced padding */
   border-radius: 100px;
   transition: all 0.3s ease;

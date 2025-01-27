@@ -22,4 +22,10 @@ import { RouterView } from 'vue-router';
     overflow-x: hidden;
     background-color: white ;
   }
+  html {
+    scroll-behavior: smooth;
+  }
+  html::-webkit-scrollbar {
+    display: none;
+  }
 </style>
