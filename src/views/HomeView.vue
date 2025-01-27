@@ -54,6 +54,13 @@
         <h1><b>Mitra Kami</b></h1>
         <span class="line"></span>
       </div>
+      <div class="partner-grid">
+        <div v-for="partner in partnerStore.partners" :key="partner.id" class="partner-item">
+          <div class="partner-item-wrapper">
+            <img :src="partner.image" :alt="partner.name" />
+          </div>
+        </div>
+      </div>
     </section>
     <section class="ulasan">
       <div class="b-log">
@@ -93,11 +100,13 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useKatalogStore } from '@/stores/KatalogStore'
 import CardUlasan from '@/components/CardUlasan.vue'
+import { usePartnerStore } from '@/stores/PartnerStore' // Add this import
 
 const authStore = useAuthStore()
 const router = useRouter()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const katalogStore = useKatalogStore()
+const partnerStore = usePartnerStore() // Add this with other store declarations
 
 const handleLogout = async () => {
   try {
@@ -109,6 +118,7 @@ const handleLogout = async () => {
 
 onMounted(async () => {
   await katalogStore.fetchKatalog()
+  await partnerStore.fetchPartners() // Add this line
 })
 </script>
 
@@ -259,17 +269,49 @@ header {
   width: 100%;
 }
 
-.partner{
+.partner {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
   align-items: center;
   padding: 100px;
 }
-.partner h1{
+.partner h1 {
   font-size: 4rem;
   width: 100%;
   text-align: center;
+}
+
+.partner-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+  padding: 20px;
+  width: 100%;
+  max-width: 1200px; /* Optional: limits maximum width */
+  margin: 0 auto;
+}
+
+.partner-item {
+  background-color: #d9d9d9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.partner-item-wrapper {
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
+  position: relative;
+}
+
+.partner-item img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .ulasan {
