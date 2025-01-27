@@ -1,10 +1,10 @@
 <template>
   <nav>
     <div class="link">
-      <a href=""><b>Beranda</b></a>
-      <a href=""><b>Tentang Kami</b></a>
-      <a href=""><b>Katalog</b></a>
-      <a href=""><b>Artikel</b></a>
+      <a href="#header"><b>Beranda</b></a>
+      <a href="#about"><b>Tentang Kami</b></a>
+      <a href="#catalog"><b>Katalog</b></a>
+      <a href="#articel"><b>Artikel</b></a>
     </div>
 
     <a href="">
@@ -68,11 +68,10 @@ nav {
   background-color: #02163b;
   padding: 5px;
   width: 60%;
-  font-size: large;
 }
 
 .link a{
-  font-size: xx-large;
+  font-size: 1.7rem;
 }
 
 a {
@@ -117,14 +116,14 @@ i:hover {
 a.keluar:hover {
   color: #e8ba38;
   background-color: white;
-  border-radius: 100px;
+  /* border-radius: 100px; */
   border: solid 1px #e8ba38;
 }
 
 a.masuk:hover {
   color: #e8ba38;
   background-color: white;
-  border-radius: 100px;
+  /* border-radius: 100px; */
   border: solid 1px #e8ba38;
 }
 
