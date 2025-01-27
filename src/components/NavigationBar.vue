@@ -53,7 +53,7 @@ nav {
   width: 100%;
   padding: 10px;
   gap: 5px;
-  z-index: 10000;
+  z-index: 10;
   justify-content: space-around;
   align-items: center;
   font-family: 'Montserrat', sans-serif;

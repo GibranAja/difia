@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tinymce/tinymce-vue": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
     "firebase": "^11.1.0",
     "pinia": "^2.3.0",
