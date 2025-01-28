@@ -1,27 +1,42 @@
 <template>
-  <div class="forgot-container">
-    <h1>Reset Password</h1>
-    <p>Enter your email address to receive a verification code</p>
+  <div class="reset-container">
+    <div class="reset-content">
+      <div class="reset-form-section">
+        <h1 class="title">Atur Ulang Kata Sandi</h1>
+        <p class="subtitle">
+          Masukkan Email yang terhubung dengan akun Difia untuk mengatur ulang kata sandi
+        </p>
 
-    <form @submit.prevent="handleSubmit" class="forgot-form">
-      <div class="form-group">
-        <input
-          type="email"
-          v-model="email"
-          placeholder="Email"
-          required
-          class="auth-input"
+        <form @submit.prevent="handleSubmit" class="reset-form">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="form-field-container">
+              <input
+                type="email"
+                v-model="email"
+                placeholder="Contoh: Difia@gmail.com"
+                required
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-field-container">
+            <button type="submit" class="submit-btn" :disabled="loading">
+              {{ loading ? 'Memproses...' : 'Atur Ulang Kata Sandi' }}
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="image-section">
+        <img 
+          src="../../assets/Logo Difia Haki.png" 
+          alt="Reset Password Illustration" 
+          class="reset-image"
         />
       </div>
-
-      <button type="submit" class="submit-btn" :disabled="loading">
-        {{ loading ? 'Sending...' : 'Send Code' }}
-      </button>
-
-      <router-link to="/login" class="back-link">
-        Back to Login
-      </router-link>
-    </form>
+    </div>
   </div>
 </template>
 
@@ -43,30 +58,26 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     
-    // Check if email exists in users collection
     const usersRef = collection(db, 'users')
     const q = query(usersRef, where('email', '==', email.value))
     const querySnapshot = await getDocs(q)
 
     if (querySnapshot.empty) {
-      toast.error('No account found with this email')
+      toast.error('Tidak ada akun yang terdaftar dengan email ini')
       return
     }
 
-    // Generate random 6 digit code
     const verificationCode = Math.floor(100000 + Math.random() * 900000)
     
-    // Store email and code in authStore
     authStore.setResetEmail(email.value)
     authStore.setVerificationCode(verificationCode)
     
-    // Send verification code email
     await authStore.sendVerificationEmail(email.value, verificationCode)
     
     router.push('/verify-code')
   } catch (error) {
-    toast.error('Error sending verification code')
-    console.error('Forgot password error:', error)
+    toast.error('Gagal mengirim kode verifikasi')
+    console.error('Reset password error:', error)
   } finally {
     loading.value = false
   }
@@ -74,46 +85,124 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.forgot-container {
-  max-width: 400px;
-  margin: 40px auto;
+.reset-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
-  text-align: center;
+  background-color: #ffffff;
 }
 
-.forgot-form {
-  margin-top: 20px;
+.reset-content {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reset-form-section {
+  flex: 1;
+  max-width: 600px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #000000;
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #666666;
+  margin-bottom: 32px;
+  line-height: 1.5;
+  max-width: 500px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.auth-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+.form-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.form-field-container {
+  width: 350px; /* Fixed width for both input and button containers */
+}
+
+.form-input {
+  width: 19.8rem;
+  padding: 12px 16px;
+  border: 2px solid #FFB800;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+}
+
+.form-input::placeholder {
+  color: #999999;
 }
 
 .submit-btn {
   width: 100%;
-  padding: 12px;
-  background: #e8ba38;
+  padding: 12px 16px;
+  background-color: #01174F;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover {
+  background-color: #022177;
 }
 
 .submit-btn:disabled {
-  background: #ccc;
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
-.back-link {
-  display: block;
-  margin-top: 20px;
-  color: #666;
-  text-decoration: none;
+.image-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.reset-image {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .reset-content {
+    flex-direction: column-reverse;
+  }
+
+  .image-section {
+    margin-bottom: 32px;
+  }
+
+  .reset-form-section {
+    width: 100%;
+  }
+
+  .form-field-container {
+    width: 100%; /* Full width on mobile */
+  }
 }
 </style>
