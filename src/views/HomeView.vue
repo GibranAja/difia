@@ -35,9 +35,10 @@
       <h1><b>KATALOG</b></h1>
       <div class="catalog-grid">
         <CardCatalog
-          v-for="katalog in katalogStore.katalogItems"
+          v-for="(katalog, index) in katalogStore.katalogItems"
           :key="katalog.id"
           :item="katalog"
+          :index="index"
         />
       </div>
     </section>
