@@ -1,17 +1,44 @@
 <template>
   <div id="app">
     <RouterView />
+    <!-- Floating Chat Button -->
+    <button 
+      v-if="showChatButton"
+      @click="navigateToChat" 
+      class="floating-chat-btn"
+      :title="isLoggedIn ? 'Chat dengan Admin' : 'Login untuk chat'"
+    >
+      <i class="fas fa-comments"></i>
+    </button>
   </div>
 </template>
 
 <script setup>
-import { RouterView } from 'vue-router';
-// import { computed } from 'vue';
-// import { useRoute } from 'vue-router';
+import { RouterView, useRouter, useRoute } from 'vue-router';
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/AuthStore';
 
-// const route = useRoute();
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
 
-// Hide chat in admin pages
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+
+// Hide chat button in admin pages and chat pages
+const showChatButton = computed(() => {
+  return !route.path.includes('/admin') && 
+         !route.path.includes('/chat-customer') &&
+         !route.path.includes('/login') &&
+         !route.path.includes('/register');
+});
+
+const navigateToChat = () => {
+  if (!isLoggedIn.value) {
+    router.push('/login');
+    return;
+  }
+  router.push('/chat-customer');
+};
 </script>
 
 <style>
@@ -27,5 +54,49 @@ import { RouterView } from 'vue-router';
   }
   html::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Floating Chat Button Styles */
+  .floating-chat-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #02163b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+
+  .floating-chat-btn:hover {
+    background-color: #e8ba38;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .floating-chat-btn i {
+    font-size: 24px;
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .floating-chat-btn {
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+    }
+
+    .floating-chat-btn i {
+      font-size: 20px;
+    }
   }
 </style>
