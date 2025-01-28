@@ -16,7 +16,6 @@ import DetailView from '@/views/DetailView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
-import FormOrderView from '@/views/FormOrderView.vue'
 import PartnerView from '@/views/admin/PartnerView.vue'
 import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
@@ -62,11 +61,6 @@ const router = createRouter({
       path: '/register',
       name: 'Register',
       component: RegisterPage,
-    },
-    {
-      path: '/form-order',
-      name: 'FormOrder',
-      component: FormOrderView,
     },
     {
       path: '/forgot-password',
