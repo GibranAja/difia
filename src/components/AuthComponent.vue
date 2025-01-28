@@ -1,4 +1,4 @@
-// AuthComponent.vue
+<!-- components/AuthComponent.vue -->
 <template>
   <div class="auth-container">
     <!-- Logo Container with conditional class -->
@@ -48,10 +48,23 @@
               {{ isLogin ? 'Daftar' : 'Masuk' }}
             </router-link>
           </div>
-          <router-link to="/forgot-password" class="forgot-link">
+          <router-link 
+            v-if="isLogin" 
+            to="/forgot-password" 
+            class="redirect-link"
+          >
             Forgot Password?
           </router-link>
         </div>
+
+        <button
+          type="submit"
+          class="submit-button"
+          :disabled="isLoading"
+          :class="{ 'button-loading': isLoading }"
+        >
+          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') }}
+        </button>
 
         <div class="divider">
           <span class="divider-text">Atau {{ isLogin ? 'Masuk' : 'Daftar' }} Dengan</span>
@@ -66,15 +79,6 @@
         >
           <img src="../assets/google.svg" alt="Google" class="google-icon" />
           {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') + ' menggunakan Google' }}
-        </button>
-
-        <button
-          type="submit"
-          class="submit-button"
-          :disabled="isLoading"
-          :class="{ 'button-loading': isLoading }"
-        >
-          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') }}
         </button>
       </form>
     </div>
@@ -124,9 +128,9 @@ const handleGoogleSignIn = async () => {
 </script>
 
 <style scoped>
-/* Apply Judson font family to all elements */
+/* Change font family from Judson to Montserrat */
 * {
-  font-family: 'Judson', serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .auth-container {
@@ -143,15 +147,14 @@ const handleGoogleSignIn = async () => {
   flex: 1;
   padding: 3rem 4rem;
   max-width: 600px;
-  /* Default order for login (left side) */
   order: 1;
 }
 
 .auth-title {
   font-size: 3rem;
-  color: #8B7355;
+  color: #02163b;
   margin-bottom: 3rem;
-  font-weight: bold;
+  font-weight: 700;
   letter-spacing: 1px;
 }
 
@@ -169,7 +172,7 @@ const handleGoogleSignIn = async () => {
   padding: 1rem 1.5rem;
   border: 2px solid #c2c2c2; /* Light gray border */
   border-radius: 50px;
-  background-color: #d4c4b5;
+  background-color: #e8ba38;
   font-size: 1.1rem;
   color: #000000;
   transition: border-color 0.3s ease;
@@ -191,7 +194,7 @@ const handleGoogleSignIn = async () => {
 }
 
 .redirect-link {
-  color: #8B7355;
+  color: #02163b;
   text-decoration: none;
   font-weight: bold;
 }
@@ -229,7 +232,7 @@ const handleGoogleSignIn = async () => {
   padding: 1rem;
   border: none;
   border-radius: 50px;
-  background-color: #b69c7c; /* Darker brown */
+  background-color: #02163b; /* Darker brown */
   color: #ffffff; /* White text */
   font-size: 1.1rem;
   cursor: pointer;
@@ -252,7 +255,7 @@ const handleGoogleSignIn = async () => {
 }
 
 .google-button:hover, .submit-button:hover {
-  background-color: #8b7254; /* Even darker on hover */
+  background-color: #0f3172; /* Even darker on hover */
   color: #ffffff;
   transform: translateY(-1px); /* Slight lift effect */
 }
@@ -319,7 +322,7 @@ const handleGoogleSignIn = async () => {
 
 /* Add to your existing <style> section */
 .button-loading {
-  background-color: #998269 !important; /* Darker shade when loading */
+  background-color: #0f3172 !important; /* Darker shade when loading */
   cursor: not-allowed !important;
   opacity: 0.7;
 }
