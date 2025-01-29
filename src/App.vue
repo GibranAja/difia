@@ -1,9 +1,8 @@
 <template>
   <div id="app">
     <RouterView />
-    <!-- Floating Chat Button -->
     <button 
-      v-if="showChatButton"
+      v-if="shouldShowChatButton"
       @click="navigateToChat" 
       class="floating-chat-btn"
       :title="isLoggedIn ? 'Chat dengan Admin' : 'Login untuk chat'"
@@ -24,12 +23,20 @@ const authStore = useAuthStore();
 
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-// Hide chat button in admin pages and chat pages
-const showChatButton = computed(() => {
-  return !route.path.includes('/admin') && 
-         !route.path.includes('/chat-customer') &&
-         !route.path.includes('/login') &&
-         !route.path.includes('/register');
+// Hide chat button in specific pages
+const shouldShowChatButton = computed(() => {
+  const hiddenPaths = [
+    '/login',
+    '/register',
+    '/reset-password',
+    '/verify-code',
+    '/forgot-password',
+    '/admin',
+    '/chat-customer'
+  ];
+
+  // Check if current path starts with any of the hidden paths
+  return !hiddenPaths.some(path => route.path.startsWith(path));
 });
 
 const navigateToChat = () => {
