@@ -1,197 +1,202 @@
 <template>
   <div class="katalog-container" :class="{ 'sidebar-collapsed': !isSidebarOpen }">
-    <h1>DAFTAR KATALOG</h1>
+    <LoadComponent v-if="katalogStore.loading" />
+    
+    <template v-else>
+      <h1>DAFTAR KATALOG</h1>
 
-    <div class="katalog-controls">
-      <div class="top-controls">
-        <router-link to="/admin/katalog/create" class="add-btn"> Tambah Katalog </router-link>
-      </div>
-
-      <div class="filter-controls">
-        <div class="entries-control">
-          <select v-model="entriesPerPage">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-          </select>
-          <span>entries per page</span>
+      <div class="katalog-controls">
+        <div class="top-controls">
+          <router-link to="/admin/katalog/create" class="add-btn"> Tambah Katalog </router-link>
         </div>
 
-        <div class="search-box">
-          <input type="text" v-model="searchQuery" placeholder="Search..." />
-        </div>
-      </div>
-    </div>
-
-    <div class="table-responsive">
-      <!-- Empty state message -->
-      <div v-if="!paginatedKatalog.length" class="empty-state">
-        <div class="empty-state-content">
-          <span class="empty-icon">📦</span>
-          <h3>Tidak ada katalog disini</h3>
-          <p>Mulai dengan menambahkan katalog baru</p>
-        </div>
-      </div>
-
-      <!-- Table with data -->
-      <table v-else class="katalog-table">
-        <colgroup>
-          <col style="width: 5%" />
-          <!-- No -->
-          <col style="width: 10%" />
-          <!-- Nama -->
-          <col style="width: 15%" />
-          <!-- Harga -->
-          <col style="width: 30%" />
-          <!-- Detail -->
-          <col style="width: 20%" />
-          <!-- Waktu -->
-          <col style="width: 15%" />
-          <!-- Foto -->
-          <col style="width: 15%" />
-          <!-- Aksi -->
-        </colgroup>
-        <thead>
-          <tr>
-            <th>No.</th>
-            <th>Nama Katalog</th>
-            <th>Harga Katalog</th>
-            <th>Detail Katalog</th>
-            <th>Waktu</th>
-            <th>Foto</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(item, index) in paginatedKatalog" :key="item.id">
-            <td class="text-center">{{ startIndex + index + 1 }}</td>
-            <td>{{ item.nama }}</td>
-            <td>
-              <div class="price-list">
-                <div>Standar: {{ formatPrice(item.harga.standar) }}</div>
-                <div>Premium: {{ formatPrice(item.harga.premium) }}</div>
-                <div>Budgetting: {{ item.harga.budgetting }}</div>
-              </div>
-            </td>
-            <td class="detail-cell">
-              <div class="detail-content">
-                <div class="detail-section">
-                  <strong>Ukuran:</strong>
-                  <div class="detail-ukuran">
-                    <span>P: {{ item.detail?.ukuran?.panjang || 0 }} cm</span>
-                    <span>L: {{ item.detail?.ukuran?.lebar || 0 }} cm</span>
-                    <span>T: {{ item.detail?.ukuran?.tinggi || 0 }} cm</span>
-                  </div>
-                </div>
-                <div class="detail-section">
-                  <strong>Bahan:</strong>
-                  <div>Luar: {{ item.detail?.bahanLuar || '-' }}</div>
-                  <div>Dalam: {{ item.detail?.bahanDalam || '-' }}</div>
-                </div>
-                <div class="detail-section">
-                  <strong>Aksesoris:</strong>
-                  <div>{{ item.detail?.aksesoris || '-' }}</div>
-                </div>
-                <div class="detail-section">
-                  <strong>Warna:</strong>
-                  <div>{{ item.detail?.warna || '-' }}</div>
-                </div>
-              </div>
-            </td>
-            <td class="detail-cell">
-              <div class="detail-content">
-                <div class="detail-section">
-                  <strong>Waktu Pengerjaan:</strong>
-                  <div class="waktu-list">
-                    <div>50-100 pcs: {{ item.waktuPengerjaan.pcs50_100 }} hari</div>
-                    <div>200 pcs: {{ item.waktuPengerjaan.pcs200 }} hari</div>
-                    <div>300 pcs: {{ item.waktuPengerjaan.pcs300 }} hari</div>
-                    <div>>300 pcs: {{ item.waktuPengerjaan.pcsAbove300 }} hari</div>
-                    <div class="express-info">Express: {{ item.waktuPengerjaan.express }}</div>
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td class="image-cell">
-              <div class="image-gallery">
-                <img
-                  v-for="(image, imgIndex) in item.images.slice(0, 3)"
-                  :key="imgIndex"
-                  :src="image"
-                  :alt="'Product ' + (imgIndex + 1)"
-                  @click="openImageGallery(item.images, imgIndex)"
-                />
-                <span
-                  v-if="item.images.length > 3"
-                  class="more-images"
-                  @click="openImageGallery(item.images, 3)"
-                >
-                  +{{ item.images.length - 3 }}
-                </span>
-              </div>
-            </td>
-            <td class="action-cell">
-              <div class="action-buttons">
-                <router-link :to="`/admin/katalog/edit/${item.id}`" class="edit-btn">
-                  Edit
-                </router-link>
-                <button class="delete-btn" @click="confirmDelete(item.id)">Hapus</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="paginatedKatalog.length" class="pagination">
-      <button :disabled="currentPage === 1" @click="currentPage--">&lt;&lt;</button>
-      <span>{{ currentPage }} of {{ totalPages }}</span>
-      <button :disabled="currentPage >= totalPages" @click="currentPage++">&gt;&gt;</button>
-    </div>
-
-    <!-- Image Gallery Modal -->
-    <div v-if="showGallery" class="gallery-modal" @click="closeGallery">
-      <div class="gallery-content" @click.stop>
-        <button class="gallery-close" @click="closeGallery">&times;</button>
-
-        <div class="gallery-image-container">
-          <button
-            class="gallery-nav prev"
-            @click="prevImage"
-            :class="{ disabled: currentImageIndex === 0 }"
-            v-show="galleryImages.length > 1"
-          >
-            &lt;
-          </button>
-
-          <div class="gallery-image">
-            <img
-              :src="galleryImages[currentImageIndex]"
-              :alt="'Gallery image ' + (currentImageIndex + 1)"
-            />
+        <div class="filter-controls">
+          <div class="entries-control">
+            <select v-model="entriesPerPage">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+            <span>entries per page</span>
           </div>
 
-          <button
-            class="gallery-nav next"
-            @click="nextImage"
-            :class="{ disabled: currentImageIndex === galleryImages.length - 1 }"
-            v-show="galleryImages.length > 1"
-          >
-            &gt;
-          </button>
-        </div>
-
-        <div class="gallery-counter" v-if="galleryImages.length > 1">
-          {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
+          <div class="search-box">
+            <input type="text" v-model="searchQuery" placeholder="Search..." />
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="table-responsive">
+        <!-- Empty state message -->
+        <div v-if="!paginatedKatalog.length" class="empty-state">
+          <div class="empty-state-content">
+            <span class="empty-icon">📦</span>
+            <h3>Tidak ada katalog disini</h3>
+            <p>Mulai dengan menambahkan katalog baru</p>
+          </div>
+        </div>
+
+        <!-- Table with data -->
+        <table v-else class="katalog-table">
+          <colgroup>
+            <col style="width: 5%" />
+            <!-- No -->
+            <col style="width: 10%" />
+            <!-- Nama -->
+            <col style="width: 15%" />
+            <!-- Harga -->
+            <col style="width: 30%" />
+            <!-- Detail -->
+            <col style="width: 20%" />
+            <!-- Waktu -->
+            <col style="width: 15%" />
+            <!-- Foto -->
+            <col style="width: 15%" />
+            <!-- Aksi -->
+          </colgroup>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Nama Katalog</th>
+              <th>Harga Katalog</th>
+              <th>Detail Katalog</th>
+              <th>Waktu</th>
+              <th>Foto</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in paginatedKatalog" :key="item.id">
+              <td class="text-center">{{ startIndex + index + 1 }}</td>
+              <td>{{ item.nama }}</td>
+              <td>
+                <div class="price-list">
+                  <div>Standar: {{ formatPrice(item.harga.standar) }}</div>
+                  <div>Premium: {{ formatPrice(item.harga.premium) }}</div>
+                  <div>Budgetting: {{ item.harga.budgetting }}</div>
+                </div>
+              </td>
+              <td class="detail-cell">
+                <div class="detail-content">
+                  <div class="detail-section">
+                    <strong>Ukuran:</strong>
+                    <div class="detail-ukuran">
+                      <span>P: {{ item.detail?.ukuran?.panjang || 0 }} cm</span>
+                      <span>L: {{ item.detail?.ukuran?.lebar || 0 }} cm</span>
+                      <span>T: {{ item.detail?.ukuran?.tinggi || 0 }} cm</span>
+                    </div>
+                  </div>
+                  <div class="detail-section">
+                    <strong>Bahan:</strong>
+                    <div>Luar: {{ item.detail?.bahanLuar || '-' }}</div>
+                    <div>Dalam: {{ item.detail?.bahanDalam || '-' }}</div>
+                  </div>
+                  <div class="detail-section">
+                    <strong>Aksesoris:</strong>
+                    <div>{{ item.detail?.aksesoris || '-' }}</div>
+                  </div>
+                  <div class="detail-section">
+                    <strong>Warna:</strong>
+                    <div>{{ item.detail?.warna || '-' }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="detail-cell">
+                <div class="detail-content">
+                  <div class="detail-section">
+                    <strong>Waktu Pengerjaan:</strong>
+                    <div class="waktu-list">
+                      <div>50-100 pcs: {{ item.waktuPengerjaan.pcs50_100 }} hari</div>
+                      <div>200 pcs: {{ item.waktuPengerjaan.pcs200 }} hari</div>
+                      <div>300 pcs: {{ item.waktuPengerjaan.pcs300 }} hari</div>
+                      <div>>300 pcs: {{ item.waktuPengerjaan.pcsAbove300 }} hari</div>
+                      <div class="express-info">Express: {{ item.waktuPengerjaan.express }}</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="image-cell">
+                <div class="image-gallery">
+                  <img
+                    v-for="(image, imgIndex) in item.images.slice(0, 3)"
+                    :key="imgIndex"
+                    :src="image"
+                    :alt="'Product ' + (imgIndex + 1)"
+                    @click="openImageGallery(item.images, imgIndex)"
+                  />
+                  <span
+                    v-if="item.images.length > 3"
+                    class="more-images"
+                    @click="openImageGallery(item.images, 3)"
+                  >
+                    +{{ item.images.length - 3 }}
+                  </span>
+                </div>
+              </td>
+              <td class="action-cell">
+                <div class="action-buttons">
+                  <router-link :to="`/admin/katalog/edit/${item.id}`" class="edit-btn">
+                    Edit
+                  </router-link>
+                  <button class="delete-btn" @click="confirmDelete(item.id)">Hapus</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="paginatedKatalog.length" class="pagination">
+        <button :disabled="currentPage === 1" @click="currentPage--">&lt;&lt;</button>
+        <span>{{ currentPage }} of {{ totalPages }}</span>
+        <button :disabled="currentPage >= totalPages" @click="currentPage++">&gt;&gt;</button>
+      </div>
+
+      <!-- Image Gallery Modal -->
+      <div v-if="showGallery" class="gallery-modal" @click="closeGallery">
+        <div class="gallery-content" @click.stop>
+          <button class="gallery-close" @click="closeGallery">&times;</button>
+
+          <div class="gallery-image-container">
+            <button
+              class="gallery-nav prev"
+              @click="prevImage"
+              :class="{ disabled: currentImageIndex === 0 }"
+              v-show="galleryImages.length > 1"
+            >
+              &lt;
+            </button>
+
+            <div class="gallery-image">
+              <img
+                :src="galleryImages[currentImageIndex]"
+                :alt="'Gallery image ' + (currentImageIndex + 1)"
+              />
+            </div>
+
+            <button
+              class="gallery-nav next"
+              @click="nextImage"
+              :class="{ disabled: currentImageIndex === galleryImages.length - 1 }"
+              v-show="galleryImages.length > 1"
+            >
+              &gt;
+            </button>
+          </div>
+
+          <div class="gallery-counter" v-if="galleryImages.length > 1">
+            {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useKatalogStore } from '@/stores/KatalogStore'
+import LoadComponent from '@/components/LoadComponent.vue'
 // import { useRouter } from 'vue-router'
 
 // const router = useRouter()

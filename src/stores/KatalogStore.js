@@ -150,7 +150,7 @@ export const useKatalogStore = defineStore('katalog', {
 
         const q = query(
           collection(db, 'katalog'),
-          orderBy('createdAt', 'desc'),
+          orderBy('createdAt', 'asc'), // Change 'desc' to 'asc'
           limit(pageSize)
         )
 
@@ -181,7 +181,7 @@ export const useKatalogStore = defineStore('katalog', {
 
         const q = query(
           collection(db, 'katalog'),
-          orderBy('createdAt', 'desc'),
+          orderBy('createdAt', 'asc'), // Change 'desc' to 'asc'
           startAfter(this.lastDoc),
           limit(pageSize)
         )

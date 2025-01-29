@@ -12,7 +12,7 @@ import KatalogView from '@/views/admin/KatalogView.vue'
 import OrderView from '@/views/admin/OrderView.vue'
 import BlogView from '@/views/admin/BlogView.vue'
 import ChatCustomer from '@/views/ChatCustomer.vue'
-import DetailView from '@/views/DetailView.vue'
+import DetailKatalogView from '@/views/DetailKatalogView.vue'
 // Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
@@ -38,9 +38,9 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/detail',
-      name: 'Detail',
-      component: DetailView,
+      path: '/detail/:id',
+      name: 'DetailKatalog',
+      component: DetailKatalogView,
     },
     {
       path: '/',

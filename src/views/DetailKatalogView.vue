@@ -1,37 +1,68 @@
 <template>
   <div class="detail-view">
     <div class="gambar-detail">
-      <a href="" class="back"> <i class="fas fa-arrow-left"></i></a>
-      <h1>Agenda</h1>
-      <img src="../assets/Logo Difia Haki.PNG" alt="Example Image" />
-      <a href="" class="hub">Hubungi Kami</a>
-      <h1>Kunjungi Toko Kami:</h1>
-      <div class="sosmed-link">
-        <a href="" class="sosmed"><i class="fas fa-brands fa-instagram"></i>DIFIA.ID</a>
-        <a href="" class="sosmed"><i class="fas fa-bag-shopping"></i>DIFIA OFFICIAL SHOP</a>
+      <router-link to="/" class="back">
+        <i class="fas fa-arrow-left"></i>
+      </router-link>
+      <h1>{{ katalog?.nama || 'Loading...' }}</h1>
+      <div v-if="katalog">
+        <img :src="katalog.images[0]" :alt="katalog.nama" />
+        <a href="#" class="hub">Hubungi Kami</a>
+        <h1>Kunjungi Toko Kami:</h1>
+        <div class="sosmed-link">
+          <a href="" class="sosmed"><i class="fas fa-brands fa-instagram"></i>DIFIA.ID</a>
+          <a href="" class="sosmed"><i class="fas fa-bag-shopping"></i>DIFIA OFFICIAL SHOP</a>
+        </div>
       </div>
     </div>
-    <div class="detail-keterangan">
+
+    <div class="detail-keterangan" v-if="katalog">
       <h1>Harga Per-Pcs</h1>
-      <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores optio nulla laudantium culpa quae iusto,
-        laboriosam corporis totam veniam nesciunt harum porro expedita asperiores tenetur voluptatibus alias voluptates,
-        magnam quia esse. Dolorum qui maiores eaque minima cum! Quo, exercitationem amet.</p>
+      <p>Standar: Rp {{ katalog.harga.standar.toLocaleString() }}</p>
+      <p>Premium: Rp {{ katalog.harga.premium.toLocaleString() }}</p>
+      <p>Budgetting: {{ katalog.harga.budgetting }}</p>
+      
       <h1>DETAIL</h1>
-      <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores optio nulla laudantium culpa quae iusto,
-        laboriosam corporis totam veniam nesciunt harum porro expedita asperiores tenetur voluptatibus alias voluptates,
-        magnam quia esse. Dolorum qui maiores eaque minima cum! Quo, exercitationem amet.</p>
+      <p>Ukuran: {{ katalog.detail.ukuran.panjang }}x{{ katalog.detail.ukuran.lebar }}x{{ katalog.detail.ukuran.tinggi }} cm</p>
+      <p>Bahan Luar: {{ katalog.detail.bahanLuar }}</p>
+      <p>Bahan Dalam: {{ katalog.detail.bahanDalam }}</p>
+      <p>Aksesoris: {{ katalog.detail.aksesoris }}</p>
+      <p>Warna: {{ katalog.detail.warna }}</p>
+
       <h1>WAKTU PENGERJAAN</h1>
-      <p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Maiores optio nulla laudantium culpa quae iusto,
-        laboriosam corporis totam veniam nesciunt harum porro expedita asperiores tenetur voluptatibus alias voluptates,
-        magnam quia esse. Dolorum qui maiores eaque minima cum! Quo, exercitationem amet.</p>
+      <p>50-100 pcs: {{ katalog.waktuPengerjaan.pcs50_100 }} hari</p>
+      <p>200 pcs: {{ katalog.waktuPengerjaan.pcs200 }} hari</p>
+      <p>300 pcs: {{ katalog.waktuPengerjaan.pcs300 }} hari</p>
+      <p>>300 pcs: {{ katalog.waktuPengerjaan.pcsAbove300 }} hari</p>
+      <p>Express: {{ katalog.waktuPengerjaan.express }}</p>
     </div>
   </div>
 </template>
-<script>
-export default {
 
-}
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useKatalogStore } from '@/stores/KatalogStore'
+
+const route = useRoute()
+const katalogStore = useKatalogStore()
+const katalog = ref(null)
+
+onMounted(async () => {
+  const id = route.params.id
+  // First try to find in existing items
+  let item = katalogStore.katalogItems.find(k => k.id === id)
+  
+  if (!item) {
+    // If not found in existing items, fetch from store
+    await katalogStore.fetchKatalog()
+    item = katalogStore.katalogItems.find(k => k.id === id)
+  }
+  
+  katalog.value = item
+})
 </script>
+
 <style scoped>
 .detail-view {
   display: flex;

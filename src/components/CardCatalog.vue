@@ -1,18 +1,23 @@
 <template>
   <div class="card" :class="{ 'card-alt': isAlternate }" v-if="item">
-    <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0">
+    <router-link :to="`/detail/${item.id}`">
+      <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0">
+    </router-link>
     <h1><b>{{ item.nama }}</b></h1>
     <div class="button-group">
       <a href="" class="cart-btn" :class="{ 'cart-alt': isAlternate }">
         <i class="fas fa-cart-shopping"></i>
       </a>
-      <a href="/detail" class="detail-btn"><b>Detail</b></a>
+      <router-link :to="`/detail/${item.id}`" class="detail-btn">
+        <b>Detail</b>
+      </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
 import { defineProps, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const props = defineProps({
   item: {
@@ -57,6 +62,12 @@ const isAlternate = computed(() => {
   height: 200px;
   object-fit: cover;
   border-radius: 5px;
+  cursor: pointer; /* Add cursor pointer to show it's clickable */
+  transition: transform 0.2s ease; /* Optional: add hover effect */
+}
+
+.card img:hover {
+  transform: scale(1.05); /* Optional: add hover effect */
 }
 
 .card h1 {

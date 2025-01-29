@@ -5,6 +5,8 @@
       <a href="#about"><b>Tentang Kami</b></a>
       <a href="#catalog"><b>Katalog</b></a>
       <a href="#articel"><b>Artikel</b></a>
+      <!-- Add Dashboard link for admin users -->
+      <router-link v-if="authStore.currentUser?.isAdmin" to="/admin"><b>Dashboard</b></router-link>
     </div>
 
     <a href="">
@@ -145,5 +147,19 @@ a.keluar {
   justify-content: center;
   align-items: center;
   display: flex;
+}
+
+/* Add style for the dashboard link to match other navigation items */
+.link router-link {
+  text-decoration: none;
+  color: white;
+  padding: 10px;
+  transition: all 700ms;
+}
+
+.link router-link:hover {
+  background-color: #e8ba38;
+  border-radius: 100px;
+  padding: 10px;
 }
 </style>
