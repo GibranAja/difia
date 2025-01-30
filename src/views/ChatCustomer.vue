@@ -259,7 +259,7 @@
   
   <style scoped>
 .chat-container {
-  font-family: 'Judson';
+  font-family: 'Montserrat', sans-serif; /* Changed from 'Judson' */
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -430,7 +430,7 @@
   color: #02163b; /* Changed from #8B4513 */
   border: 1px solid #02163b; /* Added border */
   cursor: pointer;
-  font-family: 'Judson';
+  font-family: 'Montserrat', sans-serif; /* Changed from 'Judson' */
   transition: all 0.3s ease;
 }
 
