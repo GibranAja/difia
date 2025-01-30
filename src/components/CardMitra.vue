@@ -1,7 +1,9 @@
 <template>
   <div class="card-container">
     <div v-for="partner in partnerStore.partners" :key="partner.id" class="card">
-      <img :src="partner.image" :alt="partner.name">
+      <div class="image-container">
+        <img :src="partner.image" :alt="partner.name">
+      </div>
     </div>
   </div>
 </template>
@@ -36,8 +38,17 @@ onMounted(async () => {
   padding: 10px;
 }
 
+.image-container {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card img {
   width: 100%;
-  max-width: 250px;
+  height: 100%;
+  object-fit: contain;
 }
 </style>
