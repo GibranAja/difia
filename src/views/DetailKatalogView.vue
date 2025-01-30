@@ -41,7 +41,7 @@
       <section>
         <h2><b>DETAIL</b></h2>
         <div class="info-content">
-          <p>Ukuran : {{ katalog.detail.ukuran.panjang }}x{{ katalog.detail.ukuran.lebar }}x{{ katalog.detail.ukuran.tinggi }} cm</p>
+          <p>Ukuran : P {{ katalog.detail.ukuran.panjang }} x L {{ katalog.detail.ukuran.lebar }} x T {{ katalog.detail.ukuran.tinggi }} cm</p>
           <p>Bahan Luar : {{ katalog.detail.bahanLuar }}</p>
           <p>Bahan Dalam : {{ katalog.detail.bahanDalam }}</p>
           <p>Aksesoris : {{ katalog.detail.aksesoris }}</p>
@@ -122,16 +122,16 @@ onMounted(async () => {
 
 .gambar-detail {
   width: 50%;
-  padding: 100px;
+  padding: 60px 100px; /* Reduced top padding from 100px to 60px */
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .back {
   position: absolute;
-  top: 1rem;
+  top: 1.5rem; /* Slightly adjusted for better spacing */
   left: 1rem;
   text-decoration: none;
 }
@@ -147,11 +147,14 @@ onMounted(async () => {
   align-items: center;
   gap: 1rem;
   max-width: 100%;
+  align-self: center; /* Center the content wrapper itself */
 }
 
 .gambar-detail h1 {
   font-size: 2.4rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem; /* Reduced from 1.5rem to 1rem */
+  align-self: flex-start;
+  width: 100%;
 }
 
 .gambar-detail img {
