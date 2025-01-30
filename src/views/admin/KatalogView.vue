@@ -843,8 +843,8 @@ const prevImage = () => {
 }
 
 .waktu-list .express-info {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #cfe0ff;
+  color: #02163b;
   font-weight: 500;
 }
 

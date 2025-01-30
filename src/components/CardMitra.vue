@@ -1,14 +1,31 @@
 <template>
-  <section class="card">
-    <img src="../assets/Logo Difia Haki.PNG" alt="">
-  </section>
+  <div class="card-container">
+    <div v-for="partner in partnerStore.partners" :key="partner.id" class="card">
+      <img :src="partner.image" :alt="partner.name">
+    </div>
+  </div>
 </template>
-<script>
-export default {
 
-}
+<script setup>
+import { onMounted } from 'vue'
+import { usePartnerStore } from '../stores/PartnerStore'
+
+const partnerStore = usePartnerStore()
+
+onMounted(async () => {
+  await partnerStore.fetchPartners()
+})
 </script>
+
 <style scoped>
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
 .card {
   width: 33.3%;
   background-color: #d9d9d9;
@@ -16,7 +33,8 @@ export default {
   text-align: center;
   padding: 10px;
 }
-.card img{
+
+.card img {
   width: 100%;
   max-width: 150px;
 }
