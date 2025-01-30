@@ -4,24 +4,24 @@
       <router-link to="/" class="back">
         <i class="fas fa-arrow-left"></i>
       </router-link>
-      
-      <h1>{{ katalog?.nama || 'Produk Kami' }}</h1>
-      
+
+      <h1><b>{{ katalog?.nama || 'Produk Kami' }}</b></h1>
+
       <div v-if="katalog" class="content-wrapper">
         <img :src="katalog.images[0]" :alt="katalog.nama" />
-        
-        <button class="hub">Hubungi Kami</button>
-        
+
+        <button class="hub">Pesan Sekarang</button>
+
         <div class="toko-section">
           <h2>Kunjungi Toko Kami :</h2>
           <div class="sosmed-link">
             <a href="#" class="sosmed">
               <i class="fas fa-brands fa-instagram"></i>
-              DIFIA.ID
+              <b>DIFIA.ID</b>
             </a>
             <a href="#" class="sosmed">
               <i class="fas fa-bag-shopping"></i>
-              DIFIA OFFICIAL SHOP
+              <b>DIFIA OFFICIAL SHOP</b>
             </a>
           </div>
         </div>
@@ -30,7 +30,7 @@
 
     <div class="detail-keterangan" v-if="katalog">
       <section>
-        <h2>HARGA / PCS</h2>
+        <h2><b>HARGA / PCS</b></h2>
         <div class="info-content">
           <p>Standard : {{ katalog.harga.standar.toLocaleString() }}</p>
           <p>Premium : {{ katalog.harga.premium.toLocaleString() }}</p>
@@ -39,7 +39,7 @@
       </section>
 
       <section>
-        <h2>DETAIL</h2>
+        <h2><b>DETAIL</b></h2>
         <div class="info-content">
           <p>Ukuran : {{ katalog.detail.ukuran.panjang }}x{{ katalog.detail.ukuran.lebar }}x{{ katalog.detail.ukuran.tinggi }} cm</p>
           <p>Bahan Luar : {{ katalog.detail.bahanLuar }}</p>
@@ -50,13 +50,13 @@
       </section>
 
       <section>
-        <h2>WAKTU PENGERJAAN</h2>
+        <h2><b>WAKTU PENGERJAAN</b></h2>
         <div class="info-content">
-          <p>50-100 pcs : {{ katalog.waktuPengerjaan.pcs50_100 }}</p>
-          <p>200 pcs : {{ katalog.waktuPengerjaan.pcs200 }}</p>
-          <p>300 pcs : {{ katalog.waktuPengerjaan.pcs300 }}</p>
-          <p>>300 pcs : {{ katalog.waktuPengerjaan.pcsAbove300 }}</p>
-          <p>Express : {{ katalog.waktuPengerjaan.express }}</p>
+          <p>50-100 pcs : {{ katalog.waktuPengerjaan.pcs50_100 }} hari</p>
+          <p>200 pcs : {{ katalog.waktuPengerjaan.pcs200 }} hari</p>
+          <p>300 pcs : {{ katalog.waktuPengerjaan.pcs300 }} hari</p>
+          <p>>300 pcs : {{ katalog.waktuPengerjaan.pcsAbove300 }} hari</p>
+          <p>Express : {{ katalog.waktuPengerjaan.express }} hari</p>
         </div>
       </section>
     </div>
@@ -87,16 +87,16 @@ const getCatalogFromCache = (id) => {
 
 onMounted(async () => {
   const id = route.params.id
-  
+
   // First try to get from cache
   const cachedItem = getCatalogFromCache(id)
   if (cachedItem) {
     katalog.value = cachedItem
   }
-  
+
   // Then try to find in existing store items
   let item = katalogStore.katalogItems.find(k => k.id === id)
-  
+
   if (!item) {
     // If not found in existing items, fetch from store
     await katalogStore.fetchKatalog()
@@ -122,7 +122,7 @@ onMounted(async () => {
 
 .gambar-detail {
   width: 50%;
-  padding: 1.5rem;
+  padding: 100px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -150,16 +150,19 @@ onMounted(async () => {
 }
 
 .gambar-detail h1 {
-  font-size: 1.8rem;
+  font-size: 2.4rem;
   margin-bottom: 1.5rem;
 }
 
 .gambar-detail img {
   width: 100%;
-  max-width: 350px;
+  max-width: 500px;
   height: auto;
   border-radius: 8px;
   object-fit: cover;
+}
+.gambar-detail i{
+  font-size: 3rem;
 }
 
 .hub {
@@ -176,17 +179,26 @@ onMounted(async () => {
 .toko-section {
   width: 100%;
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
 }
 
 .toko-section h2 {
   margin-bottom: 0.8rem;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
+  float: left;
+  text-align: left;
+  width: 100%;
 }
 
 .sosmed-link {
   display: flex;
-  justify-content: center;
   gap: 1rem;
+  width: 100%;
+  float: left;
+  text-align: left;
 }
 
 .sosmed {
@@ -200,10 +212,10 @@ onMounted(async () => {
 .sosmed i {
   background-color: #E8BA38;
   color: white;
-  padding: 0.4rem;
+  padding: 0.5rem;
   border-radius: 50%;
   margin-right: 0.4rem;
-  font-size: 0.9rem;
+  font-size: 1.5rem;
 }
 
 .detail-keterangan {
@@ -215,6 +227,7 @@ onMounted(async () => {
   gap: 1rem;
   margin: 0;
   height: 100%;
+  box-shadow: #0000 9px 9px 10px;
 }
 
 .detail-keterangan section {
@@ -228,7 +241,7 @@ onMounted(async () => {
   color: white;
   padding: 0.6rem;
   text-align: center;
-  font-size: 1.1rem;
+  font-size: 1.8rem;
   margin: 0;
 }
 
@@ -239,7 +252,7 @@ onMounted(async () => {
 }
 
 .info-content p {
-  font-size: 0.9rem;
+  font-size: 1rem;
   padding: 0.2rem 0;
   margin: 0;
 }

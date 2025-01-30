@@ -16,11 +16,7 @@
     <section class="tentang-kami" id="about">
       <div class="gambar">
         <!-- <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" /> -->
-        <img
-          src="../assets/Logo Difia Haki.PNG"
-          alt="foto-tentang-kami"
-          class="foto-tentang-kami"
-        />
+        <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
       </div>
       <div class="text">
         <h1><b>TENTANG KAMI</b></h1>
@@ -34,12 +30,8 @@
     <section class="katalog" id="catalog">
       <h1><b>KATALOG</b></h1>
       <div class="catalog-grid">
-        <CardCatalog
-          v-for="(katalog, index) in katalogStore.katalogItems"
-          :key="katalog.id"
-          :item="katalog"
-          :index="index"
-        />
+        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
+          :index="index" />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -56,13 +48,7 @@
         <h1><b>Mitra Kami</b></h1>
         <span class="line"></span>
       </div>
-      <div class="partner-grid">
-        <div v-for="partner in partnerStore.partners" :key="partner.id" class="partner-item">
-          <div class="partner-item-wrapper">
-            <img :src="partner.image" :alt="partner.name" />
-          </div>
-        </div>
-      </div>
+      <CardMitra></CardMitra>
     </section>
     <section class="ulasan">
       <div class="b-log">
@@ -103,6 +89,7 @@ import { useRouter } from 'vue-router'
 import { useKatalogStore } from '@/stores/KatalogStore'
 import CardUlasan from '@/components/CardUlasan.vue'
 import { usePartnerStore } from '@/stores/PartnerStore' // Add this import
+import CardMitra from '@/components/CardMitra.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -348,6 +335,7 @@ footer .medsos a {
   gap: 10px;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 footer .medsos a:hover {

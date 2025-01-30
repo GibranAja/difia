@@ -9,7 +9,7 @@
         <i class="fas fa-cart-shopping"></i>
       </a>
       <router-link :to="`/detail/${item.id}`" class="detail-btn">
-        <b>Detail</b>
+        <b>Beli Sekarang</b>
       </router-link>
     </div>
   </div>
@@ -40,7 +40,7 @@ const isAlternate = computed(() => {
 </script>
 
 <style scoped>
-.card { 
+.card {
   width: 250px;
   display: flex;
   flex-direction: column;
@@ -106,7 +106,8 @@ const isAlternate = computed(() => {
   border-radius: 100px;
   transition: all 0.3s ease;
   text-align: center;
-  font-size: x-large;
+  font-size: large;
+  padding: 10px;
   width: 120px;
 }
 
