@@ -44,7 +44,7 @@ const navigateToChat = () => {
     router.push('/login');
     return;
   }
-  router.push('/chat-customer');
+  router.push('/chat');
 };
 </script>
 
