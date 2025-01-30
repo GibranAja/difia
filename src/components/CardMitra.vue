@@ -27,15 +27,17 @@ onMounted(async () => {
 }
 
 .card {
-  width: 33.3%;
+  width: 25%;
   background-color: #d9d9d9;
   justify-content: center;
   text-align: center;
+  display: flex;
+  align-items: center;
   padding: 10px;
 }
 
 .card img {
   width: 100%;
-  max-width: 150px;
+  max-width: 250px;
 }
 </style>
