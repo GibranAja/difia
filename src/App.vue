@@ -52,9 +52,9 @@ const navigateToChat = () => {
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     overflow-x: hidden;
-    background-color: white ;
+    background-color: #f4f4f4 ;
   }
   html {
     scroll-behavior: smooth;
