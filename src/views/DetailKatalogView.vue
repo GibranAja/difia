@@ -8,7 +8,49 @@
       <h1><b>{{ katalog?.nama || 'Produk Kami' }}</b></h1>
 
       <div v-if="katalog" class="content-wrapper">
-        <img :src="katalog.images[0]" :alt="katalog.nama" />
+        <!-- Replace single image with carousel -->
+        <div class="carousel-container">
+          <div class="carousel-wrapper" :style="carouselStyle">
+            <!-- Duplicate first and last images for smooth transition -->
+            <img 
+              v-if="katalog.images.length > 0"
+              :src="katalog.images[katalog.images.length - 1]" 
+              :alt="katalog.nama"
+              class="carousel-image"
+            />
+            <img 
+              v-for="(image, index) in katalog.images" 
+              :key="index"
+              :src="image" 
+              :alt="katalog.nama"
+              class="carousel-image"
+            />
+            <img 
+              v-if="katalog.images.length > 0"
+              :src="katalog.images[0]" 
+              :alt="katalog.nama"
+              class="carousel-image"
+            />
+          </div>
+          
+          <!-- Navigation buttons -->
+          <button class="carousel-btn prev" @click="prevSlide">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button class="carousel-btn next" @click="nextSlide">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+
+          <!-- Indicators -->
+          <div class="carousel-indicators">
+            <span 
+              v-for="(_, index) in katalog.images" 
+              :key="index"
+              :class="['indicator', { active: currentIndex === index }]"
+              @click="goToSlide(index)"
+            ></span>
+          </div>
+        </div>
 
         <button class="hub">Pesan Sekarang</button>
 
@@ -64,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useKatalogStore } from '@/stores/KatalogStore'
 
@@ -108,7 +150,63 @@ onMounted(async () => {
     // Save to cache for future use
     saveCatalogToCache(item)
   }
+
+  // Start autoplay
+  startAutoplay()
 })
+
+// Add cleanup on component unmount
+onBeforeUnmount(() => {
+  stopAutoplay()
+})
+
+// Carousel functionality
+const currentIndex = ref(0)
+
+const carouselStyle = computed(() => ({
+  transform: `translateX(-${(currentIndex.value + 1) * 100}%)`,
+  transition: 'transform 0.5s ease-in-out'
+}))
+
+const prevSlide = () => {
+  stopAutoplay() // Stop on user interaction
+  if (currentIndex.value === 0) {
+    currentIndex.value = katalog.value.images.length - 1
+  } else {
+    currentIndex.value--
+  }
+  startAutoplay() // Restart autoplay
+}
+
+const nextSlide = () => {
+  stopAutoplay() // Stop on user interaction
+  if (currentIndex.value === katalog.value.images.length - 1) {
+    currentIndex.value = 0
+  } else {
+    currentIndex.value++
+  }
+  startAutoplay() // Restart autoplay
+}
+
+const goToSlide = (index) => {
+  stopAutoplay() // Stop on user interaction
+  currentIndex.value = index
+  startAutoplay() // Restart autoplay
+}
+
+// Add autoplay functionality
+let autoplayInterval
+const AUTOPLAY_DELAY = 5000 // 5 seconds
+
+const startAutoplay = () => {
+  autoplayInterval = setInterval(() => {
+    nextSlide()
+  }, AUTOPLAY_DELAY)
+}
+
+const stopAutoplay = () => {
+  clearInterval(autoplayInterval)
+}
 </script>
 
 <style scoped>
@@ -153,6 +251,7 @@ onMounted(async () => {
 .gambar-detail h1 {
   font-size: 2.4rem;
   margin-bottom: 1rem; /* Reduced from 1.5rem to 1rem */
+  margin-left: 1.6rem; /* Reduced from 1.5rem to 1rem */
   align-self: flex-start;
   width: 100%;
 }
@@ -268,5 +367,118 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Carousel styles */
+.carousel-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px; /* Changed from 500px */
+  height: 360px; /* Changed from 460px */
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.carousel-container:hover .carousel-btn {
+  opacity: 1;
+}
+
+.carousel-wrapper {
+  display: flex;
+  height: 100%;
+  transition: transform 0.5s ease-in-out;
+}
+
+.carousel-image {
+  width: 500px; /* Changed from 500px */
+  height: 360px; /* Changed from 460px */
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1;
+  opacity: 0;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn.prev {
+  left: 16px;
+}
+
+.carousel-btn.next {
+  right: 16px;
+}
+
+.carousel-btn i {
+  font-size: 1.2rem;
+}
+
+.carousel-indicators {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  background-color: #E8BA38;
+  transform: scale(1.2);
+}
+
+/* Add responsive styles */
+@media (max-width: 768px) {
+  .carousel-container {
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 270/200; /* Changed from 500/460 */
+  }
+
+  .carousel-image {
+    width: 100%;
+    height: 100%;
+  }
+
+  .carousel-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .carousel-btn i {
+    font-size: 1rem;
+  }
 }
 </style>

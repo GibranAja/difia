@@ -8,7 +8,8 @@
       <a href="" class="cart-btn" :class="{ 'cart-alt': isAlternate }">
         <i class="fas fa-cart-shopping"></i>
       </a>
-      <router-link :to="`/detail/${item.id}`" class="detail-btn">
+      <!-- Change the router-link destination to custom route -->
+      <router-link :to="`/custom/${item.id}`" class="detail-btn">
         <b>Beli Sekarang</b>
       </router-link>
     </div>
@@ -106,7 +107,7 @@ const isAlternate = computed(() => {
   border-radius: 100px;
   transition: all 0.3s ease;
   text-align: center;
-  font-size: large;
+  font-size: 16px;
   padding: 10px;
   width: 120px;
 }

@@ -172,7 +172,7 @@ a.masuk {
 i {
   color: #e8ba38;
   transition: all 700ms;
-  font-size: 3rem;
+  font-size: 2rem;
 }
 
 i:hover {
