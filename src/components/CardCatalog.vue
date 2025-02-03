@@ -1,7 +1,10 @@
 <template>
   <div class="card" :class="{ 'card-alt': isAlternate }" v-if="item">
-    <router-link :to="`/detail/${item.id}`">
+    <router-link :to="`/detail/${item.id}`" class="image-container">
       <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0">
+      <div class="overlay">
+        <span>Lihat Detail</span>
+      </div>
     </router-link>
     <h1><b>{{ item.nama }}</b></h1>
     <div class="button-group">
@@ -115,5 +118,54 @@ const isAlternate = computed(() => {
 .detail-btn:hover {
   background-color: white;
   color: #e8ba38;
+}
+
+.image-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.overlay span {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.image-container:hover .overlay {
+  opacity: 1;
+}
+
+.image-container:hover img {
+  transform: scale(1.1);
+}
+
+.image-container:hover .overlay span {
+  transform: translateY(0);
 }
 </style>
