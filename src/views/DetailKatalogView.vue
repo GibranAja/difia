@@ -9,7 +9,12 @@
 
       <div v-if="katalog" class="content-wrapper">
         <!-- Replace single image with carousel -->
-        <div class="carousel-container">
+        <div 
+          class="carousel-container"
+          @mousemove="handleMouseMove"
+          @mouseenter="stopAutoplay"
+          @mouseleave="startAutoplay"
+        >
           <div class="carousel-wrapper" :style="carouselStyle">
             <!-- Duplicate first and last images for smooth transition -->
             <img 
@@ -169,43 +174,54 @@ const carouselStyle = computed(() => ({
 }))
 
 const prevSlide = () => {
-  stopAutoplay() // Stop on user interaction
+  // stopAutoplay()
   if (currentIndex.value === 0) {
     currentIndex.value = katalog.value.images.length - 1
   } else {
     currentIndex.value--
   }
-  startAutoplay() // Restart autoplay
 }
 
 const nextSlide = () => {
-  stopAutoplay() // Stop on user interaction
+  // stopAutoplay()
   if (currentIndex.value === katalog.value.images.length - 1) {
     currentIndex.value = 0
   } else {
     currentIndex.value++
   }
-  startAutoplay() // Restart autoplay
 }
 
 const goToSlide = (index) => {
-  stopAutoplay() // Stop on user interaction
+  // stopAutoplay()
   currentIndex.value = index
-  startAutoplay() // Restart autoplay
 }
 
 // Add autoplay functionality
 let autoplayInterval
-const AUTOPLAY_DELAY = 5000 // 5 seconds
+const AUTOPLAY_DELAY = 3000 // 3 seconds
 
 const startAutoplay = () => {
+  // Clear any existing interval first
+  stopAutoplay()
   autoplayInterval = setInterval(() => {
     nextSlide()
   }, AUTOPLAY_DELAY)
 }
 
 const stopAutoplay = () => {
-  clearInterval(autoplayInterval)
+  if (autoplayInterval) {
+    clearInterval(autoplayInterval)
+    autoplayInterval = null
+  }
+}
+
+// Handle mouse move for zoom effect
+const handleMouseMove = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const x = ((e.clientX - rect.left) / rect.width) * 100
+  const y = ((e.clientY - rect.top) / rect.height) * 100
+  e.currentTarget.style.setProperty('--x', `${x}%`)
+  e.currentTarget.style.setProperty('--y', `${y}%`)
 }
 </script>
 
@@ -372,11 +388,12 @@ body {
 /* Carousel styles */
 .carousel-container {
   position: relative;
-  width: 100%;
-  max-width: 500px; /* Changed from 500px */
-  height: 360px; /* Changed from 460px */
+  max-width: 500px;
+  height: 360px;
   overflow: hidden;
   border-radius: 8px;
+  --x: center;
+  --y: center;
 }
 
 .carousel-container:hover .carousel-btn {
@@ -390,10 +407,21 @@ body {
 }
 
 .carousel-image {
-  width: 500px; /* Changed from 500px */
-  height: 360px; /* Changed from 460px */
+  width: 500px;
+  height: 360px;
   flex-shrink: 0;
   object-fit: cover;
+  transition: transform 0.3s ease-out;
+  transform-origin: var(--x, center) var(--y, center);
+}
+
+.carousel-container:hover .carousel-image {
+  cursor: zoom-in;
+}
+
+/* This targets only the currently visible image */
+.carousel-container:hover .carousel-image:hover {
+  transform: scale(2);
 }
 
 .carousel-btn {
@@ -410,10 +438,6 @@ body {
   z-index: 1;
   opacity: 0;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .carousel-btn:hover {
@@ -464,7 +488,7 @@ body {
   .carousel-container {
     max-width: 100%;
     height: auto;
-    aspect-ratio: 270/200; /* Changed from 500/460 */
+    aspect-ratio: 270/200;
   }
 
   .carousel-image {

@@ -141,8 +141,8 @@ onMounted(async () => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw; /* Changed from 100% to 100vw */
+  height: 100vh; /* Changed from 100% to 100vh */
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -156,6 +156,11 @@ onMounted(async () => {
   border-radius: 10px;
   width: 400px;
   max-width: 90%;
+  max-height: 90vh; /* Added max-height */
+  overflow-y: auto; /* Added overflow */
+  position: relative; /* Added position */
+  margin: auto; /* Added margin */
+  transform: translateY(0); /* Added transform to ensure centered positioning */
 }
 
 .modal-content h2 {
