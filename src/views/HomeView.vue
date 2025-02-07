@@ -4,7 +4,7 @@
       <h1><b>DIFIA</b></h1>
       <p>Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
       <span class="vector"></span>
-      <a href="#catalog"><b>Belanja Sekarang</b></a>
+      <a href="#catalog" class="btn-shop"><b>Belanja Sekarang</b></a>
     </div>
     <div class="carousel">
       <img src="../assets/difia.jpg" alt="foto-katalog" />
@@ -136,6 +136,10 @@ header {
   border: 1px solid #e8ba38;
   color: #02163b;
   padding: 10px;
+}
+
+.btn-shop {
+  margin-top: 1em;
 }
 
 .judul {

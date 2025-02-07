@@ -803,6 +803,7 @@ const prevImage = () => {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
+  text-align: center;
   cursor: pointer;
   font-size: 0.9em;
   transition: opacity 0.2s;

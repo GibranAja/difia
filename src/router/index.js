@@ -17,6 +17,8 @@ import DetailKatalogView from '@/views/DetailKatalogView.vue'
 import CreateBlog from '@/views/admin/CreateBlog.vue'
 import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 import PartnerView from '@/views/admin/PartnerView.vue'
+import StaffView from '@/views/admin/StaffView.vue'
+import CreateStaff from '@/views/admin/CreateStaffView.vue'
 import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import VerifyCode from '@/views/auth/VerifyCode.vue'
@@ -116,6 +118,24 @@ const router = createRouter({
           path: 'order',
           name: 'OrderView',
           component: OrderView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'staff',
+          name: 'StaffView',
+          component: StaffView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'staff/create',
+          name: 'CreateStaff',
+          component: CreateStaff,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'staff/edit/:id',
+          name: 'EditStaff',
+          component: CreateStaff,
           meta: { requiresAdmin: true },
         },
         {
