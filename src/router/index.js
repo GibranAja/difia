@@ -24,6 +24,7 @@ import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import VerifyCode from '@/views/auth/VerifyCode.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
 import CustomView from '@/views/CustomView.vue'
+import CartView from '@/views/CartView.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -49,6 +50,11 @@ const router = createRouter({
       path: '/custom/:id',
       name: 'CustomView',
       component: CustomView,
+    },
+    {
+      path: '/cart',
+      name: 'CartView',
+      component: CartView,
     },
     {
       path: '/',

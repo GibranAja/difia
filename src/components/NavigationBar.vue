@@ -1,7 +1,7 @@
 <template>
-  <nav 
+  <nav
     :class="{ 'nav-hidden': isHidden }"
-    :style="{ 
+    :style="{
       background: isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
       backdropFilter: isScrolled ? 'blur(10px)' : 'none'
     }"
@@ -19,7 +19,7 @@
       <i class="fas fa-bell"></i>
     </a>
 
-    <a href="">
+    <a href="/cart">
       <i class="fas fa-cart-shopping"></i>
     </a>
 
@@ -32,9 +32,9 @@
     <template v-if="authStore.isLoggedIn">
       <div class="login">
         <div class="profile-photo-container" @click="showProfileModal = true">
-          <img 
-            :src="userProfilePhoto" 
-            :alt="authStore.currentUser?.name || 'User'" 
+          <img
+            :src="userProfilePhoto"
+            :alt="authStore.currentUser?.name || 'User'"
             class="profile-photo"
             @error="handleImageError"
           />
@@ -44,8 +44,8 @@
     </template>
 
     <!-- Profile Modal -->
-    <ModalProfile 
-      v-if="showProfileModal" 
+    <ModalProfile
+      v-if="showProfileModal"
       @close="showProfileModal = false"
     />
   </nav>
