@@ -12,7 +12,7 @@ import {
   deleteDoc,
   updateDoc,
   query,
-  // where,
+  where,
   serverTimestamp,
   orderBy,
   getDoc
@@ -22,7 +22,7 @@ import {
   deleteUser,
   signInWithEmailAndPassword,
   initializeAuth,
-  browserLocalPersistence
+  browserLocalPersistence,
 } from 'firebase/auth'
 
 export const useStaffStore = defineStore('staff', () => {
@@ -96,6 +96,16 @@ export const useStaffStore = defineStore('staff', () => {
 
     } catch (err) {
       error.value = err.message
+      
+      // Check specifically for email-already-in-use error
+      if (err.code === 'auth/email-already-in-use') {
+        return { 
+          success: false, 
+          emailExists: true,
+          error: err.message 
+        }
+      }
+
       toast.error('Failed to create staff account: ' + err.message)
       return { success: false, error: err.message }
     } finally {
@@ -198,6 +208,67 @@ export const useStaffStore = defineStore('staff', () => {
     }
   }
 
+  // Recover staff
+  const recoverStaff = async (email) => {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      // Check if staff already exists in Firestore
+      const staffQuery = query(
+        collection(db, 'staff'),
+        where('email', '==', email)
+      )
+      const staffSnapshot = await getDocs(staffQuery)
+
+      if (!staffSnapshot.empty) {
+        throw new Error('Staff already exists in database')
+      }
+
+      // Get user info from Authentication
+      const userQuery = query(
+        collection(db, 'users'),
+        where('email', '==', email)
+      )
+      const userSnapshot = await getDocs(userQuery)
+      let userData = {}
+      
+      if (!userSnapshot.empty) {
+        userData = userSnapshot.docs[0].data()
+      }
+
+      // Add new staff document
+      const newStaffData = {
+        email: email,
+        name: userData.name || email.split('@')[0], // Use name from users collection or generate from email
+        role: 'staff',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+
+      const docRef = await addDoc(collection(db, 'staff'), newStaffData)
+      
+      // Add to local state
+      staffItems.value.unshift({
+        id: docRef.id,
+        ...newStaffData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+
+      toast.success('Staff account recovered successfully')
+      return { success: true }
+
+    } catch (err) {
+      error.value = err.message
+      toast.error('Failed to recover staff account: ' + err.message)
+      console.error('Recover staff error:', err)
+      return { success: false, error: err.message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     staffItems,
     isLoading,
@@ -205,6 +276,7 @@ export const useStaffStore = defineStore('staff', () => {
     fetchStaff,
     addStaff,
     updateStaff,
-    deleteStaff
+    deleteStaff,
+    recoverStaff
   }
 })

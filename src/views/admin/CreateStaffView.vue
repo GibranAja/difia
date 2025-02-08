@@ -61,6 +61,13 @@
         </button>
       </div>
     </form>
+
+    <EmailExistsModal
+      v-if="showEmailExistsModal"
+      :email="formData.email"
+      @cancel="showEmailExistsModal = false"
+      @recovered="handleRecoverySuccess"
+    />
   </div>
 </template>
 
@@ -68,8 +75,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStaffStore } from '@/stores/StaffStore'
+import { useToast } from 'vue-toastification'
+import EmailExistsModal from '@/components/admin/EmailExistsModal.vue'
 
 const route = useRoute()
+const toast = useToast()
 const router = useRouter()
 const staffStore = useStaffStore()
 
@@ -77,6 +87,7 @@ const isEditing = computed(() => !!route.params.id)
 const isSubmitting = ref(false)
 const showPassword = ref(false)
 const errors = ref({})
+const showEmailExistsModal = ref(false)
 
 const formData = ref({
   name: '',
@@ -158,15 +169,23 @@ const handleSubmit = async () => {
 
     if (result.success) {
       router.push('/admin/staff')
+    } else if (result.emailExists) {
+      // Show the EmailExistsModal when email already exists
+      showEmailExistsModal.value = true
     } else {
       throw new Error(result.error)
     }
   } catch (error) {
     console.error('Error saving staff:', error)
-    alert('Gagal menyimpan data staff: ' + error.message)
+    toast.error('Gagal menyimpan data staff: ' + error.message)
   } finally {
     isSubmitting.value = false
   }
+}
+
+const handleRecoverySuccess = () => {
+  showEmailExistsModal.value = false
+  router.push('/admin/staff')
 }
 
 const goBack = () => {
