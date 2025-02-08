@@ -25,6 +25,7 @@ import VerifyCode from '@/views/auth/VerifyCode.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
 import CustomView from '@/views/CustomView.vue'
 import CartView from '@/views/CartView.vue'
+import CheckoutView from '@/views/CheckoutView.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
@@ -41,6 +42,11 @@ const adminGuard = async (to, from, next) => {
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/checkout',
+      name: 'CheckoutView',
+      component: CheckoutView,
+    },
     {
       path: '/detail/:id',
       name: 'DetailKatalog',
