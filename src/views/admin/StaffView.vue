@@ -1,12 +1,11 @@
+<!-- views/admin/StaffView.vue -->
 <template>
   <div class="staff-container">
     <h1>DAFTAR STAFF</h1>
 
     <div class="staff-controls">
       <div class="top-controls">
-        <router-link to="/admin/staff/create" class="add-btn">
-          Tambah Staff
-        </router-link>
+        <router-link to="/admin/staff/create" class="add-btn">Tambah Staff</router-link>
       </div>
 
       <div class="filter-controls">
@@ -43,7 +42,7 @@
             <th>Nama</th>
             <th>Email</th>
             <th>Role</th>
-            <th>Tanggal Bergabung</th>
+            <th>Tanggal Dibuat</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -52,7 +51,7 @@
             <td class="text-center">{{ startIndex + index + 1 }}</td>
             <td>{{ staff.name }}</td>
             <td>{{ staff.email }}</td>
-            <td>{{ staff.role || 'Staff' }}</td>
+            <td>{{ staff.role }}</td>
             <td>{{ formatDate(staff.createdAt) }}</td>
             <td class="action-cell">
               <div class="action-buttons">
@@ -85,7 +84,7 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const entriesPerPage = ref(10)
 
-// Fetch staff on component mount
+// Fetch staff on component mount and when needed
 onMounted(async () => {
   await staffStore.fetchStaff()
 })
@@ -113,17 +112,20 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('id-ID', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
+    day: 'numeric'
   })
 }
 
 const confirmDelete = async (id) => {
-  if (confirm('Apakah Anda yakin ingin menghapus staff ini?')) {
+  if (confirm('Are you sure you want to delete this staff account?')) {
     try {
-      await staffStore.deleteStaff(id)
+      const result = await staffStore.deleteStaff(id)
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete staff')
+      }
     } catch (error) {
       console.error('Error deleting staff:', error)
-      alert('Gagal menghapus staff')
+      alert('Failed to delete staff account: ' + error.message)
     }
   }
 }
@@ -134,11 +136,6 @@ const confirmDelete = async (id) => {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.staff-container h1 {
-  margin-bottom: 30px;
-  color: #333;
 }
 
 .staff-controls {

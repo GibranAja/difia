@@ -1,69 +1,41 @@
+// stores/StaffStore.js
+
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { db, auth } from '@/config/firebase'
-import {
-  collection,
-  addDoc,
+import { db, auth, app } from '@/config/firebase'
+import { useToast } from 'vue-toastification'
+import { 
+  collection, 
+  addDoc, 
   getDocs,
-  doc,
-  updateDoc,
+  doc, 
   deleteDoc,
-  serverTimestamp,
+  updateDoc,
   query,
+  // where,
+  serverTimestamp,
   orderBy,
-  where
+  getDoc
 } from 'firebase/firestore'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  signInWithEmailAndPassword,
+  initializeAuth,
+  browserLocalPersistence
+} from 'firebase/auth'
 
 export const useStaffStore = defineStore('staff', () => {
   const staffItems = ref([])
   const isLoading = ref(false)
   const error = ref(null)
+  const toast = useToast()
 
-  // Cache mechanism
-  const cache = {
-    data: new Map(),
-    timestamp: new Map(),
-    maxAge: 5 * 60 * 1000, // 5 minutes cache
-
-    set(key, value) {
-      this.data.set(key, value)
-      this.timestamp.set(key, Date.now())
-    },
-
-    get(key) {
-      const timestamp = this.timestamp.get(key)
-      if (!timestamp) return null
-
-      if (Date.now() - timestamp > this.maxAge) {
-        this.data.delete(key)
-        this.timestamp.delete(key)
-        return null
-      }
-
-      return this.data.get(key)
-    },
-
-    clear() {
-      this.data.clear()
-      this.timestamp.clear()
-    }
-  }
-
-  // Fetch all staff members with caching
-  const fetchStaff = async (forceFetch = false) => {
+  // Fetch all staff
+  const fetchStaff = async () => {
     try {
       isLoading.value = true
       error.value = null
-
-      // Check cache if forceFetch is false
-      if (!forceFetch) {
-        const cachedStaff = cache.get('staff')
-        if (cachedStaff) {
-          staffItems.value = cachedStaff
-          return
-        }
-      }
 
       const staffQuery = query(
         collection(db, 'staff'), 
@@ -71,140 +43,159 @@ export const useStaffStore = defineStore('staff', () => {
       )
       const snapshot = await getDocs(staffQuery)
       
-      const staff = snapshot.docs.map(doc => ({
+      staffItems.value = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate().toISOString(),
         updatedAt: doc.data().updatedAt?.toDate().toISOString()
       }))
 
-      staffItems.value = staff
-      cache.set('staff', staff)
-
     } catch (err) {
       error.value = err.message
-      throw new Error(`Error fetching staff: ${err.message}`)
+      toast.error('Failed to fetch staff list')
     } finally {
       isLoading.value = false
     }
   }
 
-  // Add new staff member
+  // Add new staff
   const addStaff = async (staffData) => {
     try {
       isLoading.value = true
       error.value = null
 
-      // First create the user authentication account
+      // Create auth account first
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         staffData.email,
         staffData.password
       )
 
-      // Then create the staff document in Firestore
-      const docRef = await addDoc(collection(db, 'staff'), {
+      // Save staff data to Firestore
+      const newStaffData = {
         uid: userCredential.user.uid,
         name: staffData.name,
         email: staffData.email,
-        isAdmin: false, // Staff members are not admins by default
+        role: 'staff',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
+      }
+
+      const docRef = await addDoc(collection(db, 'staff'), newStaffData)
+      
+      // Add to local state
+      staffItems.value.unshift({ 
+        id: docRef.id, 
+        ...newStaffData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       })
 
-      // Update cache with new data
-      cache.clear()
-      await fetchStaff()
-
+      toast.success('Staff account created successfully')
       return { success: true, id: docRef.id }
+
     } catch (err) {
       error.value = err.message
+      toast.error('Failed to create staff account: ' + err.message)
       return { success: false, error: err.message }
     } finally {
       isLoading.value = false
     }
   }
 
-  // Update staff member
+  // Update staff
   const updateStaff = async (id, staffData) => {
     try {
       isLoading.value = true
       error.value = null
 
       const staffRef = doc(db, 'staff', id)
-      const updateData = {
+      await updateDoc(staffRef, {
         name: staffData.name,
         updatedAt: serverTimestamp()
+      })
+
+      // Update local state
+      const index = staffItems.value.findIndex(item => item.id === id)
+      if (index !== -1) {
+        staffItems.value[index] = {
+          ...staffItems.value[index],
+          ...staffData,
+          updatedAt: new Date().toISOString()
+        }
       }
 
-      await updateDoc(staffRef, updateData)
-
-      // Update cache with new data
-      cache.clear()
-      await fetchStaff()
-
+      toast.success('Staff account updated successfully')
       return { success: true }
+
     } catch (err) {
       error.value = err.message
+      toast.error('Failed to update staff account')
       return { success: false, error: err.message }
     } finally {
       isLoading.value = false
     }
   }
 
-  // Delete staff member
-  const deleteStaff = async (id) => {
+  // Delete staff
+  const deleteStaff = async (staffId) => {
     try {
       isLoading.value = true
       error.value = null
 
-      await deleteDoc(doc(db, 'staff', id))
+      // Get staff data from Firestore first
+      const staffDoc = doc(db, 'staff', staffId)
+      const staffSnapshot = await getDoc(staffDoc)
       
-      // Update local state and cache
-      staffItems.value = staffItems.value.filter(staff => staff.id !== id)
-      cache.clear()
+      if (staffSnapshot.exists()) {
+        const staffData = staffSnapshot.data()
 
-      return { success: true }
+        // Delete from Firestore first
+        await deleteDoc(staffDoc)
+
+        try {
+          // Create a separate auth instance
+          const adminAuth = initializeAuth(app, {
+            persistence: browserLocalPersistence
+          })
+
+          // Delete the authentication account using the UID
+          const staffUser = await signInWithEmailAndPassword(
+            adminAuth,
+            staffData.email,
+            staffData.password
+          )
+
+          if (staffUser.user) {
+            await deleteUser(staffUser.user)
+          }
+
+          // Clean up the temporary auth instance
+          await adminAuth.signOut()
+          adminAuth.deleteApp
+
+        } catch (authError) {
+          console.error('Error deleting auth account:', authError)
+          // Even if auth deletion fails, continue with the process
+          // since Firestore data is already deleted
+        }
+
+        // Update local state
+        staffItems.value = staffItems.value.filter(item => item.id !== staffId)
+        
+        toast.success('Staff account deleted successfully')
+        return { success: true }
+      }
+
+      throw new Error('Staff not found')
+
     } catch (err) {
       error.value = err.message
+      toast.error('Failed to delete staff account: ' + err.message)
       return { success: false, error: err.message }
     } finally {
       isLoading.value = false
     }
-  }
-
-  // Get single staff member
-  const getStaffById = (id) => {
-    return staffItems.value.find(staff => staff.id === id) || null
-  }
-
-  // Get staff member by email
-  const getStaffByEmail = async (email) => {
-    try {
-      const staffQuery = query(
-        collection(db, 'staff'),
-        where('email', '==', email)
-      )
-      const snapshot = await getDocs(staffQuery)
-      
-      if (snapshot.empty) {
-        return null
-      }
-
-      const staffDoc = snapshot.docs[0]
-      return {
-        id: staffDoc.id,
-        ...staffDoc.data()
-      }
-    } catch (err) {
-      error.value = err.message
-      return null
-    }
-  }
-
-  // Clear cache manually if needed
-  const clearCache = () => {
-    cache.clear()
   }
 
   return {
@@ -214,9 +205,6 @@ export const useStaffStore = defineStore('staff', () => {
     fetchStaff,
     addStaff,
     updateStaff,
-    deleteStaff,
-    getStaffById,
-    getStaffByEmail,
-    clearCache
+    deleteStaff
   }
 })

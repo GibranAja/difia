@@ -204,7 +204,7 @@ const handleImageUpload = (event) => {
 
 <style scoped>
 .custom-container {
-  max-width: 600px;
+  max-width: 1444px;
   margin: 0 auto;
   padding: 20px;
   background-color: #f5f5f5;

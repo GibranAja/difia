@@ -11,17 +11,23 @@
       <a href="" class="cart-btn" :class="{ 'cart-alt': isAlternate }">
         <i class="fas fa-cart-shopping"></i>
       </a>
-      <!-- Change the router-link destination to custom route -->
-      <router-link :to="`/custom/${item.id}`" class="detail-btn">
+      <!-- Modified to handle click -->
+      <a @click.prevent="handleBuyClick" class="detail-btn" href="#">
         <b>Beli Sekarang</b>
-      </router-link>
+      </a>
     </div>
   </div>
 </template>
 
 <script setup>
 import { defineProps, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/AuthStore'
+import { useToast } from 'vue-toastification'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const toast = useToast()
 
 const props = defineProps({
   item: {
@@ -36,11 +42,18 @@ const props = defineProps({
 
 // Modified to create the pattern: blue, yellow, blue, blue, yellow, blue, blue, yellow, ...
 const isAlternate = computed(() => {
-  // Pattern repeats every 4 cards
   const position = props.index % 3
-  // Return true (yellow) only for position 1 (second card) in each group of 3
   return position === 1
 })
+
+const handleBuyClick = () => {
+  if (!authStore.isLoggedIn) {
+    toast.warning('Silakan login terlebih dahulu')
+    router.push('/login')
+    return
+  }
+  router.push(`/custom/${props.item.id}`)
+}
 </script>
 
 <style scoped>

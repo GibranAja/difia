@@ -6,7 +6,9 @@
         <h1>{{ blog.title }}</h1>
         <span class="line"></span>
         <p>{{ truncateText(blog.description, 100) }}</p>
-        <a href="#">Baca Selengkapnya</a>
+        <router-link :to="`/blog/${blog.id}`" class="read-more">
+          Baca Selengkapnya
+        </router-link>
       </div>
     </div>
   </div>
@@ -47,12 +49,21 @@ onMounted(async () => {
   width: 60%;
   padding: 20px;
 }
-.keterangan a{
+
+.read-more {
   text-decoration: none;
   width: 100%;
   float: right;
   text-align: right;
+  color: #02163b;
+  font-weight: 500;
+  transition: color 0.3s ease;
 }
+
+.read-more:hover {
+  color: #E8BA38;
+}
+
 .line{
   width: 30%;
   display: flex;
