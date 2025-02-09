@@ -3,13 +3,13 @@
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useToast } from 'vue-toastification'
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  signInWithPopup, 
-  sendPasswordResetEmail
+  signInWithPopup,
+  sendPasswordResetEmail,
 } from 'firebase/auth'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
@@ -22,7 +22,7 @@ const hashPassword = async (password) => {
 
 export const useAuthStore = defineStore('auth', () => {
   const toast = useToast()
-  
+
   const currentUser = ref(null)
   const isLoading = ref(true)
   const isLoggedIn = ref(false)
@@ -30,12 +30,12 @@ export const useAuthStore = defineStore('auth', () => {
   const message = ref('')
   const resetEmail = ref('')
   const verificationCode = ref(null)
-  
+
   const user = reactive({
     name: '',
     email: '',
     password: '',
-    profilePhoto: ''
+    profilePhoto: '',
   })
 
   const redirectAfterAuth = async (isAdmin, router) => {
@@ -60,55 +60,69 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (isLogin) {
         // Login flow
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          user.email,
-          user.password
-        )
-        
-        if (userCredential) {
-          const queryId = query(
-            collection(db, 'users'), 
-            where('uid', '==', userCredential.user.uid)
-          )
-          const queryData = await getDocs(queryId)
+        const userCredential = await signInWithEmailAndPassword(auth, user.email, user.password)
 
-          if (!queryData.empty) {
-            const userData = queryData.docs[0].data()
+        if (userCredential) {
+          // Check in users collection first (admin)
+          const userQuery = query(
+            collection(db, 'users'),
+            where('uid', '==', userCredential.user.uid),
+          )
+          const userData = await getDocs(userQuery)
+
+          // Check in staff collection
+          const staffQuery = query(collection(db, 'staff'), where('email', '==', user.email))
+          const staffData = await getDocs(staffQuery)
+
+          if (!userData.empty) {
+            // User is an admin
+            const adminData = userData.docs[0].data()
             currentUser.value = {
               email: userCredential.user.email,
               id: userCredential.user.uid,
-              name: userData.name,
-              isAdmin: userData.isAdmin,
-              profilePhoto: userData.profilePhoto || ''
+              name: adminData.name,
+              isAdmin: adminData.isAdmin,
+              profilePhoto: adminData.profilePhoto || '',
+              role: 'admin',
             }
             isLoggedIn.value = true
-            
-            // Pass router to redirect function
-            await redirectAfterAuth(userData.isAdmin, router)
+            await redirectAfterAuth(true, router)
+          } else if (!staffData.empty) {
+            // User is a staff member
+            const staffDoc = staffData.docs[0].data()
+            currentUser.value = {
+              email: userCredential.user.email,
+              id: userCredential.user.uid,
+              name: staffDoc.name,
+              isAdmin: false,
+              isStaff: true,
+              role: 'staff',
+              profilePhoto: staffDoc.profilePhoto || '',
+            }
+            isLoggedIn.value = true
+            toast.success('Welcome back, Staff member!')
+            await router.push('/admin')
+          } else {
+            throw new Error('User account not found')
           }
         }
       } else {
         // Register flow with hashed password
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          user.email,
-          user.password
-        )
-        
+        const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.password)
+
         if (userCredential) {
           // Hash password before storing
           const hashedPassword = await hashPassword(user.password)
-          
+
           await addDoc(collection(db, 'users'), {
             uid: userCredential.user.uid,
             name: user.name,
             email: user.email,
             hashedPassword: hashedPassword, // Store hashed password instead of plaintext
             profilePhoto: user.profilePhoto || '',
-            isAdmin: false
+            isAdmin: false,
           })
-          toast.success("Registration successful! Please login.")
+          toast.success('Registration successful! Please login.')
           if (router) {
             await router.push('/login')
           }
@@ -120,7 +134,6 @@ export const useAuthStore = defineStore('auth', () => {
       user.email = ''
       user.password = ''
       user.profilePhoto = ''
-
     } catch (error) {
       handleAuthError(error)
     } finally {
@@ -133,13 +146,13 @@ export const useAuthStore = defineStore('auth', () => {
       await signOut(auth)
       currentUser.value = null
       isLoggedIn.value = false
-      toast.success("Successfully logged out!")
+      toast.success('Successfully logged out!')
       if (router) {
         await router.push('/login')
       }
     } catch (error) {
       console.error('Logout error:', error)
-      toast.error("Error logging out")
+      toast.error('Error logging out')
     }
   }
 
@@ -171,18 +184,38 @@ export const useAuthStore = defineStore('auth', () => {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         try {
           if (firebaseUser) {
+            // Check users (admin) collection
             const usersRef = collection(db, 'users')
-            const q = query(usersRef, where('uid', '==', firebaseUser.uid))
-            const querySnapshot = await getDocs(q)
+            const userQuery = query(usersRef, where('uid', '==', firebaseUser.uid))
+            const userSnapshot = await getDocs(userQuery)
 
-            if (!querySnapshot.empty) {
-              const userData = querySnapshot.docs[0].data()
+            // Check staff collection
+            const staffRef = collection(db, 'staff')
+            const staffQuery = query(staffRef, where('email', '==', firebaseUser.email))
+            const staffSnapshot = await getDocs(staffQuery)
+
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data()
               currentUser.value = {
                 email: firebaseUser.email,
                 id: firebaseUser.uid,
                 name: userData.name,
                 isAdmin: userData.isAdmin || false,
-                profilePhoto: userData.profilePhoto || ''
+                isStaff: false,
+                role: 'admin',
+                profilePhoto: userData.profilePhoto || '',
+              }
+              isLoggedIn.value = true
+            } else if (!staffSnapshot.empty) {
+              const staffData = staffSnapshot.docs[0].data()
+              currentUser.value = {
+                email: firebaseUser.email,
+                id: firebaseUser.uid,
+                name: staffData.name,
+                isAdmin: false,
+                isStaff: true,
+                role: 'staff',
+                profilePhoto: staffData.profilePhoto || '',
               }
               isLoggedIn.value = true
             }
@@ -207,22 +240,22 @@ export const useAuthStore = defineStore('auth', () => {
   const signInWithGoogle = async (router) => {
     try {
       isLoading.value = true
-      
+
       // Set custom parameters untuk Google Auth
       googleProvider.setCustomParameters({
-        prompt: 'select_account'
-      });
+        prompt: 'select_account',
+      })
 
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
 
       // Cek apakah user sudah ada di Firestore
-      const userRef = collection(db, 'users');
-      const q = query(userRef, where('uid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const userRef = collection(db, 'users')
+      const q = query(userRef, where('uid', '==', user.uid))
+      const querySnapshot = await getDocs(q)
 
-      let isAdmin = false;
-      
+      let isAdmin = false
+
       if (querySnapshot.empty) {
         // Buat dokumen user baru
         await addDoc(userRef, {
@@ -231,11 +264,11 @@ export const useAuthStore = defineStore('auth', () => {
           email: user.email,
           profilePhoto: user.photoURL || '',
           isAdmin: false, // Default false for new users
-          createdAt: new Date()
-        });
+          createdAt: new Date(),
+        })
       } else {
         // Get existing user data
-        isAdmin = querySnapshot.docs[0].data().isAdmin;
+        isAdmin = querySnapshot.docs[0].data().isAdmin
       }
 
       // Set current user with admin status
@@ -244,33 +277,31 @@ export const useAuthStore = defineStore('auth', () => {
         id: user.uid,
         name: user.displayName || '',
         isAdmin: isAdmin,
-        profilePhoto: user.photoURL || ''
-      };
-      
-      isLoggedIn.value = true;
-      
-      // Redirect based on admin status
-      if (isAdmin) {
-        toast.success('Welcome back, Admin!');
-        await router.push('/admin');
-      } else {
-        toast.success('Successfully logged in with Google!');
-        await router.push('/');
+        profilePhoto: user.photoURL || '',
       }
 
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Sign-in cancelled by user');
-      } else if (error.code === 'auth/popup-blocked') {
-        toast.error('Pop-up was blocked by the browser. Please enable pop-ups for this site.');
+      isLoggedIn.value = true
+
+      // Redirect based on admin status
+      if (isAdmin) {
+        toast.success('Welcome back, Admin!')
+        await router.push('/admin')
       } else {
-        toast.error('Failed to sign in with Google. Please try again.');
+        toast.success('Successfully logged in with Google!')
+        await router.push('/')
       }
-      
+    } catch (error) {
+      console.error('Google sign-in error:', error)
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error('Sign-in cancelled by user')
+      } else if (error.code === 'auth/popup-blocked') {
+        toast.error('Pop-up was blocked by the browser. Please enable pop-ups for this site.')
+      } else {
+        toast.error('Failed to sign in with Google. Please try again.')
+      }
     } finally {
-      isLoading.value = false;
+      isLoading.value = false
     }
   }
 
@@ -311,6 +342,6 @@ export const useAuthStore = defineStore('auth', () => {
     setResetEmail,
     setVerificationCode,
     sendVerificationEmail,
-    updatePassword
+    updatePassword,
   }
 })

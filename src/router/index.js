@@ -25,12 +25,17 @@ import VerifyCode from '@/views/auth/VerifyCode.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
 import CustomView from '@/views/CustomView.vue'
 import DetailBlogView from '@/views/BlogView.vue'
+import CartView from '@/views/CartView.vue'
+import CheckoutView from '@/views/CheckoutView.vue'
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Pastikan hanya admin yang bisa akses
-  if (!authStore.isLoggedIn || !authStore.currentUser?.isAdmin) {
+  // Allow both admin and staff to access
+  if (
+    !authStore.isLoggedIn ||
+    (!authStore.currentUser?.isAdmin && !authStore.currentUser?.isStaff)
+  ) {
     next({ name: 'notFound' })
     return
   }
@@ -41,6 +46,11 @@ const adminGuard = async (to, from, next) => {
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/checkout',
+      name: 'CheckoutView',
+      component: CheckoutView,
+    },
     {
       path: '/detail/:id',
       name: 'DetailKatalog',
@@ -55,6 +65,11 @@ const router = createRouter({
       path: '/custom/:id',
       name: 'CustomView',
       component: CustomView,
+    },
+    {
+      path: '/cart',
+      name: 'CartView',
+      component: CartView,
     },
     {
       path: '/',
@@ -100,7 +115,7 @@ const router = createRouter({
           path: '',
           name: 'DashboardView',
           component: DashboardView,
-          meta: { requiresAdmin: true },
+          meta: { requiresAuth: true },
         },
         {
           path: 'katalog',
@@ -124,7 +139,7 @@ const router = createRouter({
           path: 'order',
           name: 'OrderView',
           component: OrderView,
-          meta: { requiresAdmin: true },
+          meta: { requiresAuth: true },
         },
         {
           path: 'staff',
@@ -186,13 +201,13 @@ const router = createRouter({
           path: 'chat',
           name: 'ChatList',
           component: () => import('@/views/admin/ChatListView.vue'),
-          meta: { requiresAdmin: true },
+          meta: { requiresAuth: true },
         },
         {
           path: 'chat/:id',
           name: 'ChatDetail',
           component: () => import('@/views/admin/ChatDetailView.vue'),
-          meta: { requiresAdmin: true },
+          meta: { requiresAuth: true },
         },
       ],
     },
@@ -216,11 +231,12 @@ const router = createRouter({
   },
 })
 
+// Update router guard
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   if ((to.path === '/login' || to.path === '/register') && authStore.isLoggedIn) {
-    if (authStore.currentUser?.isAdmin) {
+    if (authStore.currentUser?.isAdmin || authStore.currentUser?.isStaff) {
       next({ name: 'DashboardView' })
     } else {
       next({ name: 'HomeView' })
@@ -228,7 +244,18 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Check admin routes
+  // Check authentication for routes that require it
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (
+      !authStore.isLoggedIn ||
+      (!authStore.currentUser?.isAdmin && !authStore.currentUser?.isStaff)
+    ) {
+      next({ name: 'notFound' })
+      return
+    }
+  }
+
+  // Check admin-only routes
   if (to.matched.some((record) => record.meta.requiresAdmin)) {
     if (!authStore.isLoggedIn || !authStore.currentUser?.isAdmin) {
       next({ name: 'notFound' })

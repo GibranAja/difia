@@ -1,64 +1,63 @@
 <!-- components/admin/SidebarAdmin.vue -->
 
 <template>
-    <aside class="sidebar" :class="{ collapsed: !isOpen }">
-      <!-- Logo Section -->
-      <div class="logo">
-        <div class="logo-content">
-          <img src="../../assets/difia.jpg" alt="DIFIA" class="logo-image" />
-        </div>
+  <aside class="sidebar" :class="{ collapsed: !isOpen }">
+    <!-- Logo Section -->
+    <div class="logo">
+      <div class="logo-content">
+        <img src="../../assets/difia.jpg" alt="DIFIA" class="logo-image" />
       </div>
-  
-      <!-- Admin Label -->
-      <div class="admin-label" :class="{ 'collapsed-label': !isOpen }">
-        <span :class="{ 'hide-text': !isOpen }">ADMIN</span>
-      </div>
-  
-      <!-- Navigation Items using ListSidebar -->
-      <nav class="nav-links">
-        <router-link
-          v-for="item in items"
-          :key="item.pathName"
-          :to="{ name: item.pathName }"
-          class="nav-item"
-          :class="{ 
-            'collapsed-item': !isOpen,
-            'active': $route.name === item.pathName 
-          }"
-        >
-          <i :class="item.icon"></i>
-          <span :class="{ 'hide-text': !isOpen }">{{ item.text }}</span>
-        </router-link>
+    </div>
 
-        <!-- Add Logout Button -->
-        <div 
-          class="nav-item logout-btn" 
-          :class="{ 'collapsed-item': !isOpen }"
-          @click="showLogoutModal = true"
-        >
-          <i class="fas fa-sign-out-alt"></i>
-          <span :class="{ 'hide-text': !isOpen }">Logout</span>
-        </div>
-      </nav>
-  
-      <!-- Logout Confirmation Modal -->
-      <div v-if="showLogoutModal" class="modal-overlay">
-        <div class="modal-content">
-          <h3>Konfirmasi Logout</h3>
-          <p>Apakah Anda yakin ingin keluar?</p>
-          <div class="modal-actions">
-            <button @click="showLogoutModal = false" class="cancel-btn">Tidak</button>
-            <button @click="handleLogout" class="confirm-btn">Ya</button>
-          </div>
-        </div>
+    <!-- Admin Label -->
+    <div class="admin-label" :class="{ 'collapsed-label': !isOpen }">
+      <span :class="{ 'hide-text': !isOpen }">ADMIN</span>
+    </div>
+
+    <!-- Navigation Items using ListSidebar -->
+    <nav class="nav-links">
+      <router-link
+        v-for="item in items"
+        :key="item.pathName"
+        :to="{ name: item.pathName }"
+        class="nav-item"
+        :class="{
+          'collapsed-item': !isOpen,
+          active: $route.name === item.pathName,
+        }"
+      >
+        <i :class="item.icon"></i>
+        <span :class="{ 'hide-text': !isOpen }">{{ item.text }}</span>
+      </router-link>
+
+      <!-- Add Logout Button -->
+      <div
+        class="nav-item logout-btn"
+        :class="{ 'collapsed-item': !isOpen }"
+        @click="showLogoutModal = true"
+      >
+        <i class="fas fa-sign-out-alt"></i>
+        <span :class="{ 'hide-text': !isOpen }">Logout</span>
       </div>
-    </aside>
-  </template>
+    </nav>
+
+    <!-- Replace old modal with NegativeModal -->
+    <NegativeModal
+      v-if="showLogoutModal"
+      title="Konfirmasi Logout" 
+      message="Apakah Anda yakin ingin keluar?"
+      :loading="isLoggingOut"
+      @close="showLogoutModal = false"
+      @confirm="handleLogout"
+    />
+  </aside>
+</template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue' // Add computed
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
+import NegativeModal from '@/components/NegativeModal.vue'
 
 defineProps({
   isOpen: {
@@ -72,26 +71,47 @@ defineProps({
 })
 
 const showLogoutModal = ref(false)
+const isLoggingOut = ref(false)
 const router = useRouter()
 const authStore = useAuthStore()
 
-const items = ref([
-  { text: 'Dashboard', icon: 'fas fa-home', pathName: 'DashboardView' },
-  { text: 'Katalog', icon: 'fas fa-th', pathName: 'KatalogView' },
-  { text: 'Artikel', icon: 'fas fa-newspaper', pathName: 'BlogView' },
-  { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
-  { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
-  { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },
-  { text: 'Staff', icon: 'fas fa-person', pathName: 'StaffView' },
-  { text: 'Home', icon: 'fas fa-arrow-left', pathName: 'HomeView' },
-])
+// Convert items to computed property to make it dynamic
+const items = computed(() => {
+  // Base items that both admin and staff see
+  const baseItems = [{ text: 'Dashboard', icon: 'fas fa-home', pathName: 'DashboardView' }]
+
+  // Staff-specific menu items
+  if (authStore.currentUser?.isStaff) {
+    return [
+      ...baseItems,
+      { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
+      { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
+      { text: 'Home', icon: 'fas fa-arrow-left', pathName: 'HomeView' },
+    ]
+  }
+
+  // Admin menu items (full access)
+  return [
+    ...baseItems,
+    { text: 'Katalog', icon: 'fas fa-th', pathName: 'KatalogView' },
+    { text: 'Artikel', icon: 'fas fa-newspaper', pathName: 'BlogView' },
+    { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
+    { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
+    { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },
+    { text: 'Staff', icon: 'fas fa-person', pathName: 'StaffView' },
+    { text: 'Home', icon: 'fas fa-arrow-left', pathName: 'HomeView' },
+  ]
+})
 
 const handleLogout = async () => {
   try {
+    isLoggingOut.value = true
     await authStore.logoutUser(router)
     showLogoutModal.value = false
   } catch (error) {
     console.error('Logout error:', error)
+  } finally {
+    isLoggingOut.value = false
   }
 }
 </script>
@@ -254,7 +274,9 @@ const handleLogout = async () => {
 .hide-text {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
   position: absolute;
   left: 100%;
 }

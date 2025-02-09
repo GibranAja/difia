@@ -1,17 +1,17 @@
 <template>
-  <nav 
+  <nav
     :class="{ 'nav-hidden': isHidden }"
-    :style="{ 
+    :style="{
       background: isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
       backdropFilter: isScrolled ? 'blur(10px)' : 'none'
     }"
   >
     <div class="link">
-      <a href="#header"><b>Beranda</b></a>
-      <a href="#about"><b>Tentang Kami</b></a>
-      <a href="#catalog"><b>Katalog</b></a>
-      <a href="#articel"><b>Artikel</b></a>
-      <!-- Add Dashboard link for admin users -->
+      <!-- Modified navigation links -->
+      <a @click.prevent="navigateTo('/')" href="/"><b>Beranda</b></a>
+      <a @click.prevent="navigateTo('/', 'about')" href="#about"><b>Tentang Kami</b></a>
+      <a @click.prevent="navigateTo('/', 'catalog')" href="#catalog"><b>Katalog</b></a>
+      <a @click.prevent="navigateTo('/', 'articel')" href="#articel"><b>Artikel</b></a>
       <router-link v-if="authStore.currentUser?.isAdmin" to="/admin"><b>Dashboard</b></router-link>
     </div>
 
@@ -19,7 +19,7 @@
       <i class="fas fa-bell"></i>
     </a>
 
-    <a href="">
+    <a href="/cart">
       <i class="fas fa-cart-shopping"></i>
     </a>
 
@@ -32,38 +32,54 @@
     <template v-if="authStore.isLoggedIn">
       <div class="login">
         <div class="profile-photo-container" @click="showProfileModal = true">
-          <img 
-            :src="userProfilePhoto" 
-            :alt="authStore.currentUser?.name || 'User'" 
+          <img
+            :src="userProfilePhoto"
+            :alt="authStore.currentUser?.name || 'User'"
             class="profile-photo"
             @error="handleImageError"
           />
         </div>
-        <a href="" class="keluar" @click.prevent="handleLogout">Log out</a>
+        <a href="" class="keluar" @click.prevent="showLogoutModal = true">Log out</a>
       </div>
     </template>
 
     <!-- Profile Modal -->
-    <ModalProfile 
-      v-if="showProfileModal" 
+    <ModalProfile
+      v-if="showProfileModal"
       @close="showProfileModal = false"
+    />
+
+    <!-- Add Logout Modal -->
+    <NegativeModal
+      v-if="showLogoutModal"
+      title="Konfirmasi Logout"
+      message="Apakah Anda yakin ingin keluar?"
+      :loading="isLoggingOut"
+      @close="showLogoutModal = false"
+      @confirm="handleLogout"
     />
   </nav>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '../stores/AuthStore'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router' // Add useRoute
 import ModalProfile from './ModalProfile.vue'
+import NegativeModal from './NegativeModal.vue' // Add this import
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png' // Import the image directly
 
 const router = useRouter()
+const route = useRoute() // Add this
 const authStore = useAuthStore()
 const showProfileModal = ref(false)
 const isScrolled = ref(false)
 const isHidden = ref(false)
 const lastScrollPosition = ref(0)
+
+// Add these refs
+const showLogoutModal = ref(false)
+const isLoggingOut = ref(false)
 
 // Handle scroll event
 const handleScroll = () => {
@@ -94,7 +110,50 @@ const handleImageError = (e) => {
 }
 
 const handleLogout = async () => {
-  await authStore.logoutUser(router)
+  try {
+    isLoggingOut.value = true
+    await authStore.logoutUser(router)
+    showLogoutModal.value = false
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    isLoggingOut.value = false
+  }
+}
+
+// Add navigation function
+const navigateTo = async (path, section = null) => {
+  // If we're already on the home page
+  if (route.path === '/' && section) {
+    // Just scroll to section
+    const element = document.getElementById(section)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+    return
+  }
+
+  // If we're on a different page
+  if (route.path !== '/') {
+    // First navigate to home page
+    await router.push('/')
+    
+    // Wait for navigation to complete
+    await nextTick()
+    
+    // Then scroll to section if specified
+    if (section) {
+      setTimeout(() => {
+        const element = document.getElementById(section)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100) // Small delay to ensure DOM is updated
+    } else {
+      // If no section specified, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 }
 
 // Add event listeners

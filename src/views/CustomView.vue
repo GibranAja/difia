@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue' // Add computed
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router' // Add useRouter
 import { useKatalogStore } from '@/stores/KatalogStore'
 import { storeToRefs } from 'pinia'
+import { useCartStore } from '@/stores/CartStore' // Add this import
 
 const route = useRoute()
+const router = useRouter() // Add this
 const store = useKatalogStore()
+const cartStore = useCartStore() // Add this
 const { katalogItems } = storeToRefs(store)
 
 const productId = route.params.id
@@ -18,28 +21,109 @@ const budgetInput = ref('') // Add this for budget input
 const selectedBahanLuar = ref('')
 const selectedBahanDalam = ref('')
 const selectedAksesoris = ref([]) // Change to array for multiple selections
+const selectedColor = ref('#000000') // Add this for color input
 
 // Create computed property to parse accessories from database
 const availableAksesoris = computed(() => {
   if (!selectedProduct.value?.detail?.aksesoris) return []
-  return selectedProduct.value.detail.aksesoris.split(',').map(item => item.trim())
+  return selectedProduct.value.detail.aksesoris.split(',').map((item) => item.trim())
 })
 
 // Add this new ref for dropdown state
 const isAksesorisOpen = ref(false)
 
+// Add new imports and refs
+const isSubmitting = ref(false)
+const errors = ref({})
+
 onMounted(async () => {
   if (katalogItems.value.length === 0) {
     await store.fetchKatalog()
   }
-  selectedProduct.value = katalogItems.value.find(item => item.id === productId)
+  selectedProduct.value = katalogItems.value.find((item) => item.id === productId)
 })
 
+// Add validation function
+const validateForm = () => {
+  errors.value = {}
+  let isValid = true
+
+  if (!selectedBahanLuar.value) {
+    errors.value.bahanLuar = 'Bahan luar harus dipilih'
+    isValid = false
+  }
+
+  if (!selectedBahanDalam.value) {
+    errors.value.bahanDalam = 'Bahan dalam harus dipilih'
+    isValid = false
+  }
+
+  if (!selectedAksesoris.value.length) {
+    errors.value.aksesoris = 'Pilih minimal 1 aksesoris'
+    isValid = false
+  }
+
+  return isValid
+}
+
+// Modify handleImageUpload to use base64
 const handleImageUpload = (event) => {
   const file = event.target.files[0]
   if (file) {
-    uploadedImage.value = URL.createObjectURL(file)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      uploadedImage.value = e.target.result // This will be base64
+    }
+    reader.readAsDataURL(file)
   }
+}
+
+// Modify addToCart function
+const addToCart = async () => {
+  if (!validateForm()) return
+
+  isSubmitting.value = true
+  try {
+    const cartItem = {
+      productId: selectedProduct.value.id,
+      name: selectedProduct.value.nama,
+      image: selectedProduct.value.images[0],
+      price:
+        selectedPrice.value === 'premium'
+          ? selectedProduct.value.harga.premium
+          : selectedProduct.value.harga.standar,
+      quantity: 20, // Set default quantity to 20
+      customOptions: {
+        priceType: selectedPrice.value,
+        bahanLuar: selectedBahanLuar.value,
+        bahanDalam: selectedBahanDalam.value,
+        aksesoris: selectedAksesoris.value,
+        color: selectedColor.value,
+        uploadedImage: uploadedImage.value, // Add base64 image
+      },
+      createdAt: new Date(),
+    }
+
+    await cartStore.addToCart(cartItem) // Modify CartStore to handle Firestore
+    router.push('/cart')
+  } catch (error) {
+    console.error('Error adding to cart:', error)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Add this function
+const handleColorChange = (event) => {
+  selectedColor.value = event.target.value
+}
+
+// Add remove function
+const removeUploadedImage = () => {
+  uploadedImage.value = null
+  // Reset file input
+  const fileInput = document.getElementById('imageUpload')
+  if (fileInput) fileInput.value = ''
 }
 </script>
 
@@ -56,8 +140,8 @@ const handleImageUpload = (event) => {
       <div class="product-card">
         <div class="product-content">
           <div class="product-image">
-            <img 
-              :src="selectedProduct?.images[0]" 
+            <img
+              :src="selectedProduct?.images[0]"
               :alt="selectedProduct?.nama"
               v-if="selectedProduct?.images?.length"
             />
@@ -79,45 +163,45 @@ const handleImageUpload = (event) => {
           <div class="price-option">
             <label>Standar : 69.000</label>
             <div class="radio-label">
-              <input 
-                type="radio" 
-                name="price" 
+              <input
+                type="radio"
+                name="price"
                 value="standard"
                 v-model="selectedPrice"
                 class="square-radio"
-              >
+              />
             </div>
           </div>
           <div class="price-option">
             <label>Premium : 89.000</label>
             <div class="radio-label">
-              <input 
-                type="radio" 
-                name="price" 
+              <input
+                type="radio"
+                name="price"
                 value="premium"
                 v-model="selectedPrice"
                 class="square-radio"
-              >
+              />
             </div>
           </div>
           <div class="price-option">
             <label>Budgeting :</label>
             <div class="radio-wrapper">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 class="budget-input"
                 v-model="budgetInput"
                 :disabled="selectedPrice !== 'budget'"
                 placeholder="By Request"
-              >
+              />
               <div class="radio-label">
-                <input 
-                  type="radio" 
-                  name="price" 
+                <input
+                  type="radio"
+                  name="price"
                   value="budget"
                   v-model="selectedPrice"
                   class="square-radio"
-                >
+                />
               </div>
             </div>
           </div>
@@ -134,69 +218,122 @@ const handleImageUpload = (event) => {
               <label>Bahan Luar :</label>
               <select v-model="selectedBahanLuar">
                 <option value="" disabled selected>Select material</option>
-                <option value="finish_glossy">Finish Glossy</option>
-                <option value="finish_doff">Finish Doff</option>
+                <option value="Finish Glossy">Finish Glossy</option>
+                <option value="Finish Doff">Finish Doff</option>
               </select>
+              <!-- Add error messages -->
+              <div class="error-message" v-if="errors.bahanLuar">{{ errors.bahanLuar }}</div>
             </div>
-            <div class="detail-group">
-              <label>Warna :</label>
-              <div class="color-input">
-                <input type="color" value="#000000">
-                <input type="text" value="#00000" class="color-text">
-              </div>
-            </div>
-          </div>
-          
-          <div class="details-row">
             <div class="detail-group">
               <label>Bahan Dalam :</label>
               <select v-model="selectedBahanDalam">
                 <option value="" disabled selected>Select material</option>
-                <option value="puring_glossy">Puring Glossy</option>
-                <option value="puring_doff">Puring Doff</option>
+                <option value="Puring Glossy">Puring Glossy</option>
+                <option value="Puring Doff">Puring Doff</option>
               </select>
-            </div>
-            <div class="detail-group">
-              <label>Upload Photo :</label>
-              <div class="upload-area-small">
-                <input type="file" id="imageUpload" @change="handleImageUpload" hidden>
-                <label for="imageUpload" class="upload-area">
-                  <span class="upload-icon">↑</span>
-                </label>
-              </div>
             </div>
           </div>
 
-          <div class="details-row single-column">
-            <div class="detail-group full-width">
+          <div class="details-row">
+            <div class="detail-group">
+              <label>Warna :</label>
+              <div class="color-input">
+                <input type="color" v-model="selectedColor" @input="handleColorChange" />
+                <input type="text" v-model="selectedColor" class="color-text" readonly />
+              </div>
+            </div>
+            <div class="detail-group">
               <label>Aksesoris :</label>
               <div class="select-wrapper">
                 <div class="select-field" @click="isAksesorisOpen = !isAksesorisOpen">
                   <span class="selected-text">
-                    {{ selectedAksesoris.length ? `${selectedAksesoris.length} selected` : 'Select accessories' }}
+                    {{
+                      selectedAksesoris.length
+                        ? `${selectedAksesoris.length} selected`
+                        : 'Select accessories'
+                    }}
                   </span>
                   <span class="arrow">{{ isAksesorisOpen ? '▲' : '▼' }}</span>
                 </div>
-                <div class="select-dropdown" :class="{ 'open': isAksesorisOpen }">
-                  <div v-for="aksesoris in availableAksesoris" 
-                       :key="aksesoris"
-                       class="option-item">
+                <div class="select-dropdown" :class="{ open: isAksesorisOpen }">
+                  <div v-for="aksesoris in availableAksesoris" :key="aksesoris" class="option-item">
                     <span class="option-text">{{ aksesoris }}</span>
-                    <input type="checkbox"
-                           :value="aksesoris"
-                           v-model="selectedAksesoris"
-                           class="option-checkbox">
+                    <input
+                      type="checkbox"
+                      :value="aksesoris"
+                      v-model="selectedAksesoris"
+                      class="option-checkbox"
+                    />
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Centered upload section -->
+          <div class="upload-row">
+            <div class="detail-group upload-group">
+              <label>Upload Photo :</label>
+              <div class="upload-area-small">
+                <input
+                  type="file"
+                  id="imageUpload"
+                  @change="handleImageUpload"
+                  hidden
+                  accept="image/*"
+                />
+                <label for="imageUpload" class="upload-area">
+                  <!-- Replace text arrow with Font Awesome icon -->
+                  <i class="fas fa-cloud-upload-alt upload-icon"></i>
+
+                  <!-- Add image preview -->
+                  <img
+                    v-if="uploadedImage"
+                    :src="uploadedImage"
+                    alt="Preview"
+                    class="image-preview"
+                  />
+                </label>
+              </div>
+              <!-- Add remove button when image is uploaded -->
+              <button
+                v-if="uploadedImage"
+                @click="removeUploadedImage"
+                class="remove-image-btn"
+                type="button"
+              >
+                <i class="fas fa-times"></i> Remove
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Modify buttons to show disabled state -->
       <div class="action-buttons">
-        <button class="cart-button">Masukan keranjang</button>
-        <button class="buy-button">Beli Sekarang</button>
+        <button
+          class="cart-button"
+          @click="addToCart"
+          :disabled="
+            isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
+          "
+        >
+          {{ isSubmitting ? 'Menambahkan...' : 'Masukan keranjang' }}
+        </button>
+        <button
+          class="buy-button"
+          @click="
+            async () => {
+              await addToCart()
+              router.push('/checkout')
+            }
+          "
+          :disabled="
+            isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
+          "
+        >
+          {{ isSubmitting ? 'Menambahkan...' : 'Beli Sekarang' }}
+        </button>
       </div>
     </div>
   </KeepAlive>
@@ -281,10 +418,11 @@ const handleImageUpload = (event) => {
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 15px;
+  padding-bottom: 4rem;
 }
 
 .section-header {
-  background: #02163B;
+  background: #02163b;
   padding: 12px 20px;
 }
 
@@ -332,9 +470,9 @@ const handleImageUpload = (event) => {
   gap: 8px;
 }
 
-.detail-group input[type="text"],
+.detail-group input[type='text'],
 .detail-group select {
-  width: 100%;
+  width: 90%;
   height: 35px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -346,9 +484,10 @@ const handleImageUpload = (event) => {
   display: flex;
   gap: 10px;
   align-items: center;
+  width: 89.9%;
 }
 
-.color-input input[type="color"] {
+.color-input input[type='color'] {
   width: 35px;
   height: 35px;
   padding: 0;
@@ -371,19 +510,12 @@ const handleImageUpload = (event) => {
 }
 
 .upload-area {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 120px;
-  background: #f5f5f5;
-  border-radius: 8px;
   cursor: pointer;
-}
-
-.upload-icon {
-  font-size: 24px;
-  color: #666;
 }
 
 .upload-note {
@@ -410,12 +542,12 @@ const handleImageUpload = (event) => {
 }
 
 .cart-button {
-  background: #E8BA38;
+  background: #e8ba38;
   color: #fff;
 }
 
 .buy-button {
-  background: #02163B;
+  background: #02163b;
   color: #fff;
 }
 
@@ -431,7 +563,7 @@ const handleImageUpload = (event) => {
   appearance: none;
   width: 18px;
   height: 18px;
-  border: 2px solid #02163B;
+  border: 2px solid #02163b;
   border-radius: 0; /* Makes it square */
   margin: 0;
   cursor: pointer;
@@ -439,7 +571,7 @@ const handleImageUpload = (event) => {
 }
 
 .square-radio:checked {
-  background-color: #02163B;
+  background-color: #02163b;
 }
 
 .square-radio:checked::after {
@@ -469,10 +601,8 @@ const handleImageUpload = (event) => {
 
 .detail-group select:focus {
   outline: none;
-  border-color: #02163B;
+  border-color: #02163b;
 }
-
-/* ... existing styles remain ... */
 
 .accessories-group {
   background: #f5f5f5;
@@ -504,10 +634,10 @@ const handleImageUpload = (event) => {
   border-radius: 4px;
 }
 
-.checkbox-label input[type="checkbox"] {
+.checkbox-label input[type='checkbox'] {
   width: 16px;
   height: 16px;
-  border: 2px solid #02163B;
+  border: 2px solid #02163b;
   border-radius: 3px;
   cursor: pointer;
 }
@@ -532,7 +662,7 @@ const handleImageUpload = (event) => {
 /* New styles for the dropdown */
 .select-wrapper {
   position: relative;
-  width: 15.5rem;
+  width: 90%;
 }
 
 .select-field {
@@ -572,7 +702,7 @@ const handleImageUpload = (event) => {
   overflow-y: auto;
   z-index: 100;
   display: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .select-dropdown.open {
@@ -600,7 +730,7 @@ const handleImageUpload = (event) => {
 .option-checkbox {
   width: 20px; /* Increased checkbox size */
   height: 20px; /* Increased checkbox size */
-  border: 2px solid #02163B;
+  border: 2px solid #02163b;
   border-radius: 3px;
   cursor: pointer;
   margin-left: 8px;
@@ -620,18 +750,150 @@ const handleImageUpload = (event) => {
 }
 
 .upload-area-small {
-  height: 35px;
+  height: 120px; /* Increased height to accommodate preview */
+  width: 100%;
   background: #f5f5f5;
-  margin-top: 15px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-area-small:hover {
+  border-color: #02163b;
+  background: #f0f0f0;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.upload-area:hover .upload-icon {
+  color: #02163b;
+  transform: scale(1.1);
+}
+
+/* Add these new styles */
+.image-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.remove-image-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.remove-image-btn:hover {
+  background-color: #c82333;
+}
+
+/* Handle upload area when image is present */
+.upload-area-small:has(.image-preview) .upload-icon {
+  display: none;
+}
+
+/* Show upload icon on hover when image exists */
+.upload-area-small:has(.image-preview):hover::before {
+  content: '\f093'; /* Font Awesome upload icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: white;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.upload-area-small .upload-icon {
-  font-size: 18px;
-  color: #666;
+.upload-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.upload-group {
+  width: 200px; /* Keep compact width */
+}
+
+.upload-area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Add these new styles */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.cart-button:disabled,
+.buy-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Optional: Add loading state styles */
+.cart-button.loading,
+.buy-button.loading {
+  position: relative;
+  color: transparent;
+}
+
+.cart-button.loading::after,
+.buy-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
