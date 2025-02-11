@@ -1,6 +1,6 @@
 <template>
   <header id="header">
-    <div class="judul">
+    <!-- <div class="judul">
       <h1><b>DIFIA</b></h1>
       <p>Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
       <span class="vector"></span>
@@ -8,7 +8,14 @@
     </div>
     <div class="carousel">
       <img src="../assets/difia.jpg" alt="foto-katalog" />
-      <!-- <img src="../assets/header-dott.png" alt="background-katalog" class="background"> -->
+      <img src="../assets/header-dott.png" alt="background-katalog" class="background">
+    </div> -->
+    <div class="carousel">
+      <img src="../assets/bg-footer.jpeg" alt="">
+    </div>
+    <div class="text">
+      <h1>Welcome, User</h1>
+      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Earum, molestias!</p>
     </div>
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
@@ -117,7 +124,7 @@ header {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  padding: 150px;
+  padding: 100px;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 
@@ -167,16 +174,38 @@ header {
   border: 1px solid black;
   width: 100%;
 }
+header .text{
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  text-align: center;
+  align-items: center;
+}
+header .text p{
+  background-color: #d9d9d9;
+  padding: 10px;
+  text-align: center;
+  border-radius: 100px;
+  font-size: large;
+}
+header .text h1{
+  font-size: xx-large;
+}
 
 .carousel {
-  background-image: url('../assets/header-dott.png');
-  width: 30%;
-  padding: 40px;
+  /* background-image: url('../assets/header-dott.png'); */
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  text-align: center;
+  border: 1px solid black;
+  border-radius: 10px;
 }
 
 .carousel img {
-  width: fit-content;
-  height: fit-content;
+  width: max-content;
+  max-width: 100%;
 }
 
 .tentang-kami {
