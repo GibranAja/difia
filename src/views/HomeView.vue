@@ -1,21 +1,23 @@
 <template>
   <header id="header">
-    <!-- <div class="judul">
-      <h1><b>DIFIA</b></h1>
-      <p>Tas Berkualitas untuk Setiap Momen Spesial Anda.</p>
-      <span class="vector"></span>
-      <a href="#catalog" class="btn-shop"><b>Belanja Sekarang</b></a>
-    </div>
-    <div class="carousel">
-      <img src="../assets/difia.jpg" alt="foto-katalog" />
-      <img src="../assets/header-dott.png" alt="background-katalog" class="background">
-    </div> -->
-    <div class="carousel">
-      <img src="../assets/bg-footer.jpeg" alt="">
-    </div>
+    <Swiper :spaceBetween="30" :centeredSlides="true" :autoplay="{
+      delay: 2500,
+      disableOnInteraction: false,
+    }" :pagination="{
+      clickable: false,
+    }" :navigation="false" :modules="modules" class="mySwiper">
+      <SwiperSlide>Slide 1</SwiperSlide>
+      <SwiperSlide>Slide 2</SwiperSlide>
+      <SwiperSlide>Slide 3</SwiperSlide>
+      <SwiperSlide>Slide 4</SwiperSlide>
+      <SwiperSlide>Slide 5</SwiperSlide>
+      <SwiperSlide>Slide 6</SwiperSlide>
+      <SwiperSlide>Slide 7</SwiperSlide>
+      <SwiperSlide>Slide 8</SwiperSlide>
+      <SwiperSlide>Slide 9</SwiperSlide>
+    </Swiper>
     <div class="text">
       <h1>Welcome, User</h1>
-      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Earum, molestias!</p>
     </div>
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
@@ -87,125 +89,69 @@
 </template>
 
 <script setup>
-import CardCatalog from '@/components/CardCatalog.vue'
-import CardBlog from '@/components/CardBlog.vue'
-import NavigationBar from '@/components/NavigationBar.vue'
-import { useAuthStore } from '@/stores/AuthStore'
-import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useKatalogStore } from '@/stores/KatalogStore'
-import CardUlasan from '@/components/CardUlasan.vue'
-import { usePartnerStore } from '@/stores/PartnerStore' // Add this import
-import CardMitra from '@/components/CardMitra.vue'
+import { Swiper, SwiperSlide } from 'swiper/vue';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 
-const authStore = useAuthStore()
-const router = useRouter()
-const isLoggedIn = computed(() => authStore.isLoggedIn)
-const katalogStore = useKatalogStore()
-const partnerStore = usePartnerStore() // Add this with other store declarations
+import CardCatalog from '@/components/CardCatalog.vue';
+import CardBlog from '@/components/CardBlog.vue';
+import NavigationBar from '@/components/NavigationBar.vue';
+import { useAuthStore } from '@/stores/AuthStore';
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useKatalogStore } from '@/stores/KatalogStore';
+import CardUlasan from '@/components/CardUlasan.vue';
+import { usePartnerStore } from '@/stores/PartnerStore';
+import CardMitra from '@/components/CardMitra.vue';
+
+const authStore = useAuthStore();
+const router = useRouter();
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+const katalogStore = useKatalogStore();
+const partnerStore = usePartnerStore();
 
 const handleLogout = async () => {
   try {
-    await authStore.logoutUser(router)
+    await authStore.logoutUser(router);
   } catch (error) {
-    console.error('Logout error:', error)
+    console.error('Logout error:', error);
   }
-}
+};
 
 onMounted(async () => {
-  await katalogStore.fetchKatalog()
-  await partnerStore.fetchPartners() // Add this line
-})
+  await katalogStore.fetchKatalog();
+  await partnerStore.fetchPartners();
+});
+
+const modules = [Autoplay, Pagination, Navigation];
 </script>
 
 <style scoped>
 header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 100px;
-  /* font-family: 'Times New Roman', Times, serif; */
-}
-
-.judul a {
-  color: #e8ba38;
-  text-decoration: none;
-  background-color: #02163b;
-  padding: 10px;
-  border-radius: 15px;
-  transition: all 700ms;
-  font-size: x-large;
-}
-
-.judul a:hover {
-  background-color: white;
-  border: 1px solid #e8ba38;
-  color: #02163b;
-  padding: 10px;
-}
-
-.btn-shop {
-  margin-top: 1em;
-}
-
-.judul {
-  width: 50%;
-  display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  gap: 5px;
-  align-items: center;
-  text-align: center;
-}
-
-.judul h1 {
-  font-size: 5rem;
-  line-height: 1rem;
-}
-
-.judul p {
-  font-size: 1.5rem;
-  margin-top: 0;
-  line-height: 1.5rem;
-}
-
-.judul span {
-  border: 1px solid black;
+  position: relative;
   width: 100%;
+  height: 100vh;
 }
+
 header .text{
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  background: linear-gradient( to top, rgba(0, 0, 0, 0.482), rgba(255, 255, 255, 0));
+  width: 100% ;
+  height: 10%;
+  padding: 50px;
+  backdrop-filter: blur(10px);
+}
+.mySwiper {
+  height: 100vh;
+  width: 100vh;
   text-align: center;
-  align-items: center;
-}
-header .text p{
-  background-color: #d9d9d9;
-  padding: 10px;
-  text-align: center;
-  border-radius: 100px;
-  font-size: large;
-}
-header .text h1{
-  font-size: xx-large;
-}
-
-.carousel {
-  /* background-image: url('../assets/header-dott.png'); */
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  text-align: center;
-  border: 1px solid black;
-  border-radius: 10px;
-}
-
-.carousel img {
-  width: max-content;
-  max-width: 100%;
 }
 
 .tentang-kami {
