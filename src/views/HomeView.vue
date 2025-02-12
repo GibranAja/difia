@@ -8,7 +8,7 @@
         disableOnInteraction: false,
       }"
       :pagination="{
-        clickable: "false",
+        clickable: true,
       }"
       :navigation="false"
       :modules="modules"
