@@ -137,10 +137,10 @@ const navigateTo = async (path, section = null) => {
   if (route.path !== '/') {
     // First navigate to home page
     await router.push('/')
-    
+
     // Wait for navigation to complete
     await nextTick()
-    
+
     // Then scroll to section if specified
     if (section) {
       setTimeout(() => {
@@ -170,7 +170,7 @@ onUnmounted(() => {
 nav {
   display: flex;
   flex-wrap: wrap;
-  position: fixed;
+  position: sticky;
   top: 0;
   width: 100%;
   padding: 10px;

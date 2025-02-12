@@ -16,15 +16,16 @@
       <SwiperSlide>Slide 8</SwiperSlide>
       <SwiperSlide>Slide 9</SwiperSlide>
     </Swiper>
-    <div class="text">
-      <h1>Welcome, User</h1>
-    </div>
+    <a href="#about">
+      <i class="fas fa-arrow-down"></i>
+    </a>
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
     <section class="tentang-kami" id="about">
       <div class="gambar">
-        <!-- <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" /> -->
+        <span class="kotak"></span>
+        <span class="bulet"></span>
         <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
       </div>
       <div class="text">
@@ -35,9 +36,14 @@
           berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
         </p>
       </div>
+      <div class="swipper">
+        <CardAchivement></CardAchivement>
+      </div>
     </section>
     <section class="katalog" id="catalog">
+      <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
+      <span class="dot"></span>
       <div class="catalog-grid">
         <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
           :index="index" />
@@ -105,6 +111,7 @@ import { useKatalogStore } from '@/stores/KatalogStore';
 import CardUlasan from '@/components/CardUlasan.vue';
 import { usePartnerStore } from '@/stores/PartnerStore';
 import CardMitra from '@/components/CardMitra.vue';
+import CardAchivement from '@/components/CardAchivement.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -138,29 +145,34 @@ header {
   height: 100vh;
 }
 
-header .text{
-  position: absolute;
-  bottom: 0px;
-  left: 0px;
-  background: linear-gradient( to top, rgba(0, 0, 0, 0.482), rgba(255, 255, 255, 0));
-  width: 100% ;
-  height: 10%;
-  padding: 50px;
-  backdrop-filter: blur(10px);
-}
 .mySwiper {
   height: 100vh;
   width: 100vh;
   text-align: center;
 }
 
+header a {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 2rem;
+  color: black;
+  z-index: 100;
+  opacity: 50%;
+  transition: all 700ms;
+}
+header a:hover {
+  opacity: 100%;
+}
+
 .tentang-kami {
   display: flex;
   justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 50px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 160px;
-  /* font-family: 'Times New Roman', Times, serif; */
+  padding: 150px;
 }
 
 .tentang-kami .gambar {
@@ -169,26 +181,43 @@ header .text{
   background-color: #02163b;
   padding: 19px;
   text-align: center;
+  position: relative;
 }
 
 .tentang-kami .text {
   width: 50%;
-  text-align: center;
+  text-align: justify;
 }
 
-.tentang-kami .gambar .hiasan {
-  width: 200px;
-  height: 200px;
-  z-index: -1;
+.tentang-kami .gambar .kotak {
   position: absolute;
-  left: 160px;
-  bottom: -230px;
+  width: 5px;
+  left: -100px;
+  top: -100px;
+  background-color: black;
+  border: 100px solid #e8ba38;
+  z-index: -10;
+}
+.tentang-kami .gambar .bulet {
+  position: absolute;
+  width: 5px;
+  right: -100px;
+  bottom: -100px;
+  background-color: black;
+  border: 100px solid #02163b;
+  z-index: -10;
+  border-radius: 100px;
 }
 
 .tentang-kami h1 {
   font-size: 3rem;
   line-height: 1rem;
   color: #02163b;
+  text-align: center;
+}
+.swipper {
+  width: 100%;
+
 }
 
 .foto-tentang-kami {
@@ -207,10 +236,13 @@ header .text{
 
 .katalog h1 {
   font-size: 4rem;
-  width: 100%;
+  width: 33.3%;
   text-align: center;
 }
-
+.katalog .dot{
+  width: 30%;
+  border: 2px dotted #e8ba38;
+}
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -286,7 +318,7 @@ footer {
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 100px;
+  padding: 10px;
   background-image: url('../assets/bg-footer.jpeg');
   background-repeat: no-repeat;
   background-size: cover;
@@ -303,7 +335,7 @@ footer .medsos {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  width: 40%;
+  width: 50%;
 }
 
 footer .medsos a {
@@ -335,7 +367,7 @@ footer .medsos i {
 }
 
 footer img {
-  width: 30%;
+  width: 10%;
   border-radius: 40px;
   opacity: 50%;
 }
