@@ -95,11 +95,11 @@
 </template>
 
 <script setup>
-import { Swiper, SwiperSlide } from 'swiper/vue';
-import 'swiper/css';
-import 'swiper/css/pagination';
-import 'swiper/css/navigation';
-import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import 'swiper/css'
+import 'swiper/css/pagination'
+import 'swiper/css/navigation'
+import { Autoplay, Pagination, Navigation } from 'swiper/modules'
 
 import CardCatalog from '@/components/CardCatalog.vue';
 import CardBlog from '@/components/CardBlog.vue';
@@ -121,18 +121,57 @@ const partnerStore = usePartnerStore();
 
 const handleLogout = async () => {
   try {
-    await authStore.logoutUser(router);
+    await authStore.logoutUser(router)
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout error:', error)
   }
-};
+}
 
 onMounted(async () => {
-  await katalogStore.fetchKatalog();
-  await partnerStore.fetchPartners();
-});
+  await katalogStore.fetchKatalog()
+  await partnerStore.fetchPartners()
+})
 
-const modules = [Autoplay, Pagination, Navigation];
+const modules = [Autoplay, Pagination, Navigation]
+
+// Add this computed property
+const randomSlides = computed(() => {
+  const allKatalog = [...katalogStore.katalogItems]
+  return allKatalog.sort(() => Math.random() - 0.5).slice(0, 7)
+})
+
+const formatPrice = (price) => {
+  return price.toLocaleString('id-ID')
+}
+
+const currentHoverState = ref(false)
+
+const handleSlideChange = () => {
+  // Maintain hover state during slide transition
+  if (currentHoverState.value) {
+    const slides = document.querySelectorAll('.swiper-slide')
+    slides.forEach((slide) => {
+      slide.classList.add('force-hover')
+    })
+  }
+}
+
+// Add mouseenter/mouseleave handlers
+const handleMouseEnter = () => {
+  currentHoverState.value = true
+  const slides = document.querySelectorAll('.swiper-slide')
+  slides.forEach((slide) => {
+    slide.classList.add('force-hover')
+  })
+}
+
+const handleMouseLeave = () => {
+  currentHoverState.value = false
+  const slides = document.querySelectorAll('.swiper-slide')
+  slides.forEach((slide) => {
+    slide.classList.remove('force-hover')
+  })
+}
 </script>
 
 <style scoped>
@@ -146,6 +185,12 @@ header {
 }
 
 .mySwiper {
+  width: 100%;
+  height: 100vh;
+}
+
+.swiper-slide {
+  width: 100%;
   height: 100vh;
   width: 100vh;
   text-align: center;
@@ -370,5 +415,25 @@ footer img {
   width: 10%;
   border-radius: 40px;
   opacity: 50%;
+}
+
+.force-hover .slide-overlay {
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+}
+
+.force-hover .slide-image {
+  transform: scale(1.1) !important;
+}
+
+/* Modify transition timing to match slide speed */
+.slide-image,
+.slide-overlay {
+  transition: all 0.8s ease;
+}
+
+/* Optional: smooth out transition between slides */
+.swiper-slide-active {
+  z-index: 1;
 }
 </style>
