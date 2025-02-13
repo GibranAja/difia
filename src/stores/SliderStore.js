@@ -169,7 +169,6 @@ export const useSliderStore = defineStore('slider', () => {
       sliderItems.value.unshift(sliderWithId)
       cache.set('sliders', sliderItems.value)
 
-      toast.success('Slider added successfully')
       return { success: true, id: docRef.id }
     } catch (err) {
       error.value = err.message
