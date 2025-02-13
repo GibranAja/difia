@@ -35,7 +35,7 @@
               <div class="quantity-control">
                 <button
                   class="quantity-btn"
-                  :disabled="item.quantity <= 20"
+                  :disabled="item.quantity <= (item.customOptions.purchaseType === 'satuan' ? 1 : 20)"
                   @click="updateQuantity(item.id, item.quantity - 1)"
                 >
                   <i class="fas fa-minus"></i>
@@ -44,7 +44,7 @@
                 <input
                   type="number"
                   v-model.number="item.quantity"
-                  :min="20"
+                  :min="item.customOptions.purchaseType === 'satuan' ? 1 : 20"
                   @change="handleQuantityChange(item.id, item.quantity)"
                 />
 
@@ -181,18 +181,27 @@ onMounted(async () => {
 
 // Update other functions to maintain cache
 const handleQuantityChange = async (itemId, quantity) => {
-  if (quantity < 20) {
-    toast.info(`Tidak bisa diganti dengan ${quantity}, minimal 20 pembelian`)
-    quantity = 20
+  const item = cartStore.cartItems.find(item => item.id === itemId)
+  const minQuantity = item.customOptions.purchaseType === 'satuan' ? 1 : 20
+
+  if (quantity < minQuantity) {
+    toast.info(`Tidak bisa diganti dengan ${quantity}, minimal ${minQuantity} pembelian`)
+    quantity = minQuantity
   }
   await updateQuantity(itemId, quantity)
-  saveCartToCache(cartStore.cartItems) // Update cache after quantity change
+  saveCartToCache(cartStore.cartItems)
 }
 
 const updateQuantity = async (itemId, quantity) => {
-  if (quantity < 20) quantity = 20
+  const item = cartStore.cartItems.find(item => item.id === itemId)
+  const minQuantity = item.customOptions.purchaseType === 'satuan' ? 1 : 20
+  
+  if (quantity < minQuantity) {
+    quantity = minQuantity
+  }
+  
   await cartStore.updateQuantity(itemId, quantity)
-  saveCartToCache(cartStore.cartItems) // Update cache after quantity change
+  saveCartToCache(cartStore.cartItems)
 }
 
 const removeItem = async (itemId) => {
