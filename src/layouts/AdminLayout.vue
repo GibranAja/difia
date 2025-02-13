@@ -152,6 +152,12 @@ const currentPageTitle = computed(() => {
       return 'EDIT BLOG'
     case 'ChatView':
       return 'DETAIL CHAT'
+    case 'SliderView':
+      return 'KELOLA SLIDER'
+    case 'PartnerView':
+      return 'KELOLA PARTNER'
+    case 'StaffView':
+      return 'KELOLA STAFF'
     default:
       return 'DASHBOARD'
   }

@@ -1,37 +1,47 @@
 // router/index.js
 
+// Admin Views
 import DashboardView from '@/views/admin/DashboardView.vue'
-import LoginPage from '../views/LoginPage.vue'
-import NotFoundView from '@/views/notfound/NotFound.vue'
-import RegisterPage from '../views/RegisterPage.vue'
-import HomeView from '@/views/HomeView.vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { useAuthStore } from '@/stores/AuthStore'
-import { createRouter, createWebHistory } from 'vue-router'
 import KatalogView from '@/views/admin/KatalogView.vue'
+import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 import OrderView from '@/views/admin/OrderView.vue'
 import BlogView from '@/views/admin/BlogView.vue'
-import ChatCustomer from '@/views/ChatCustomer.vue'
-import DetailKatalogView from '@/views/DetailKatalogView.vue'
-// Add new imports for blog routes
 import CreateBlog from '@/views/admin/CreateBlog.vue'
-import CreateKatalog from '@/views/admin/CreateKatalog.vue'
 import PartnerView from '@/views/admin/PartnerView.vue'
+import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
 import StaffView from '@/views/admin/StaffView.vue'
 import CreateStaff from '@/views/admin/CreateStaffView.vue'
-import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
+import SliderView from '@/views/admin/SliderView.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
+
+// Customer Views
+import HomeView from '@/views/HomeView.vue'
+import DetailKatalogView from '@/views/DetailKatalogView.vue'
+import DetailBlogView from '@/views/BlogView.vue'
+import CustomView from '@/views/CustomView.vue'
+import CartView from '@/views/CartView.vue'
+import CheckoutView from '@/views/CheckoutView.vue'
+import ChatCustomer from '@/views/ChatCustomer.vue'
+
+// Auth Views
+import LoginPage from '@/views/LoginPage.vue'
+import RegisterPage from '@/views/RegisterPage.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import VerifyCode from '@/views/auth/VerifyCode.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
-import CustomView from '@/views/CustomView.vue'
-import DetailBlogView from '@/views/BlogView.vue'
-import CartView from '@/views/CartView.vue'
-import CheckoutView from '@/views/CheckoutView.vue'
+
+// Other
+import NotFoundView from '@/views/notfound/NotFound.vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { createRouter, createWebHistory } from 'vue-router'
+
+// Lazy loaded components
+const ChatListView = () => import('@/views/admin/ChatListView.vue')
+const ChatDetailView = () => import('@/views/admin/ChatDetailView.vue')
 
 const adminGuard = async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Allow both admin and staff to access
   if (
     !authStore.isLoggedIn ||
     (!authStore.currentUser?.isAdmin && !authStore.currentUser?.isStaff)
@@ -46,10 +56,11 @@ const adminGuard = async (to, from, next) => {
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Customer Routes
     {
-      path: '/checkout',
-      name: 'CheckoutView',
-      component: CheckoutView,
+      path: '/',
+      name: 'HomeView',
+      component: HomeView,
     },
     {
       path: '/detail/:id',
@@ -72,15 +83,17 @@ const router = createRouter({
       component: CartView,
     },
     {
-      path: '/',
-      name: 'HomeView',
-      component: HomeView,
+      path: '/checkout',
+      name: 'CheckoutView',
+      component: CheckoutView,
     },
     {
       path: '/chat',
       name: 'ChatCustomer',
       component: ChatCustomer,
     },
+
+    // Auth Routes
     {
       path: '/login',
       name: 'Login',
@@ -106,6 +119,8 @@ const router = createRouter({
       name: 'ResetPassword',
       component: ResetPassword,
     },
+
+    // Admin Routes
     {
       path: '/admin',
       component: AdminLayout,
@@ -117,6 +132,7 @@ const router = createRouter({
           component: DashboardView,
           meta: { requiresAuth: true },
         },
+        // Katalog Management
         {
           path: 'katalog',
           name: 'KatalogView',
@@ -135,12 +151,26 @@ const router = createRouter({
           component: CreateKatalog,
           meta: { requiresAdmin: true },
         },
+        // Blog Management
         {
-          path: 'order',
-          name: 'OrderView',
-          component: OrderView,
-          meta: { requiresAuth: true },
+          path: 'blog',
+          name: 'BlogView',
+          component: BlogView,
+          meta: { requiresAdmin: true },
         },
+        {
+          path: 'blog/create',
+          name: 'CreateBlog',
+          component: CreateBlog,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'blog/edit/:id',
+          name: 'EditBlog',
+          component: CreateBlog,
+          meta: { requiresAdmin: true },
+        },
+        // Staff Management
         {
           path: 'staff',
           name: 'StaffView',
@@ -159,32 +189,13 @@ const router = createRouter({
           component: CreateStaff,
           meta: { requiresAdmin: true },
         },
-        {
-          path: 'blog',
-          name: 'BlogView',
-          component: BlogView,
-          meta: { requiresAdmin: true },
-        },
-        // Add new blog routes
-        {
-          path: 'blog/create',
-          name: 'CreateBlog',
-          component: CreateBlog,
-          meta: { requiresAdmin: true },
-        },
-        {
-          path: 'blog/edit/:id',
-          name: 'EditBlog',
-          component: CreateBlog,
-          meta: { requiresAdmin: true },
-        },
+        // Partner Management
         {
           path: 'Partner',
           name: 'PartnerView',
           component: PartnerView,
           meta: { requiresAdmin: true },
         },
-        // Add new blog routes
         {
           path: 'partner/create',
           name: 'CreatePartnerBlog',
@@ -197,20 +208,34 @@ const router = createRouter({
           component: CreatePartnerView,
           meta: { requiresAdmin: true },
         },
+        // Other Admin Routes
+        {
+          path: 'order',
+          name: 'OrderView',
+          component: OrderView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'slider',
+          name: 'SliderView',
+          component: SliderView,
+          meta: { requiresAdmin: true },
+        },
         {
           path: 'chat',
           name: 'ChatList',
-          component: () => import('@/views/admin/ChatListView.vue'),
+          component: ChatListView,
           meta: { requiresAuth: true },
         },
         {
           path: 'chat/:id',
           name: 'ChatDetail',
-          component: () => import('@/views/admin/ChatDetailView.vue'),
+          component: ChatDetailView,
           meta: { requiresAuth: true },
         },
       ],
     },
+    // 404 Route
     {
       path: '/:pathMatch(.*)*',
       name: 'notFound',
@@ -218,20 +243,13 @@ const router = createRouter({
     },
   ],
   scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition
-    }
-    if (to.hash) {
-      return {
-        el: to.hash,
-        behavior: 'smooth',
-      }
-    }
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
     return { top: 0, behavior: 'smooth' }
   },
 })
 
-// Update router guard
+// Auth Guard
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
@@ -244,7 +262,7 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Check authentication for routes that require it
+  // Check authentication for protected routes
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (
       !authStore.isLoggedIn ||

@@ -1,26 +1,33 @@
 <template>
   <header id="home">
-    <Swiper :spaceBetween="30" :centeredSlides="true" :autoplay="{
-      delay: 2500,
-      disableOnInteraction: false,
-    }" :pagination="{
+    <Swiper
+      :spaceBetween="30"
+      :centeredSlides="true"
+      :autoplay="{
+        delay: 2500,
+        disableOnInteraction: false,
+      }"
+      :pagination="{
         clickable: true,
-      }" :navigation="false" :modules="modules" :allowTouchMove="false" :speed="800" :loop="true"
-      :loopAdditionalSlides="3" class="mySwiper" @slideChange="handleSlideChange">
-      <SwiperSlide v-for="slide in randomSlides" :key="slide.id" class="swiper-slide">
-        <div class="slide-wrapper" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
-          <img :src="slide.images[0]" :alt="slide.nama" class="slide-image" />
-          <div class="slide-overlay">
-            <h2>{{ slide.nama }}</h2>
-            <p>Rp {{ formatPrice(slide.harga.standar) }}</p>
-            <router-link :to="`/detail/${slide.id}`" class="slide-btn"> Lihat Detail </router-link>
-          </div>
+      }"
+      :navigation="false"
+      :modules="modules"
+      :allowTouchMove="false"
+      :speed="800"
+      :loop="true"
+      :loopAdditionalSlides="3"
+      class="mySwiper"
+    >
+      <SwiperSlide v-for="slide in sliderStore.sliderItems" :key="slide.id" class="swiper-slide">
+        <div class="slide-wrapper">
+          <div class="slide-overlay"></div>
+          <img :src="slide.image" :alt="`Slider ${slide.id}`" class="slide-image" />
         </div>
       </SwiperSlide>
     </Swiper>
-    <a href="#about">
-      <i class="fas fa-arrow-down"></i>
-    </a>
+    <div class="scroll-indicator">
+      <i class="fas fa-chevron-down"></i>
+    </div>
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
@@ -29,14 +36,19 @@
         <div class="gambar">
           <span class="kotak"></span>
           <span class="bulet"></span>
-          <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
+          <img
+            src="../assets/Logo Difia Haki.PNG"
+            alt="foto-tentang-kami"
+            class="foto-tentang-kami"
+          />
         </div>
         <div class="text">
           <h1><b>TENTANG KAMI</b></h1>
           <p>
             Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
-            covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
-            berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
+            covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang
+            fashion berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota
+            Bogor
           </p>
         </div>
       </div>
@@ -51,8 +63,12 @@
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
-          :index="index" />
+        <CardCatalog
+          v-for="(katalog, index) in katalogStore.katalogItems"
+          :key="katalog.id"
+          :item="katalog"
+          :index="index"
+        />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -106,23 +122,25 @@ import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 import { Autoplay, Pagination, Navigation } from 'swiper/modules'
 
-import CardCatalog from '@/components/CardCatalog.vue';
-import CardBlog from '@/components/CardBlog.vue';
-import NavigationBar from '@/components/NavigationBar.vue';
-import { useAuthStore } from '@/stores/AuthStore';
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useKatalogStore } from '@/stores/KatalogStore';
-import CardUlasan from '@/components/CardUlasan.vue';
-import { usePartnerStore } from '@/stores/PartnerStore';
-import CardMitra from '@/components/CardMitra.vue';
-import CardAchivement from '@/components/CardAchivement.vue';
+import CardCatalog from '@/components/CardCatalog.vue'
+import CardBlog from '@/components/CardBlog.vue'
+import NavigationBar from '@/components/NavigationBar.vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useKatalogStore } from '@/stores/KatalogStore'
+import CardUlasan from '@/components/CardUlasan.vue'
+import { usePartnerStore } from '@/stores/PartnerStore'
+import CardMitra from '@/components/CardMitra.vue'
+import CardAchivement from '@/components/CardAchivement.vue'
+import { useSliderStore } from '@/stores/SliderStore'
 
-const authStore = useAuthStore();
-const router = useRouter();
-const isLoggedIn = computed(() => authStore.isLoggedIn);
-const katalogStore = useKatalogStore();
-const partnerStore = usePartnerStore();
+const authStore = useAuthStore()
+const router = useRouter()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const katalogStore = useKatalogStore()
+const partnerStore = usePartnerStore()
+const sliderStore = useSliderStore()
 
 const handleLogout = async () => {
   try {
@@ -135,45 +153,10 @@ const handleLogout = async () => {
 onMounted(async () => {
   await katalogStore.fetchKatalog()
   await partnerStore.fetchPartners()
+  await sliderStore.fetchSliders()
 })
 
 const modules = [Autoplay, Pagination, Navigation]
-
-const randomSlides = computed(() => {
-  const allKatalog = [...katalogStore.katalogItems]
-  return allKatalog.sort(() => Math.random() - 0.5).slice(0, 7)
-})
-
-const formatPrice = (price) => {
-  return price.toLocaleString('id-ID')
-}
-
-const currentHoverState = ref(false)
-
-const handleSlideChange = () => {
-  if (currentHoverState.value) {
-    const slides = document.querySelectorAll('.swiper-slide')
-    slides.forEach((slide) => {
-      slide.classList.add('force-hover')
-    })
-  }
-}
-
-const handleMouseEnter = () => {
-  currentHoverState.value = true
-  const slides = document.querySelectorAll('.swiper-slide')
-  slides.forEach((slide) => {
-    slide.classList.add('force-hover')
-  })
-}
-
-const handleMouseLeave = () => {
-  currentHoverState.value = false
-  const slides = document.querySelectorAll('.swiper-slide')
-  slides.forEach((slide) => {
-    slide.classList.remove('force-hover')
-  })
-}
 </script>
 
 <style scoped>
@@ -198,19 +181,14 @@ header {
   text-align: center;
 }
 
-header a {
+header .text {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
-  font-size: 2rem;
-  color: black;
-  z-index: 100;
-  opacity: 50%;
-  transition: all 700ms;
-}
-
-header a:hover {
-  opacity: 100%;
+  bottom: 0px;
+  left: 0px;
+  width: 100%;
+  height: 10%;
+  padding: 50px;
+  z-index: 10;
 }
 
 .tentang-kami {
@@ -220,9 +198,8 @@ header a:hover {
   row-gap: 50px;
   align-items: center;
   flex-wrap: wrap;
-
 }
-.about{
+.about {
   padding: 150px;
   display: flex;
   justify-content: space-around;
@@ -235,7 +212,7 @@ header a:hover {
 .tentang-kami .gambar {
   width: 30%;
   height: auto;
-  background-color: #02163b;
+  background-color: #d3d3d3;
   padding: 19px;
   text-align: center;
   position: relative;
@@ -291,7 +268,7 @@ header a:hover {
   z-index: -10;
   right: 0;
 }
-.tentang-kami .swipper .side-color{
+.tentang-kami .swipper .side-color {
   position: absolute;
   width: 200px;
   height: 200px;
@@ -456,27 +433,58 @@ footer img {
   opacity: 50%;
 }
 
-.force-hover .slide-overlay {
-  transform: translateY(0) !important;
-  opacity: 1 !important;
+.slide-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-.force-hover .slide-image {
-  transform: scale(1.1) !important;
+.slide-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/* Modify transition timing to match slide speed */
-.slide-image,
+/* Add dark overlay */
 .slide-overlay {
-  transition: all 0.8s ease;
-}
-
-/* Optional: smooth out transition between slides */
-.swiper-slide-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4); /* Adjust opacity as needed */
   z-index: 1;
 }
 
-:deep(.swiper-wrapper) {
-  transition-timing-function: linear !important;
+/* Style for scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  z-index: 10;
+}
+
+.scroll-indicator i {
+  font-size: 2rem;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-30px);
+  }
+  60% {
+    transform: translateY(-15px);
+  }
 }
 </style>
