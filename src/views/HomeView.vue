@@ -6,15 +6,7 @@
     }" :pagination="{
       clickable: false,
     }" :navigation="false" :modules="modules" class="mySwiper">
-      <SwiperSlide>Slide 1</SwiperSlide>
-      <SwiperSlide>Slide 2</SwiperSlide>
-      <SwiperSlide>Slide 3</SwiperSlide>
-      <SwiperSlide>Slide 4</SwiperSlide>
-      <SwiperSlide>Slide 5</SwiperSlide>
-      <SwiperSlide>Slide 6</SwiperSlide>
-      <SwiperSlide>Slide 7</SwiperSlide>
-      <SwiperSlide>Slide 8</SwiperSlide>
-      <SwiperSlide>Slide 9</SwiperSlide>
+      <SwiperSlide v-for="(slide, index) in randomSlides" :key="index">{{ slide.name }}</SwiperSlide>
     </Swiper>
     <a href="#about">
       <i class="fas fa-arrow-down"></i>
@@ -45,8 +37,7 @@
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
-          :index="index" />
+        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog" :index="index" />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -71,7 +62,6 @@
         <h1><b>ULASAN</b></h1>
         <span class="line"></span>
       </div>
-
       <CardUlasan></CardUlasan>
     </section>
   </main>
@@ -105,7 +95,7 @@ import CardCatalog from '@/components/CardCatalog.vue';
 import CardBlog from '@/components/CardBlog.vue';
 import NavigationBar from '@/components/NavigationBar.vue';
 import { useAuthStore } from '@/stores/AuthStore';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useKatalogStore } from '@/stores/KatalogStore';
 import CardUlasan from '@/components/CardUlasan.vue';
@@ -134,7 +124,6 @@ onMounted(async () => {
 
 const modules = [Autoplay, Pagination, Navigation]
 
-// Add this computed property
 const randomSlides = computed(() => {
   const allKatalog = [...katalogStore.katalogItems]
   return allKatalog.sort(() => Math.random() - 0.5).slice(0, 7)
@@ -147,7 +136,6 @@ const formatPrice = (price) => {
 const currentHoverState = ref(false)
 
 const handleSlideChange = () => {
-  // Maintain hover state during slide transition
   if (currentHoverState.value) {
     const slides = document.querySelectorAll('.swiper-slide')
     slides.forEach((slide) => {
@@ -156,7 +144,6 @@ const handleSlideChange = () => {
   }
 }
 
-// Add mouseenter/mouseleave handlers
 const handleMouseEnter = () => {
   currentHoverState.value = true
   const slides = document.querySelectorAll('.swiper-slide')
@@ -206,6 +193,7 @@ header a {
   opacity: 50%;
   transition: all 700ms;
 }
+
 header a:hover {
   opacity: 100%;
 }
@@ -243,6 +231,7 @@ header a:hover {
   border: 100px solid #e8ba38;
   z-index: -10;
 }
+
 .tentang-kami .gambar .bulet {
   position: absolute;
   width: 5px;
@@ -260,6 +249,7 @@ header a:hover {
   color: #02163b;
   text-align: center;
 }
+
 .swipper {
   width: 100%;
 
@@ -284,10 +274,12 @@ header a:hover {
   width: 33.3%;
   text-align: center;
 }
-.katalog .dot{
+
+.katalog .dot {
   width: 30%;
   border: 2px dotted #e8ba38;
 }
+
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -380,8 +372,7 @@ footer .medsos {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  width: 50%;
-}
+  width: 50%;}
 
 footer .medsos a {
   text-decoration: none;
