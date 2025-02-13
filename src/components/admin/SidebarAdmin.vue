@@ -99,7 +99,8 @@ const items = computed(() => {
     { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
     { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },
     { text: 'Staff', icon: 'fas fa-person', pathName: 'StaffView' },
-    { text: 'Slider', icon: 'fas fa-slide', pathName: 'SliderView' },
+    { text: 'Voucher', icon: 'fas fa-tags', pathName: 'VoucherView' },
+    { text: 'Slider', icon: 'fas-solid fa-angels-right', pathName: 'SliderView' },
     { text: 'Home', icon: 'fas fa-arrow-left', pathName: 'HomeView' },
   ]
 })
