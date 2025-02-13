@@ -1,5 +1,8 @@
 <template>
-  <nav :class="{ 'nav-hidden': isHidden }" :style="{
+  <nav :class="{ 
+    'nav-hidden': isHidden,
+    'at-top': !isScrolled 
+  }" :style="{
     // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
     backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
   }">
@@ -68,8 +71,9 @@ const handleScroll = () => {
   const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop
   isScrolled.value = currentScrollPosition > 0
 
-  // Don't do anything if the scroll position is negative
-  if (currentScrollPosition < 0) {
+  // Hide navbar when at the very top
+  if (currentScrollPosition < 50) {
+    isHidden.value = true
     return
   }
 
@@ -78,6 +82,7 @@ const handleScroll = () => {
     return
   }
 
+  // Hide when scrolling down, show when scrolling up
   isHidden.value = currentScrollPosition > lastScrollPosition.value
   lastScrollPosition.value = currentScrollPosition
 }
@@ -163,6 +168,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.nav-hidden {
+  transform: translateY(-100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
 nav {
   display: flex;
   flex-wrap: wrap;
@@ -177,10 +189,20 @@ nav {
   font-family: 'Montserrat', sans-serif;
   transition: all 0.3s ease;
   transform: translateY(0);
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.43);
+  backdrop-filter: blur(10px);
 }
 
 .nav-hidden {
   transform: translateY(-100%);
+  pointer-events: none;
+}
+
+/* Add style for when at top */
+nav.at-top {
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .link {
