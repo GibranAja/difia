@@ -1,13 +1,10 @@
 <template>
-  <nav
-    :class="{ 'nav-hidden': isHidden }"
-    :style="{
-      background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
-      backdropFilter: isScrolled ? 'blur(10px)' : 'blur(5px)',
-    }"
-  >
+  <nav :class="{ 'nav-hidden': isHidden }" :style="{
+    // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
+    backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
+  }">
     <div class="link">
-      <a @click.prevent="navigateTo('/')" href="/"><b>Beranda</b></a>
+      <a @click.prevent="navigateTo('/', 'home')" href="#home"><b>Beranda</b></a>
       <a @click.prevent="navigateTo('/', 'about')" href="#about"><b>Tentang Kami</b></a>
       <a @click.prevent="navigateTo('/', 'catalog')" href="#catalog"><b>Katalog</b></a>
       <a @click.prevent="navigateTo('/', 'articel')" href="#articel"><b>Artikel</b></a>
@@ -30,12 +27,8 @@
     <template v-if="authStore.isLoggedIn">
       <div class="login">
         <div class="profile-photo-container" @click="showProfileModal = true">
-          <img
-            :src="userProfilePhoto"
-            :alt="authStore.currentUser?.name || 'User'"
-            class="profile-photo"
-            @error="handleImageError"
-          />
+          <img :src="userProfilePhoto" :alt="authStore.currentUser?.name || 'User'" class="profile-photo"
+            @error="handleImageError" />
         </div>
         <a href="" class="keluar" @click.prevent="showLogoutModal = true">Log out</a>
       </div>
@@ -43,14 +36,8 @@
 
     <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
 
-    <NegativeModal
-      v-if="showLogoutModal"
-      title="Konfirmasi Logout"
-      message="Apakah Anda yakin ingin keluar?"
-      :loading="isLoggingOut"
-      @close="showLogoutModal = false"
-      @confirm="handleLogout"
-    />
+    <NegativeModal v-if="showLogoutModal" title="Konfirmasi Logout" message="Apakah Anda yakin ingin keluar?"
+      :loading="isLoggingOut" @close="showLogoutModal = false" @confirm="handleLogout" />
   </nav>
 </template>
 

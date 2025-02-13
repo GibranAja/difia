@@ -20,10 +20,11 @@ export default {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-around;
-  width: 33.3%;
+  width: 33%;
   background-color: white;
   padding: 10px;
   border-radius: 10px;
+  box-shadow: 0 0 20px black;
 }
 .card .picture img{
   width: 100px;

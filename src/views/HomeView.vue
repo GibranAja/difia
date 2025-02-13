@@ -1,12 +1,22 @@
 <template>
-  <header id="header">
+  <header id="home">
     <Swiper :spaceBetween="30" :centeredSlides="true" :autoplay="{
       delay: 2500,
       disableOnInteraction: false,
     }" :pagination="{
-      clickable: false,
-    }" :navigation="false" :modules="modules" class="mySwiper">
-      <SwiperSlide v-for="(slide, index) in randomSlides" :key="index">{{ slide.name }}</SwiperSlide>
+        clickable: true,
+      }" :navigation="false" :modules="modules" :allowTouchMove="false" :speed="800" :loop="true"
+      :loopAdditionalSlides="3" class="mySwiper" @slideChange="handleSlideChange">
+      <SwiperSlide v-for="slide in randomSlides" :key="slide.id" class="swiper-slide">
+        <div class="slide-wrapper" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+          <img :src="slide.images[0]" :alt="slide.nama" class="slide-image" />
+          <div class="slide-overlay">
+            <h2>{{ slide.nama }}</h2>
+            <p>Rp {{ formatPrice(slide.harga.standar) }}</p>
+            <router-link :to="`/detail/${slide.id}`" class="slide-btn"> Lihat Detail </router-link>
+          </div>
+        </div>
+      </SwiperSlide>
     </Swiper>
     <a href="#about">
       <i class="fas fa-arrow-down"></i>
@@ -15,20 +25,24 @@
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
     <section class="tentang-kami" id="about">
-      <div class="gambar">
-        <span class="kotak"></span>
-        <span class="bulet"></span>
-        <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
-      </div>
-      <div class="text">
-        <h1><b>TENTANG KAMI</b></h1>
-        <p>
-          Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
-          covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
-          berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
-        </p>
+      <div class="about">
+        <div class="gambar">
+          <span class="kotak"></span>
+          <span class="bulet"></span>
+          <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
+        </div>
+        <div class="text">
+          <h1><b>TENTANG KAMI</b></h1>
+          <p>
+            Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
+            covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
+            berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
+          </p>
+        </div>
       </div>
       <div class="swipper">
+        <span class="bg-scroll"></span>
+        <span class="side-color"></span>
         <CardAchivement></CardAchivement>
       </div>
     </section>
@@ -37,7 +51,8 @@
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog" :index="index" />
+        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
+          :index="index" />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -205,9 +220,18 @@ header a:hover {
   row-gap: 50px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 150px;
-}
 
+}
+.about{
+  padding: 150px;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 50px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
 .tentang-kami .gambar {
   width: 30%;
   height: auto;
@@ -252,7 +276,30 @@ header a:hover {
 
 .swipper {
   width: 100%;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
+}
 
+.tentang-kami .swipper .bg-scroll {
+  position: absolute;
+  width: 100%;
+  height: 150px;
+  background-color: #d9d9d9;
+  z-index: -10;
+  right: 0;
+}
+.tentang-kami .swipper .side-color{
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  left: 0;
+  background-color: white;
+  box-shadow: 10px 0 25px black;
+  border-radius: 0 10px 10px 0;
+  z-index: -10;
 }
 
 .foto-tentang-kami {
@@ -372,7 +419,8 @@ footer .medsos {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  width: 50%;}
+  width: 50%;
+}
 
 footer .medsos a {
   text-decoration: none;
@@ -426,5 +474,9 @@ footer img {
 /* Optional: smooth out transition between slides */
 .swiper-slide-active {
   z-index: 1;
+}
+
+:deep(.swiper-wrapper) {
+  transition-timing-function: linear !important;
 }
 </style>

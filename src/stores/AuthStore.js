@@ -63,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
         const userCredential = await signInWithEmailAndPassword(auth, user.email, user.password)
 
         if (userCredential) {
-          // Check in users collection first (admin)
+          // Check in users collection first
           const userQuery = query(
             collection(db, 'users'),
             where('uid', '==', userCredential.user.uid),
@@ -71,11 +71,14 @@ export const useAuthStore = defineStore('auth', () => {
           const userData = await getDocs(userQuery)
 
           // Check in staff collection
-          const staffQuery = query(collection(db, 'staff'), where('email', '==', user.email))
+          const staffQuery = query(
+            collection(db, 'staff'),
+            where('email', '==', user.email)
+          )
           const staffData = await getDocs(staffQuery)
 
           if (!userData.empty) {
-            // User is an admin
+            // User is in users collection
             const adminData = userData.docs[0].data()
             currentUser.value = {
               email: userCredential.user.email,
@@ -83,10 +86,17 @@ export const useAuthStore = defineStore('auth', () => {
               name: adminData.name,
               isAdmin: adminData.isAdmin,
               profilePhoto: adminData.profilePhoto || '',
-              role: 'admin',
+              role: adminData.isAdmin ? 'admin' : 'user'
             }
             isLoggedIn.value = true
-            await redirectAfterAuth(true, router)
+            
+            // Only redirect to admin if isAdmin is true
+            if (adminData.isAdmin) {
+              await redirectAfterAuth(true, router)
+            } else {
+              await router.push('/')
+              toast.success('Welcome back!')
+            }
           } else if (!staffData.empty) {
             // User is a staff member
             const staffDoc = staffData.docs[0].data()
@@ -97,11 +107,11 @@ export const useAuthStore = defineStore('auth', () => {
               isAdmin: false,
               isStaff: true,
               role: 'staff',
-              profilePhoto: staffDoc.profilePhoto || '',
+              profilePhoto: staffDoc.profilePhoto || ''
             }
             isLoggedIn.value = true
-            toast.success('Welcome back, Staff member!')
             await router.push('/admin')
+            toast.success('Welcome back, Staff member!')
           } else {
             throw new Error('User account not found')
           }
