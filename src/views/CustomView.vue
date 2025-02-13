@@ -4,11 +4,14 @@ import { useRoute, useRouter } from 'vue-router' // Add useRouter
 import { useKatalogStore } from '@/stores/KatalogStore'
 import { storeToRefs } from 'pinia'
 import { useCartStore } from '@/stores/CartStore' // Add this import
+import { useOrderStore } from '@/stores/OrderStore' // Add this import
 
 const route = useRoute()
 const router = useRouter() // Add this
+const purchaseType = ref('satuan')
 const store = useKatalogStore()
 const cartStore = useCartStore() // Add this
+const orderStore = useOrderStore() // Add this
 const { katalogItems } = storeToRefs(store)
 
 const productId = route.params.id
@@ -92,19 +95,20 @@ const addToCart = async () => {
         selectedPrice.value === 'premium'
           ? selectedProduct.value.harga.premium
           : selectedProduct.value.harga.standar,
-      quantity: 20, // Set default quantity to 20
+      quantity: purchaseType.value === 'souvenir' ? 20 : 1, // Set minimum based on purchase type
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
         bahanDalam: selectedBahanDalam.value,
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
-        uploadedImage: uploadedImage.value, // Add base64 image
+        uploadedImage: purchaseType.value === 'souvenir' ? uploadedImage.value : null, // Only include image for souvenir
+        purchaseType: purchaseType.value,
       },
       createdAt: new Date(),
     }
 
-    await cartStore.addToCart(cartItem) // Modify CartStore to handle Firestore
+    await cartStore.addToCart(cartItem)
     router.push('/cart')
   } catch (error) {
     console.error('Error adding to cart:', error)
@@ -124,6 +128,41 @@ const removeUploadedImage = () => {
   // Reset file input
   const fileInput = document.getElementById('imageUpload')
   if (fileInput) fileInput.value = ''
+}
+
+// Add handleBuyNow function
+const handleBuyNow = async () => {
+  if (!validateForm()) return
+
+  isSubmitting.value = true
+  try {
+    const orderData = {
+      productId: selectedProduct.value.id,
+      name: selectedProduct.value.nama,
+      image: selectedProduct.value.images[0],
+      price:
+        selectedPrice.value === 'premium'
+          ? selectedProduct.value.harga.premium
+          : selectedProduct.value.harga.standar,
+      quantity: purchaseType.value === 'souvenir' ? 20 : 1,
+      customOptions: {
+        priceType: selectedPrice.value,
+        bahanLuar: selectedBahanLuar.value,
+        bahanDalam: selectedBahanDalam.value,
+        aksesoris: selectedAksesoris.value,
+        color: selectedColor.value,
+        purchaseType: purchaseType.value,
+      },
+    }
+
+    // Save order data to store before redirecting
+    orderStore.setCurrentOrder(orderData)
+    router.push('/checkout')
+  } catch (error) {
+    console.error('Error processing order:', error)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -208,6 +247,38 @@ const removeUploadedImage = () => {
         </div>
       </div>
 
+      <div class="purchase-type-card">
+        <div class="section-header">
+          <h3>Tipe Pembelian</h3>
+        </div>
+        <div class="purchase-options">
+          <div class="purchase-option">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="purchaseType"
+                value="Satuan"
+                v-model="purchaseType"
+                class="square-radio"
+              />
+              <span>Satuan</span>
+            </label>
+          </div>
+          <div class="purchase-option">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="purchaseType"
+                value="Souvenir"
+                v-model="purchaseType"
+                class="square-radio"
+              />
+              <span>Souvenir</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="details-card">
         <div class="section-header">
           <h3>Detail Produk</h3>
@@ -271,7 +342,8 @@ const removeUploadedImage = () => {
           </div>
 
           <!-- Centered upload section -->
-          <div class="upload-row">
+          <!-- Only show upload section for souvenir purchases -->
+          <div class="upload-row" v-if="purchaseType === 'souvenir'">
             <div class="detail-group upload-group">
               <label>Upload Photo :</label>
               <div class="upload-area-small">
@@ -322,12 +394,7 @@ const removeUploadedImage = () => {
         </button>
         <button
           class="buy-button"
-          @click="
-            async () => {
-              await addToCart()
-              router.push('/checkout')
-            }
-          "
+          @click="handleBuyNow"
           :disabled="
             isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
           "
@@ -561,13 +628,15 @@ const removeUploadedImage = () => {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border: 2px solid #02163b;
-  border-radius: 0; /* Makes it square */
+  border-radius: 4px; /* Sedikit rounded corners */
   margin: 0;
   cursor: pointer;
   position: relative;
+  background-color: white;
+  transition: all 0.2s ease;
 }
 
 .square-radio:checked {
@@ -575,15 +644,20 @@ const removeUploadedImage = () => {
 }
 
 .square-radio:checked::after {
-  content: '';
+  content: '\f00c'; /* Font Awesome checkmark icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background-color: white;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: 0; /* Makes the inner check square */
+  color: white;
+  font-size: 12px; /* Sesuaikan ukuran checkmark */
+}
+
+/* Hover effect */
+.square-radio:hover {
+  background-color: rgba(2, 22, 59, 0.1);
 }
 
 .budget-input:disabled {
@@ -895,5 +969,35 @@ const removeUploadedImage = () => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.purchase-type-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.purchase-options {
+  padding: 20px;
+  display: flex;
+  gap: 30px;
+}
+
+.purchase-option {
+  display: flex;
+  align-items: center;
+}
+
+.purchase-option .radio-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.purchase-option span {
+  font-size: 16px;
+  color: #333;
 }
 </style>
