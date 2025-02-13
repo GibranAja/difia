@@ -14,6 +14,8 @@
       :modules="modules"
       :allowTouchMove="false"
       :speed="800"
+      :loop="true"
+      :loopAdditionalSlides="3"
       class="mySwiper"
       @slideChange="handleSlideChange"
     >
@@ -494,5 +496,9 @@ footer img {
 /* Optional: smooth out transition between slides */
 .swiper-slide-active {
   z-index: 1;
+}
+
+:deep(.swiper-wrapper) {
+  transition-timing-function: linear !important;
 }
 </style>
