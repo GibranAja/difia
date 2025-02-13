@@ -12,6 +12,8 @@ import CreatePartnerView from '@/views/admin/CreatePartnerView.vue'
 import StaffView from '@/views/admin/StaffView.vue'
 import CreateStaff from '@/views/admin/CreateStaffView.vue'
 import SliderView from '@/views/admin/SliderView.vue'
+import VoucherView from '@/views/admin/VoucherView.vue'
+import CreateVoucherView from '@/views/admin/CreateVoucherView.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 // Customer Views
@@ -219,6 +221,24 @@ const router = createRouter({
           path: 'slider',
           name: 'SliderView',
           component: SliderView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'voucher',
+          name: 'VoucherView',
+          component: VoucherView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'voucher/create',
+          name: 'CreateVoucherView',
+          component: CreateVoucherView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'voucher/edit/:id',
+          name: 'CreateVoucherView',
+          component: CreateVoucherView,
           meta: { requiresAdmin: true },
         },
         {
