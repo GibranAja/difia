@@ -1,24 +1,12 @@
 <template>
-  <header id="header">
-    <Swiper
-      :spaceBetween="30"
-      :centeredSlides="true"
-      :autoplay="{
-        delay: 2500,
-        disableOnInteraction: false,
-      }"
-      :pagination="{
+  <header id="home">
+    <Swiper :spaceBetween="30" :centeredSlides="true" :autoplay="{
+      delay: 2500,
+      disableOnInteraction: false,
+    }" :pagination="{
         clickable: true,
-      }"
-      :navigation="false"
-      :modules="modules"
-      :allowTouchMove="false"
-      :speed="800"
-      :loop="true"
-      :loopAdditionalSlides="3"
-      class="mySwiper"
-      @slideChange="handleSlideChange"
-    >
+      }" :navigation="false" :modules="modules" :allowTouchMove="false" :speed="800" :loop="true"
+      :loopAdditionalSlides="3" class="mySwiper" @slideChange="handleSlideChange">
       <SwiperSlide v-for="slide in randomSlides" :key="slide.id" class="swiper-slide">
         <div class="slide-wrapper" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
           <img :src="slide.images[0]" :alt="slide.nama" class="slide-image" />
@@ -30,39 +18,41 @@
         </div>
       </SwiperSlide>
     </Swiper>
-    <div class="text">
-      <h1>Welcome, User</h1>
-    </div>
+    <a href="#about">
+      <i class="fas fa-arrow-down"></i>
+    </a>
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
     <section class="tentang-kami" id="about">
-      <div class="gambar">
-        <!-- <img src="../assets/header-dott.png" alt="background-tentang-kami" class="hiasan" /> -->
-        <img
-          src="../assets/Logo Difia Haki.PNG"
-          alt="foto-tentang-kami"
-          class="foto-tentang-kami"
-        />
+      <div class="about">
+        <div class="gambar">
+          <span class="kotak"></span>
+          <span class="bulet"></span>
+          <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
+        </div>
+        <div class="text">
+          <h1><b>TENTANG KAMI</b></h1>
+          <p>
+            Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
+            covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
+            berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
+          </p>
+        </div>
       </div>
-      <div class="text">
-        <h1><b>TENTANG KAMI</b></h1>
-        <p>
-          Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
-          covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang fashion
-          berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota Bogor
-        </p>
+      <div class="swipper">
+        <span class="bg-scroll"></span>
+        <span class="side-color"></span>
+        <CardAchivement></CardAchivement>
       </div>
     </section>
     <section class="katalog" id="catalog">
+      <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
+      <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog
-          v-for="(katalog, index) in katalogStore.katalogItems"
-          :key="katalog.id"
-          :item="katalog"
-          :index="index"
-        />
+        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
+          :index="index" />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -87,7 +77,6 @@
         <h1><b>ULASAN</b></h1>
         <span class="line"></span>
       </div>
-
       <CardUlasan></CardUlasan>
     </section>
   </main>
@@ -117,22 +106,23 @@ import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 import { Autoplay, Pagination, Navigation } from 'swiper/modules'
 
-import CardCatalog from '@/components/CardCatalog.vue'
-import CardBlog from '@/components/CardBlog.vue'
-import NavigationBar from '@/components/NavigationBar.vue'
-import { useAuthStore } from '@/stores/AuthStore'
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useKatalogStore } from '@/stores/KatalogStore'
-import CardUlasan from '@/components/CardUlasan.vue'
-import { usePartnerStore } from '@/stores/PartnerStore'
-import CardMitra from '@/components/CardMitra.vue'
+import CardCatalog from '@/components/CardCatalog.vue';
+import CardBlog from '@/components/CardBlog.vue';
+import NavigationBar from '@/components/NavigationBar.vue';
+import { useAuthStore } from '@/stores/AuthStore';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useKatalogStore } from '@/stores/KatalogStore';
+import CardUlasan from '@/components/CardUlasan.vue';
+import { usePartnerStore } from '@/stores/PartnerStore';
+import CardMitra from '@/components/CardMitra.vue';
+import CardAchivement from '@/components/CardAchivement.vue';
 
-const authStore = useAuthStore()
-const router = useRouter()
-const isLoggedIn = computed(() => authStore.isLoggedIn)
-const katalogStore = useKatalogStore()
-const partnerStore = usePartnerStore()
+const authStore = useAuthStore();
+const router = useRouter();
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+const katalogStore = useKatalogStore();
+const partnerStore = usePartnerStore();
 
 const handleLogout = async () => {
   try {
@@ -149,7 +139,6 @@ onMounted(async () => {
 
 const modules = [Autoplay, Pagination, Navigation]
 
-// Add this computed property
 const randomSlides = computed(() => {
   const allKatalog = [...katalogStore.katalogItems]
   return allKatalog.sort(() => Math.random() - 0.5).slice(0, 7)
@@ -162,7 +151,6 @@ const formatPrice = (price) => {
 const currentHoverState = ref(false)
 
 const handleSlideChange = () => {
-  // Maintain hover state during slide transition
   if (currentHoverState.value) {
     const slides = document.querySelectorAll('.swiper-slide')
     slides.forEach((slide) => {
@@ -171,7 +159,6 @@ const handleSlideChange = () => {
   }
 }
 
-// Add mouseenter/mouseleave handlers
 const handleMouseEnter = () => {
   currentHoverState.value = true
   const slides = document.querySelectorAll('.swiper-slide')
@@ -199,19 +186,6 @@ header {
   height: 100vh;
 }
 
-header .text {
-  position: absolute;
-  bottom: 0px;
-  left: 0px;
-  /* background: linear-gradient( to top, rgba(0, 0, 0, 0.482), rgba(255, 255, 255, 0)); */
-  width: 100%;
-  height: 10%;
-  padding: 50px;
-  /* backdrop-filter: blur(10px); */
-  z-index: 10;
-  /* background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent); */
-  /* backdrop-filter: blur(5px); */
-}
 .mySwiper {
   width: 100%;
   height: 100vh;
@@ -220,113 +194,112 @@ header .text {
 .swiper-slide {
   width: 100%;
   height: 100vh;
-}
-
-.slide-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.slide-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-
-.slide-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 60%,
-    transparent 100%
-  );
-  padding: 4rem 2rem 6rem;
-  color: white;
+  width: 100vh;
   text-align: center;
-  transform: translateY(20%);
-  opacity: 0;
-  transition: all 0.6s ease;
 }
 
-.swiper-slide:hover .slide-overlay {
-  transform: translateY(0);
-  opacity: 1;
+header a {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 2rem;
+  color: black;
+  z-index: 100;
+  opacity: 50%;
+  transition: all 700ms;
 }
 
-.swiper-slide:hover .slide-image {
-  transform: scale(1.1);
-}
-
-.slide-overlay h2 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.slide-overlay p {
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-  color: #e8ba38;
-}
-
-.slide-btn {
-  display: inline-block;
-  padding: 0.8rem 2rem;
-  background-color: #e8ba38;
-  color: #02163b;
-  text-decoration: none;
-  border-radius: 30px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.slide-btn:hover {
-  background-color: #02163b;
-  color: #e8ba38;
+header a:hover {
+  opacity: 100%;
 }
 
 .tentang-kami {
   display: flex;
   justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 50px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 160px;
-  /* font-family: 'Times New Roman', Times, serif; */
-}
 
+}
+.about{
+  padding: 150px;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  row-gap: 50px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
 .tentang-kami .gambar {
   width: 30%;
   height: auto;
   background-color: #02163b;
   padding: 19px;
   text-align: center;
+  position: relative;
 }
 
 .tentang-kami .text {
   width: 50%;
-  text-align: center;
+  text-align: justify;
 }
 
-.tentang-kami .gambar .hiasan {
-  width: 200px;
-  height: 200px;
-  z-index: -1;
+.tentang-kami .gambar .kotak {
   position: absolute;
-  left: 160px;
-  bottom: -230px;
+  width: 5px;
+  left: -100px;
+  top: -100px;
+  background-color: black;
+  border: 100px solid #e8ba38;
+  z-index: -10;
+}
+
+.tentang-kami .gambar .bulet {
+  position: absolute;
+  width: 5px;
+  right: -100px;
+  bottom: -100px;
+  background-color: black;
+  border: 100px solid #02163b;
+  z-index: -10;
+  border-radius: 100px;
 }
 
 .tentang-kami h1 {
   font-size: 3rem;
   line-height: 1rem;
   color: #02163b;
+  text-align: center;
+}
+
+.swipper {
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tentang-kami .swipper .bg-scroll {
+  position: absolute;
+  width: 100%;
+  height: 150px;
+  background-color: #d9d9d9;
+  z-index: -10;
+  right: 0;
+}
+.tentang-kami .swipper .side-color{
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  left: 0;
+  background-color: white;
+  box-shadow: 10px 0 25px black;
+  border-radius: 0 10px 10px 0;
+  z-index: -10;
 }
 
 .foto-tentang-kami {
@@ -345,8 +318,13 @@ header .text {
 
 .katalog h1 {
   font-size: 4rem;
-  width: 100%;
+  width: 33.3%;
   text-align: center;
+}
+
+.katalog .dot {
+  width: 30%;
+  border: 2px dotted #e8ba38;
 }
 
 .catalog-grid {
@@ -424,7 +402,7 @@ footer {
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 100px;
+  padding: 10px;
   background-image: url('../assets/bg-footer.jpeg');
   background-repeat: no-repeat;
   background-size: cover;
@@ -441,7 +419,7 @@ footer .medsos {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  width: 40%;
+  width: 50%;
 }
 
 footer .medsos a {
@@ -473,7 +451,7 @@ footer .medsos i {
 }
 
 footer img {
-  width: 30%;
+  width: 10%;
   border-radius: 40px;
   opacity: 50%;
 }
