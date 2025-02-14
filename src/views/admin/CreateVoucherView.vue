@@ -103,6 +103,20 @@ import { useRouter, useRoute } from 'vue-router'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
 
+// Add props definition
+defineProps({
+  isSidebarOpen: {
+    type: Boolean,
+    default: true
+  }
+})
+
+// Add minDate computed property
+const minDate = computed(() => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+})
+
 const router = useRouter()
 const route = useRoute()
 const voucherStore = useVoucherStore()

@@ -11,7 +11,8 @@ import {
   query,
   orderBy,
   serverTimestamp,
-  where
+  where,
+  updateDoc,
 } from 'firebase/firestore'
 
 export const useVoucherStore = defineStore('voucher', () => {
@@ -31,10 +32,13 @@ export const useVoucherStore = defineStore('voucher', () => {
 
       // Persist to localStorage as backup
       try {
-        localStorage.setItem('voucher_cache', JSON.stringify({
-          data: Array.from(this.data.entries()),
-          timestamp: Array.from(this.timestamp.entries())
-        }))
+        localStorage.setItem(
+          'voucher_cache',
+          JSON.stringify({
+            data: Array.from(this.data.entries()),
+            timestamp: Array.from(this.timestamp.entries()),
+          }),
+        )
       } catch (e) {
         console.warn('LocalStorage write failed:', e)
       }
@@ -70,7 +74,7 @@ export const useVoucherStore = defineStore('voucher', () => {
       this.data.delete(key)
       this.timestamp.delete(key)
       localStorage.removeItem('voucher_cache')
-    }
+    },
   }
 
   // Add new voucher
@@ -81,7 +85,7 @@ export const useVoucherStore = defineStore('voucher', () => {
 
       // Validate code uniqueness
       const existingVoucher = voucherItems.value.find(
-        v => v.code.toLowerCase() === voucherData.code.toLowerCase()
+        (v) => v.code.toLowerCase() === voucherData.code.toLowerCase(),
       )
       if (existingVoucher) {
         throw new Error('Kode voucher sudah digunakan')
@@ -95,15 +99,15 @@ export const useVoucherStore = defineStore('voucher', () => {
         maxUses: Number(voucherData.maxUses),
         currentUses: 0,
         isActive: true,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       }
 
       const docRef = await addDoc(collection(db, 'vouchers'), newVoucher)
-      
+
       // Update local state with the new voucher
       const voucherWithId = { id: docRef.id, ...newVoucher }
       voucherItems.value.unshift(voucherWithId)
-      
+
       // Update cache
       cache.set('vouchers', voucherItems.value)
 
@@ -129,15 +133,12 @@ export const useVoucherStore = defineStore('voucher', () => {
       isLoading.value = true
       error.value = null
 
-      const q = query(
-        collection(db, 'vouchers'),
-        orderBy('createdAt', 'desc')
-      )
+      const q = query(collection(db, 'vouchers'), orderBy('createdAt', 'desc'))
 
       const snapshot = await getDocs(q)
-      voucherItems.value = snapshot.docs.map(doc => ({
+      voucherItems.value = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }))
 
       // Update cache
@@ -161,8 +162,8 @@ export const useVoucherStore = defineStore('voucher', () => {
       await deleteDoc(doc(db, 'vouchers', id))
 
       // Update local state
-      voucherItems.value = voucherItems.value.filter(v => v.id !== id)
-      
+      voucherItems.value = voucherItems.value.filter((v) => v.id !== id)
+
       // Update cache
       cache.set('vouchers', voucherItems.value)
 
@@ -181,7 +182,7 @@ export const useVoucherStore = defineStore('voucher', () => {
       const q = query(
         collection(db, 'vouchers'),
         where('code', '==', code.toUpperCase()),
-        where('isActive', '==', true)
+        where('isActive', '==', true),
       )
 
       const snapshot = await getDocs(q)
@@ -191,7 +192,7 @@ export const useVoucherStore = defineStore('voucher', () => {
 
       const voucher = {
         id: snapshot.docs[0].id,
-        ...snapshot.docs[0].data()
+        ...snapshot.docs[0].data(),
       }
 
       // Check validity
@@ -209,6 +210,45 @@ export const useVoucherStore = defineStore('voucher', () => {
     }
   }
 
+  // Update voucher
+  const updateVoucher = async (id, voucherData) => {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const voucherRef = doc(db, 'vouchers', id)
+
+      const updatePayload = {
+        discountType: voucherData.discountType,
+        discountValue: Number(voucherData.discountValue),
+        validUntil: voucherData.validUntil,
+        maxUses: Number(voucherData.maxUses),
+        updatedAt: serverTimestamp(),
+      }
+
+      await updateDoc(voucherRef, updatePayload)
+
+      // Update local state
+      const index = voucherItems.value.findIndex((v) => v.id === id)
+      if (index !== -1) {
+        voucherItems.value[index] = {
+          ...voucherItems.value[index],
+          ...updatePayload,
+        }
+      }
+
+      // Update cache
+      cache.set('vouchers', voucherItems.value)
+
+      return { success: true }
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     voucherItems,
     isLoading,
@@ -216,6 +256,7 @@ export const useVoucherStore = defineStore('voucher', () => {
     addVoucher,
     fetchVouchers,
     deleteVoucher,
-    validateVoucher
+    validateVoucher,
+    updateVoucher,
   }
 })

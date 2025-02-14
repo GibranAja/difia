@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
+// src/main.js
+import 'leaflet/dist/leaflet.css'
 import router from './router'
 import Toast from 'vue-toastification'
 import { useAuthStore } from './stores/AuthStore'
