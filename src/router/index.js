@@ -237,7 +237,7 @@ const router = createRouter({
         },
         {
           path: 'voucher/edit/:id',
-          name: 'CreateVoucherView',
+          name: 'EditVoucherView',
           component: CreateVoucherView,
           meta: { requiresAdmin: true },
         },

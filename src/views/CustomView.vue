@@ -8,7 +8,7 @@ import { useOrderStore } from '@/stores/OrderStore' // Add this import
 
 const route = useRoute()
 const router = useRouter() // Add this
-const purchaseType = ref('satuan')
+const purchaseType = ref('Satuan')
 const store = useKatalogStore()
 const cartStore = useCartStore() // Add this
 const orderStore = useOrderStore() // Add this
@@ -18,7 +18,6 @@ const productId = route.params.id
 const selectedProduct = ref(null)
 const uploadedImage = ref(null)
 const selectedPrice = ref('standard') // Add this for radio control
-const budgetInput = ref('') // Add this for budget input
 
 // Add new refs for form selections
 const selectedBahanLuar = ref('')
@@ -38,6 +37,9 @@ const isAksesorisOpen = ref(false)
 // Add new imports and refs
 const isSubmitting = ref(false)
 const errors = ref({})
+
+// Add after your existing ref declarations
+const budgetInput = ref(null)
 
 onMounted(async () => {
   if (katalogItems.value.length === 0) {
@@ -81,6 +83,18 @@ const handleImageUpload = (event) => {
   }
 }
 
+// Add this helper function
+const getSelectedPrice = () => {
+  switch (selectedPrice.value) {
+    case 'premium':
+      return selectedProduct.value.harga.premium
+    case 'budget':
+      return budgetInput.value
+    default: // standard
+      return selectedProduct.value.harga.standar
+  }
+}
+
 // Modify addToCart function
 const addToCart = async () => {
   if (!validateForm()) return
@@ -91,19 +105,17 @@ const addToCart = async () => {
       productId: selectedProduct.value.id,
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
-      price:
-        selectedPrice.value === 'premium'
-          ? selectedProduct.value.harga.premium
-          : selectedProduct.value.harga.standar,
-      quantity: purchaseType.value === 'souvenir' ? 20 : 1, // Set minimum based on purchase type
+      price: getSelectedPrice(), // Use the helper function
+      quantity: purchaseType.value === 'Souvenir' ? 20 : 1,
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
         bahanDalam: selectedBahanDalam.value,
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
-        uploadedImage: purchaseType.value === 'souvenir' ? uploadedImage.value : null, // Only include image for souvenir
+        uploadedImage: purchaseType.value === 'souvenir' ? uploadedImage.value : null,
         purchaseType: purchaseType.value,
+        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
       },
       createdAt: new Date(),
     }
@@ -140,11 +152,8 @@ const handleBuyNow = async () => {
       productId: selectedProduct.value.id,
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
-      price:
-        selectedPrice.value === 'premium'
-          ? selectedProduct.value.harga.premium
-          : selectedProduct.value.harga.standar,
-      quantity: purchaseType.value === 'souvenir' ? 20 : 1,
+      price: getSelectedPrice(), // Use the helper function
+      quantity: purchaseType.value === 'Souvenir' ? 20 : 1,
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
@@ -152,16 +161,50 @@ const handleBuyNow = async () => {
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
         purchaseType: purchaseType.value,
+        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
       },
     }
 
-    // Save order data to store before redirecting
     orderStore.setCurrentOrder(orderData)
     router.push('/checkout')
   } catch (error) {
     console.error('Error processing order:', error)
   } finally {
     isSubmitting.value = false
+  }
+}
+
+// Add these new methods
+const handleBudgetPriceSelection = () => {
+  const minPrice = selectedProduct.value?.harga?.standar || 69000
+  // Initialize with minimum price only if field is empty
+  if (!budgetInput.value) {
+    budgetInput.value = minPrice
+  }
+}
+
+const handleBudgetInput = (event) => {
+  // Allow empty value during typing
+  if (event.target.value === '') {
+    budgetInput.value = null
+    return
+  }
+
+  let value = Number(event.target.value)
+  if (isNaN(value)) {
+    budgetInput.value = null
+  } else {
+    budgetInput.value = value
+  }
+}
+
+// Add new method to validate on blur
+const validateBudgetInput = () => {
+  const minPrice = selectedProduct.value?.harga?.standar || 69000
+
+  // If empty or below minimum when leaving the field, set to minimum
+  if (!budgetInput.value || budgetInput.value < minPrice) {
+    budgetInput.value = minPrice
   }
 }
 </script>
@@ -187,7 +230,12 @@ const handleBuyNow = async () => {
           </div>
           <div class="product-info">
             <h2>{{ selectedProduct?.nama || 'POUCH' }}</h2>
-            <p>Rp. {{ selectedProduct?.harga?.standar?.toLocaleString() || '5.300.000' }}</p>
+            <div class="price-quantity">
+              <p>Rp. {{ selectedProduct?.harga?.standar?.toLocaleString() || '5.300.000' }}</p>
+              <span class="quantity-badge">
+                {{ purchaseType === 'Satuan' ? '1 pcs' : 'min 20 pcs' }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -227,11 +275,14 @@ const handleBuyNow = async () => {
             <label>Budgeting :</label>
             <div class="radio-wrapper">
               <input
-                type="text"
+                type="number"
                 class="budget-input"
-                v-model="budgetInput"
+                v-model.number="budgetInput"
                 :disabled="selectedPrice !== 'budget'"
-                placeholder="By Request"
+                :min="selectedProduct?.harga?.standar || 69000"
+                @input="handleBudgetInput"
+                @blur="validateBudgetInput"
+                placeholder="Min. Rp 69.000"
               />
               <div class="radio-label">
                 <input
@@ -240,6 +291,7 @@ const handleBuyNow = async () => {
                   value="budget"
                   v-model="selectedPrice"
                   class="square-radio"
+                  @change="handleBudgetPriceSelection"
                 />
               </div>
             </div>
@@ -343,7 +395,7 @@ const handleBuyNow = async () => {
 
           <!-- Centered upload section -->
           <!-- Only show upload section for souvenir purchases -->
-          <div class="upload-row" v-if="purchaseType === 'souvenir'">
+          <div class="upload-row" v-if="purchaseType === 'Souvenir'">
             <div class="detail-group upload-group">
               <label>Upload Photo :</label>
               <div class="upload-area-small">
@@ -522,6 +574,26 @@ const handleBuyNow = async () => {
   border: 1px solid #ddd;
   border-radius: 4px;
   background: #f5f5f5;
+  padding: 0 10px;
+  -moz-appearance: textfield; /* Firefox */
+}
+
+/* Remove arrows for Chrome, Safari, Edge, Opera */
+.budget-input::-webkit-outer-spin-button,
+.budget-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.budget-input:disabled {
+  background-color: #eee;
+  cursor: not-allowed;
+}
+
+.budget-input:focus {
+  outline: none;
+  border-color: #02163b;
+  background: #fff;
 }
 
 .details-row {
@@ -999,5 +1071,27 @@ const handleBuyNow = async () => {
 .purchase-option span {
   font-size: 16px;
   color: #333;
+}
+
+/* Add these new styles */
+.price-quantity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.price-quantity p {
+  margin: 0;
+  color: #333;
+}
+
+.quantity-badge {
+  background-color: #02163b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 </style>

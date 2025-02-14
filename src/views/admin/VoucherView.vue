@@ -1,13 +1,13 @@
 <template>
   <div class="voucher-container" :class="{ 'sidebar-collapsed': !isSidebarOpen }">
     <LoadComponent v-if="voucherStore.isLoading" />
-    
+
     <template v-else>
       <h1>DAFTAR VOUCHER</h1>
 
       <div class="voucher-controls">
         <div class="top-controls">
-          <router-link to="/admin/voucher/create" class="add-btn">
+          <router-link :to="{ path: '/admin/voucher/create' }" class="add-btn">
             <i class="fas fa-plus"></i> Tambah Voucher
           </router-link>
         </div>
@@ -23,11 +23,7 @@
           </div>
 
           <div class="search-box">
-            <input 
-              type="text" 
-              v-model="searchQuery" 
-              placeholder="Search voucher..."
-            />
+            <input type="text" v-model="searchQuery" placeholder="Search voucher..." />
           </div>
         </div>
       </div>
@@ -65,25 +61,19 @@
               <td>{{ formatDate(voucher.validUntil) }}</td>
               <td>{{ voucher.currentUses }}/{{ voucher.maxUses }}</td>
               <td>
-                <span 
+                <span
                   class="status-badge"
-                  :class="{ 'active': isVoucherActive(voucher), 'inactive': !isVoucherActive(voucher) }"
+                  :class="{ active: isVoucherActive(voucher), inactive: !isVoucherActive(voucher) }"
                 >
                   {{ isVoucherActive(voucher) ? 'Aktif' : 'Nonaktif' }}
                 </span>
               </td>
               <td>
                 <div class="action-buttons">
-                  <router-link 
-                    :to="`/admin/voucher/edit/${voucher.id}`" 
-                    class="edit-btn"
-                  >
+                  <router-link :to="`/admin/voucher/edit/${voucher.id}`" class="edit-btn">
                     <i class="fas fa-edit"></i>
                   </router-link>
-                  <button 
-                    class="delete-btn"
-                    @click="showDeleteConfirmation(voucher.id)"
-                  >
+                  <button class="delete-btn" @click="showDeleteConfirmation(voucher.id)">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -114,108 +104,101 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useVoucherStore } from '@/stores/VoucherStore';
-import LoadComponent from '@/components/LoadComponent.vue';
-import NegativeModal from '@/components/NegativeModal.vue';
-import { useToast } from 'vue-toastification';
+import { ref, computed, onMounted } from 'vue'
+import { useVoucherStore } from '@/stores/VoucherStore'
+import LoadComponent from '@/components/LoadComponent.vue'
+import NegativeModal from '@/components/NegativeModal.vue'
+import { useToast } from 'vue-toastification'
 
-const toast = useToast();
-const voucherStore = useVoucherStore();
-const searchQuery = ref('');
-const currentPage = ref(1);
-const entriesPerPage = ref(10);
-const showDeleteModal = ref(false);
-const selectedVoucherId = ref(null);
-const isDeleting = ref(false);
+const toast = useToast()
+const voucherStore = useVoucherStore()
+const searchQuery = ref('')
+const currentPage = ref(1)
+const entriesPerPage = ref(10)
+const showDeleteModal = ref(false)
+const selectedVoucherId = ref(null)
+const isDeleting = ref(false)
 
 defineProps({
   isSidebarOpen: {
     type: Boolean,
-    default: true
-  }
-});
+    default: true,
+  },
+})
 
 // Computed properties
 const filteredVouchers = computed(() => {
-  return voucherStore.voucherItems.filter(voucher =>
-    voucher.code.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
+  return voucherStore.voucherItems.filter((voucher) =>
+    voucher.code.toLowerCase().includes(searchQuery.value.toLowerCase()),
+  )
+})
 
-const startIndex = computed(() => (currentPage.value - 1) * entriesPerPage.value);
+const startIndex = computed(() => (currentPage.value - 1) * entriesPerPage.value)
 
 const paginatedVouchers = computed(() => {
-  return filteredVouchers.value.slice(
-    startIndex.value,
-    startIndex.value + entriesPerPage.value
-  );
-});
+  return filteredVouchers.value.slice(startIndex.value, startIndex.value + entriesPerPage.value)
+})
 
-const totalPages = computed(() => 
-  Math.ceil(filteredVouchers.value.length / entriesPerPage.value)
-);
+const totalPages = computed(() => Math.ceil(filteredVouchers.value.length / entriesPerPage.value))
 
 // Helper functions
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('id-ID', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
-  });
-};
+    day: 'numeric',
+  })
+}
 
 const formatDiscount = (type, value) => {
   if (type === 'percentage') {
-    return `${value}%`;
+    return `${value}%`
   }
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
-    currency: 'IDR'
-  }).format(value);
-};
+    currency: 'IDR',
+  }).format(value)
+}
 
 const isVoucherActive = (voucher) => {
-  const now = new Date();
-  const expiryDate = new Date(voucher.validUntil);
-  return voucher.isActive && 
-         expiryDate > now && 
-         voucher.currentUses < voucher.maxUses;
-};
+  const now = new Date()
+  const expiryDate = new Date(voucher.validUntil)
+  return voucher.isActive && expiryDate > now && voucher.currentUses < voucher.maxUses
+}
 
 // Modal functions
 const showDeleteConfirmation = (id) => {
-  selectedVoucherId.value = id;
-  showDeleteModal.value = true;
-};
+  selectedVoucherId.value = id
+  showDeleteModal.value = true
+}
 
 const closeDeleteModal = () => {
-  showDeleteModal.value = false;
-  selectedVoucherId.value = null;
-};
+  showDeleteModal.value = false
+  selectedVoucherId.value = null
+}
 
 const handleDelete = async () => {
-  if (!selectedVoucherId.value) return;
+  if (!selectedVoucherId.value) return
 
   try {
-    isDeleting.value = true;
-    const result = await voucherStore.deleteVoucher(selectedVoucherId.value);
+    isDeleting.value = true
+    const result = await voucherStore.deleteVoucher(selectedVoucherId.value)
     if (result.success) {
-      toast.success('Voucher berhasil dihapus');
-      closeDeleteModal();
+      toast.success('Voucher berhasil dihapus')
+      closeDeleteModal()
     } else {
-      throw new Error(result.error);
+      throw new Error(result.error)
     }
   } catch (error) {
-    toast.error('Gagal menghapus voucher: ' + error.message);
+    toast.error('Gagal menghapus voucher: ' + error.message)
   } finally {
-    isDeleting.value = false;
+    isDeleting.value = false
   }
-};
+}
 
 onMounted(async () => {
-  await voucherStore.fetchVouchers();
-});
+  await voucherStore.fetchVouchers()
+})
 </script>
 
 <style scoped>

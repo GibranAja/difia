@@ -1,17 +1,19 @@
 <template>
   <div class="card" :class="{ 'card-alt': isAlternate }" v-if="item">
     <router-link :to="`/detail/${item.id}`" class="image-container">
-      <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0">
+      <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0" />
       <div class="overlay">
         <span>Lihat Detail</span>
       </div>
     </router-link>
-    <h1><b>{{ item.nama }}</b></h1>
+    <h1>
+      <b>{{ item.nama }}</b>
+    </h1>
+    <p class="price">Rp {{ formatPrice(item.harga.standar) }}</p>
     <div class="button-group">
       <a href="" class="cart-btn" :class="{ 'cart-alt': isAlternate }">
         <i class="fas fa-cart-shopping"></i>
       </a>
-      <!-- Modified to handle click -->
       <a @click.prevent="handleBuyClick" class="detail-btn" href="#">
         <b>Beli Sekarang</b>
       </a>
@@ -32,12 +34,12 @@ const toast = useToast()
 const props = defineProps({
   item: {
     type: Object,
-    required: true
+    required: true,
   },
   index: {
     type: Number,
-    required: true
-  }
+    required: true,
+  },
 })
 
 // Modified to create the pattern: blue, yellow, blue, blue, yellow, blue, blue, yellow, ...
@@ -54,6 +56,11 @@ const handleBuyClick = () => {
   }
   router.push(`/custom/${props.item.id}`)
 }
+
+// Add this function to format the price
+const formatPrice = (price) => {
+  return price.toLocaleString('id-ID')
+}
 </script>
 
 <style scoped>
@@ -66,7 +73,7 @@ const handleBuyClick = () => {
   background-color: #02163b;
   border-radius: 10px;
   padding: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Alternate style - gold background */
@@ -91,7 +98,14 @@ const handleBuyClick = () => {
   font-size: 1.2rem;
   color: white;
   text-align: center;
-  margin: 10px 0;
+  margin: 10px 0 5px 0; /* Reduced bottom margin */
+}
+
+.price {
+  color: #ffffff;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
+  text-align: center;
 }
 
 .button-group {

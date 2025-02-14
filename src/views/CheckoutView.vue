@@ -156,8 +156,30 @@
       <section class="checkout-section voucher-section">
         <h2 class="section-title">Voucher Tas</h2>
         <div class="voucher-input">
-          <input type="text" placeholder="Masukkan kode voucher" />
-          <button>Gunakan</button>
+          <input
+            type="text"
+            v-model="voucherCode"
+            placeholder="Masukkan kode voucher"
+            :disabled="isApplyingVoucher"
+          />
+          <button @click="applyVoucher" :disabled="!voucherCode || isApplyingVoucher">
+            {{ isApplyingVoucher ? 'Memproses...' : 'Gunakan' }}
+          </button>
+        </div>
+        <div v-if="appliedVoucher" class="applied-voucher">
+          <div class="voucher-info">
+            <span class="voucher-code">{{ appliedVoucher.code }}</span>
+            <span class="voucher-discount">
+              -{{
+                appliedVoucher.discountType === 'percentage'
+                  ? appliedVoucher.discountValue + '%'
+                  : 'Rp ' + formatPrice(appliedVoucher.discountValue)
+              }}
+            </span>
+          </div>
+          <button class="remove-voucher" @click="removeVoucher">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </section>
 
@@ -171,9 +193,13 @@
           <span v-if="isLoadingShipping">Menghitung...</span>
           <span v-else>Rp {{ formatPrice(shippingCost) }}</span>
         </div>
+        <div v-if="discountAmount > 0" class="summary-item discount">
+          <span>Diskon Voucher</span>
+          <span class="discount-amount">-Rp {{ formatPrice(discountAmount) }}</span>
+        </div>
         <div class="summary-item total">
           <span>Total</span>
-          <span>Rp {{ formatPrice(totalPrice) }}</span>
+          <span>Rp {{ formatPrice(finalTotal) }}</span>
         </div>
 
         <button class="checkout-button" :disabled="!selectedCity || isLoadingShipping">
@@ -194,10 +220,14 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { useOrderStore } from '@/stores/OrderStore'
 import { useRouter } from 'vue-router'
 import rajaOngkir from '@/api/RajaOngkir'
+import { useVoucherStore } from '@/stores/VoucherStore'
+import { useToast } from 'vue-toastification'
 
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
 const router = useRouter()
+const voucherStore = useVoucherStore()
+const toast = useToast()
 
 const formData = ref({
   name: '',
@@ -265,9 +295,9 @@ const calculateShipping = async () => {
   }
 }
 
-const totalPrice = computed(() => {
-  return getSubtotal.value + shippingCost.value
-})
+// const totalPrice = computed(() => {
+//   return getSubtotal.value + shippingCost.value
+// })
 
 onMounted(async () => {
   await loadProvinces()
@@ -333,6 +363,54 @@ onBeforeUnmount(() => {
   // Uncomment jika ingin membersihkan data setelah checkout
   localStorage.removeItem('currentOrder')
 })
+
+// Voucher related code
+const voucherCode = ref('')
+const appliedVoucher = ref(null)
+const isApplyingVoucher = ref(false)
+
+// Add computed for discount and final total
+const discountAmount = computed(() => {
+  if (!appliedVoucher.value) return 0
+
+  const subtotal = getSubtotal.value
+  if (appliedVoucher.value.discountType === 'percentage') {
+    return Math.floor((subtotal * appliedVoucher.value.discountValue) / 100)
+  }
+  return Math.min(appliedVoucher.value.discountValue, subtotal)
+})
+
+const finalTotal = computed(() => {
+  return getSubtotal.value + shippingCost.value - discountAmount.value
+})
+
+// Add voucher functions
+const applyVoucher = async () => {
+  if (!voucherCode.value) return
+
+  try {
+    isApplyingVoucher.value = true
+    const result = await voucherStore.validateVoucher(voucherCode.value)
+
+    if (result.success) {
+      appliedVoucher.value = result.voucher
+      voucherCode.value = ''
+      toast.success('Voucher berhasil diterapkan')
+    } else {
+      toast.error(result.error || 'Voucher tidak valid')
+    }
+  } catch (error) {
+    console.error('Error applying voucher:', error)
+    toast.error('Gagal menerapkan voucher')
+  } finally {
+    isApplyingVoucher.value = false
+  }
+}
+
+const removeVoucher = () => {
+  appliedVoucher.value = null
+  toast.info('Voucher dihapus')
+}
 </script>
 
 <style scoped>
@@ -710,6 +788,7 @@ textarea:focus {
 }
 
 .form-group input[type='number'] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -876,5 +955,51 @@ select:disabled option {
 .loading {
   opacity: 0.7;
   cursor: wait;
+}
+
+.applied-voucher {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f8f8f8;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.voucher-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.voucher-code {
+  font-weight: 600;
+  color: #333;
+}
+
+.voucher-discount {
+  color: #00c853;
+  font-weight: 500;
+}
+
+.remove-voucher {
+  background: none;
+  border: none;
+  color: #ff4646;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.remove-voucher:hover {
+  color: #ff1a1a;
+}
+
+.summary-item.discount {
+  color: #00c853;
+}
+
+.discount-amount {
+  font-weight: 500;
 }
 </style>
