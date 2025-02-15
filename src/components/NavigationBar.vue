@@ -1,10 +1,10 @@
 <template>
-  <nav :class="{ 
+  <nav :class="{
     'nav-hidden': isHidden,
-    'at-top': !isScrolled 
+    'at-top': !isScrolled
   }" :style="{
     // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
-    backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
+    // backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
   }">
     <div class="link">
       <a @click.prevent="navigateTo('/', 'home')" href="#home"><b>Beranda</b></a>
