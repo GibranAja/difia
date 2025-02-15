@@ -56,19 +56,19 @@
       <section class="checkout-section customer-info">
         <h2 class="section-title">Informasi Pemesanan</h2>
         <form class="form-grid">
-          <div class="form-group full-width">
+          <div class="form-group">
             <label for="name">Nama</label>
             <input type="text" id="name" v-model="formData.name" placeholder="Masukkan nama" />
           </div>
-          <div class="form-group full-width">
+          <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" v-model="formData.email" placeholder="Masukkan email" />
           </div>
-          <div class="form-group full-width">
+          <div class="form-group">
             <label for="phone">No Telp</label>
             <input type="number" id="phone" placeholder="Masukkan nomor telepon" />
           </div>
-          <div class="form-group full-width">
+          <div class="form-group">
             <label for="address">Alamat Lengkap</label>
             <textarea id="address" rows="3" placeholder="Masukkan alamat lengkap"></textarea>
           </div>
@@ -545,14 +545,17 @@ const removeVoucher = () => {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* Single column */
   gap: 1rem;
+  width: 50%; /* Set width to 50% */
+  margin: 0; /* Remove auto margin to align left */
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .form-group.full-width {
@@ -572,6 +575,7 @@ label {
 input,
 select,
 textarea {
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;

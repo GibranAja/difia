@@ -16,6 +16,7 @@
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
     "firebase": "^11.1.0",
+    "leaflet": "^1.9.4",
     "pinia": "^2.3.0",
     "pusher": "^5.2.0",
     "swiper": "^11.2.2",
