@@ -48,6 +48,10 @@
                 <span class="spec-label">Aksesoris:</span>
                 <span>{{ orderStore.currentOrder.customOptions.aksesoris.join(', ') }}</span>
               </div>
+              <div class="spec-item" v-if="orderStore.currentOrder.customOptions.note">
+                <span class="spec-label">Catatan:</span>
+                <span>{{ orderStore.currentOrder.customOptions.note }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -66,11 +70,21 @@
           </div>
           <div class="form-group">
             <label for="phone">No Telp</label>
-            <input type="number" id="phone" placeholder="Masukkan nomor telepon" />
+            <input
+              type="tel"
+              id="phone"
+              v-model="formData.phone"
+              placeholder="Masukkan nomor telepon"
+            />
           </div>
           <div class="form-group">
             <label for="address">Alamat Lengkap</label>
-            <textarea id="address" rows="3" placeholder="Masukkan alamat lengkap"></textarea>
+            <textarea
+              id="address"
+              v-model="formData.address"
+              rows="3"
+              placeholder="Masukkan alamat lengkap"
+            ></textarea>
           </div>
           <div class="form-group">
             <label for="province">Provinsi</label>
@@ -117,7 +131,7 @@
           </div>
           <div class="form-group">
             <label for="zip">Kode Pos</label>
-            <input type="number" id="zip" placeholder="Kode pos" />
+            <input type="text" id="zip" v-model="formData.zip" placeholder="Kode pos" />
           </div>
         </form>
 
@@ -142,13 +156,26 @@
         </div>
         <div class="upload-section">
           <h3 class="upload-proof-title">
-            <!-- Tambah icon upload -->
+            <i class="fas fa-upload"></i>
             Upload bukti pembayaran
           </h3>
-          <label for="bukti" class="upload-area">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <span>Klik atau drag file ke sini</span>
-            <input type="file" id="bukti" hidden />
+          <label
+            for="paymentProof"
+            class="upload-area"
+            :class="{ 'has-file': orderStore.paymentProof }"
+          >
+            <div v-if="!orderStore.paymentProof">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <span>Klik atau drag file ke sini</span>
+            </div>
+            <img v-else :src="orderStore.paymentProof" alt="Payment Proof" class="preview-image" />
+            <input
+              type="file"
+              id="paymentProof"
+              @change="handlePaymentProofUpload"
+              accept="image/*"
+              hidden
+            />
           </label>
         </div>
       </section>
@@ -202,7 +229,11 @@
           <span>Rp {{ formatPrice(finalTotal) }}</span>
         </div>
 
-        <button class="checkout-button" :disabled="!selectedCity || isLoadingShipping">
+        <button
+          class="checkout-button"
+          :disabled="!selectedCity || isLoadingShipping"
+          @click="handleSubmitOrder"
+        >
           Bayar Sekarang
         </button>
         <p class="terms">Dengan melakukan pembayaran, Anda menyetujui Syarat & Ketentuan kami</p>
@@ -410,6 +441,66 @@ const applyVoucher = async () => {
 const removeVoucher = () => {
   appliedVoucher.value = null
   toast.info('Voucher dihapus')
+}
+
+// Add to existing script section
+const paymentFile = ref(null)
+
+const handlePaymentProofUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  try {
+    await orderStore.setPaymentProof(file)
+    paymentFile.value = file
+  } catch (error) {
+    console.error('Error uploading payment proof:', error)
+    toast.error('Failed to upload payment proof')
+  }
+}
+
+const handleSubmitOrder = async () => {
+  try {
+    if (!orderStore.paymentProof) {
+      toast.error('Mohon upload bukti pembayaran')
+      return
+    }
+
+    // Validate required fields
+    if (
+      !formData.value.name ||
+      !formData.value.email ||
+      !formData.value.phone ||
+      !formData.value.address ||
+      !formData.value.zip ||
+      !selectedCity.value
+    ) {
+      toast.error('Mohon lengkapi semua data pengiriman')
+      return
+    }
+
+    const orderDetails = {
+      name: formData.value.name,
+      email: formData.value.email,
+      phone: formData.value.phone,
+      address: formData.value.address,
+      province: selectedProvince.value,
+      city: selectedCity.value,
+      zip: formData.value.zip,
+      shippingCost: shippingCost.value,
+      finalTotal: finalTotal.value,
+      voucher: appliedVoucher.value,
+      discountAmount: discountAmount.value,
+    }
+
+    const result = await orderStore.createOrder(orderDetails)
+    if (result.success) {
+      router.push('/orders')
+      localStorage.removeItem('currentOrder') // Clear stored order
+    }
+  } catch (error) {
+    toast.error('Gagal membuat pesanan: ' + error.message)
+  }
 }
 </script>
 
@@ -657,26 +748,31 @@ textarea:focus {
 }
 
 .upload-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 2rem;
-  border: 2px dashed #e0e0e0;
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  border: 2px dashed #ddd;
   border-radius: 8px;
-  background-color: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .upload-area:hover {
-  border-color: #e8ba38;
-  background-color: rgba(232, 186, 56, 0.1);
+  border-color: #666;
 }
 
-.upload-area i {
-  font-size: 2rem;
-  color: #666;
+.upload-area.has-file {
+  border-style: solid;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
 }
 
 .voucher-input {

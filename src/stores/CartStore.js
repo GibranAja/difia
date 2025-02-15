@@ -67,20 +67,37 @@ export const useCartStore = defineStore('cart', () => {
         price: cartItem.price,
         quantity: quantity,
         customOptions: {
-          ...cartItem.customOptions,
-          purchaseType: cartItem.customOptions.purchaseType // Preserve purchase type
+          priceType: cartItem.customOptions.priceType,
+          bahanLuar: cartItem.customOptions.bahanLuar,
+          bahanDalam: cartItem.customOptions.bahanDalam,
+          aksesoris: cartItem.customOptions.aksesoris,
+          color: cartItem.customOptions.color,
+          purchaseType: cartItem.customOptions.purchaseType,
+          budgetPrice: cartItem.customOptions.budgetPrice,
+          note: cartItem.customOptions.note,
+          uploadedImage: cartItem.customOptions.uploadedImage, // For souvenir type
         },
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+
+      // Add validation for required fields
+      if (
+        !newItem.customOptions.bahanLuar ||
+        !newItem.customOptions.bahanDalam ||
+        !newItem.customOptions.aksesoris
+      ) {
+        throw new Error('Mohon lengkapi semua detail produk')
       }
 
       const docRef = await addDoc(collection(db, 'cart'), newItem)
       cartItems.value.push({ id: docRef.id, ...newItem })
 
-      toast.success('Item added to cart')
+      toast.success('Item berhasil ditambahkan ke keranjang')
       return { success: true }
     } catch (err) {
       error.value = err.message
-      toast.error('Failed to add item to cart')
+      toast.error('Gagal menambahkan item: ' + err.message)
       return { success: false, error: err.message }
     } finally {
       loading.value = false
@@ -124,7 +141,6 @@ export const useCartStore = defineStore('cart', () => {
       await updateDoc(cartRef, { quantity })
 
       item.quantity = quantity
-
     } catch (err) {
       error.value = err.message
       toast.error('Failed to update quantity')

@@ -151,14 +151,14 @@ const removeUploadedImage = () => {
 const handleBuyNow = async () => {
   if (!validateForm()) return
 
-  isSubmitting.value = true
   try {
+    isSubmitting.value = true
     const orderData = {
       productId: selectedProduct.value.id,
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
-      price: getSelectedPrice(), // Use the helper function
-      quantity: quantity.value, // Use quantity ref
+      price: getSelectedPrice(),
+      quantity: quantity.value,
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
@@ -166,8 +166,9 @@ const handleBuyNow = async () => {
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
         purchaseType: purchaseType.value,
-        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
-        note: note.value,
+        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null,
+        note: note.value, // Pastikan note dimasukkan ke customOptions
+        uploadedImage: uploadedImage.value,
       },
     }
 
