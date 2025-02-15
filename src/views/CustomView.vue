@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue' // Add computed
+import { ref, onMounted, computed, watch } from 'vue' // Add computed, watch
 import { useRoute, useRouter } from 'vue-router' // Add useRouter
 import { useKatalogStore } from '@/stores/KatalogStore'
 import { storeToRefs } from 'pinia'
@@ -17,7 +17,8 @@ const { katalogItems } = storeToRefs(store)
 const productId = route.params.id
 const selectedProduct = ref(null)
 const uploadedImage = ref(null)
-const selectedPrice = ref('standard') // Add this for radio control
+const selectedPrice = ref('Standard') // Add this for radio control
+const note = ref('')
 
 // Add new refs for form selections
 const selectedBahanLuar = ref('')
@@ -40,6 +41,9 @@ const errors = ref({})
 
 // Add after your existing ref declarations
 const budgetInput = ref(null)
+
+// Add after other refs
+const quantity = ref(1) // Default to 1 for 'Satuan'
 
 onMounted(async () => {
   if (katalogItems.value.length === 0) {
@@ -86,7 +90,7 @@ const handleImageUpload = (event) => {
 // Add this helper function
 const getSelectedPrice = () => {
   switch (selectedPrice.value) {
-    case 'premium':
+    case 'Premium':
       return selectedProduct.value.harga.premium
     case 'budget':
       return budgetInput.value
@@ -106,7 +110,7 @@ const addToCart = async () => {
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
       price: getSelectedPrice(), // Use the helper function
-      quantity: purchaseType.value === 'Souvenir' ? 20 : 1,
+      quantity: quantity.value, // Use quantity ref
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
@@ -116,6 +120,7 @@ const addToCart = async () => {
         uploadedImage: purchaseType.value === 'souvenir' ? uploadedImage.value : null,
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
+        note: note.value,
       },
       createdAt: new Date(),
     }
@@ -153,7 +158,7 @@ const handleBuyNow = async () => {
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
       price: getSelectedPrice(), // Use the helper function
-      quantity: purchaseType.value === 'Souvenir' ? 20 : 1,
+      quantity: quantity.value, // Use quantity ref
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
@@ -162,6 +167,7 @@ const handleBuyNow = async () => {
         color: selectedColor.value,
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
+        note: note.value,
       },
     }
 
@@ -207,236 +213,287 @@ const validateBudgetInput = () => {
     budgetInput.value = minPrice
   }
 }
+
+// Add this watcher to handle quantity changes when purchase type changes
+watch(purchaseType, (newType) => {
+  quantity.value = newType === 'Satuan' ? 1 : 20
+})
+
+// Add this function to handle quantity changes
+const handleQuantityChange = (newQuantity) => {
+  const minQuantity = purchaseType.value === 'Satuan' ? 1 : 20
+  if (newQuantity < minQuantity) {
+    quantity.value = minQuantity
+    return
+  }
+  quantity.value = newQuantity
+}
 </script>
 
 <template>
   <KeepAlive>
-    <div class="custom-container">
-      <div class="header">
-        <router-link to="/" class="back-link">
-          <span>←</span>
+    <div class="product-container">
+      <!-- Navigation Header -->
+      <nav class="nav-header">
+        <router-link to="/" class="nav-back">
+          <span>
+            <i class="fas fa-chevron-left"></i>
+          </span>
         </router-link>
         <h1>Custom Produk</h1>
-      </div>
+      </nav>
 
-      <div class="product-card">
-        <div class="product-content">
-          <div class="product-image">
-            <img
-              :src="selectedProduct?.images[0]"
-              :alt="selectedProduct?.nama"
-              v-if="selectedProduct?.images?.length"
-            />
-          </div>
-          <div class="product-info">
+      <!-- Product Overview Section -->
+      <section class="product-overview">
+        <div class="product-preview">
+          <img
+            :src="selectedProduct?.images[0]"
+            :alt="selectedProduct?.nama"
+            v-if="selectedProduct?.images?.length"
+          />
+          <div class="product-meta">
             <h2>{{ selectedProduct?.nama || 'POUCH' }}</h2>
-            <div class="price-quantity">
-              <p>Rp. {{ selectedProduct?.harga?.standar?.toLocaleString() || '5.300.000' }}</p>
-              <span class="quantity-badge">
-                {{ purchaseType === 'Satuan' ? '1 pcs' : 'min 20 pcs' }}
-              </span>
+            <div class="price-tag">
+              <span class="price"
+                >Rp. {{ selectedProduct?.harga?.standar?.toLocaleString() || '5.300.000' }}</span
+              >
+              <span class="quantity">{{
+                purchaseType === 'Satuan' ? 'Min 1 pcs' : 'Min 20 pcs'
+              }}</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="custom-note">*Tolong untuk pilih custom</div>
-
-      <div class="price-card">
-        <div class="section-header">
+      <!-- Configuration Grid -->
+      <div class="config-grid">
+        <!-- Price Options -->
+        <section class="config-section price-options">
           <h3>Harga Per pcs</h3>
-        </div>
-        <div class="price-content">
-          <div class="price-option">
-            <label>Standar : 69.000</label>
-            <div class="radio-label">
-              <input
-                type="radio"
-                name="price"
-                value="standard"
-                v-model="selectedPrice"
-                class="square-radio"
-              />
-            </div>
-          </div>
-          <div class="price-option">
-            <label>Premium : 89.000</label>
-            <div class="radio-label">
-              <input
-                type="radio"
-                name="price"
-                value="premium"
-                v-model="selectedPrice"
-                class="square-radio"
-              />
-            </div>
-          </div>
-          <div class="price-option">
-            <label>Budgeting :</label>
-            <div class="radio-wrapper">
-              <input
-                type="number"
-                class="budget-input"
-                v-model.number="budgetInput"
-                :disabled="selectedPrice !== 'budget'"
-                :min="selectedProduct?.harga?.standar || 69000"
-                @input="handleBudgetInput"
-                @blur="validateBudgetInput"
-                placeholder="Min. Rp 69.000"
-              />
-              <div class="radio-label">
-                <input
-                  type="radio"
-                  name="price"
-                  value="budget"
-                  v-model="selectedPrice"
-                  class="square-radio"
-                  @change="handleBudgetPriceSelection"
-                />
+          <div class="options-list">
+            <label class="option-item">
+              <div class="option-content">
+                <span
+                  >Standar : Rp {{ selectedProduct?.harga?.standar?.toLocaleString() || '0' }}</span
+                >
+                <div class="custom-radio">
+                  <input type="radio" name="price" value="Standard" v-model="selectedPrice" />
+                  <span class="radio-checkmark">
+                    <i class="fas fa-check"></i>
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
+            </label>
 
-      <div class="purchase-type-card">
-        <div class="section-header">
+            <label class="option-item">
+              <div class="option-content">
+                <span
+                  >Premium : Rp {{ selectedProduct?.harga?.premium?.toLocaleString() || '0' }}</span
+                >
+                <div class="custom-radio">
+                  <input type="radio" name="price" value="Premium" v-model="selectedPrice" />
+                  <span class="radio-checkmark">
+                    <i class="fas fa-check"></i>
+                  </span>
+                </div>
+              </div>
+            </label>
+
+            <label class="option-item budget-option">
+              <div class="option-content">
+                <span>Budget :</span>
+                <div class="budget-control">
+                  <input
+                    type="number"
+                    v-model.number="budgetInput"
+                    :disabled="selectedPrice !== 'budget'"
+                    :min="selectedProduct?.harga?.standar || 0"
+                    @input="handleBudgetInput"
+                    @blur="validateBudgetInput"
+                    :placeholder="`Min. Rp ${selectedProduct?.harga?.standar?.toLocaleString() || '0'}`"
+                  />
+                  <div class="custom-radio">
+                    <input
+                      type="radio"
+                      name="price"
+                      value="budget"
+                      v-model="selectedPrice"
+                      @change="handleBudgetPriceSelection"
+                      id="budgetRadio"
+                    />
+                    <label for="budgetRadio" class="radio-checkmark">
+                      <i class="fas fa-check"></i>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- Purchase Type -->
+        <section class="config-section purchase-type">
           <h3>Tipe Pembelian</h3>
-        </div>
-        <div class="purchase-options">
-          <div class="purchase-option">
-            <label class="radio-label">
-              <input
-                type="radio"
-                name="purchaseType"
-                value="Satuan"
-                v-model="purchaseType"
-                class="square-radio"
-              />
-              <span>Satuan</span>
+          <div class="type-selector">
+            <label class="type-option">
+              <input type="radio" name="purchaseType" value="Satuan" v-model="purchaseType" />
+              <span class="type-label">Satuan</span>
+            </label>
+            <label class="type-option">
+              <input type="radio" name="purchaseType" value="Souvenir" v-model="purchaseType" />
+              <span class="type-label">Souvenir</span>
             </label>
           </div>
-          <div class="purchase-option">
-            <label class="radio-label">
-              <input
-                type="radio"
-                name="purchaseType"
-                value="Souvenir"
-                v-model="purchaseType"
-                class="square-radio"
-              />
-              <span>Souvenir</span>
-            </label>
-          </div>
-        </div>
-      </div>
 
-      <div class="details-card">
-        <div class="section-header">
-          <h3>Detail Produk</h3>
-        </div>
-        <div class="details-content">
-          <div class="details-row">
-            <div class="detail-group">
-              <label>Bahan Luar :</label>
-              <select v-model="selectedBahanLuar">
-                <option value="" disabled selected>Select material</option>
-                <option value="Finish Glossy">Finish Glossy</option>
-                <option value="Finish Doff">Finish Doff</option>
-              </select>
-              <!-- Add error messages -->
-              <div class="error-message" v-if="errors.bahanLuar">{{ errors.bahanLuar }}</div>
-            </div>
-            <div class="detail-group">
-              <label>Bahan Dalam :</label>
-              <select v-model="selectedBahanDalam">
-                <option value="" disabled selected>Select material</option>
-                <option value="Puring Glossy">Puring Glossy</option>
-                <option value="Puring Doff">Puring Doff</option>
-              </select>
-            </div>
+          <!-- Add this quantity control -->
+          <div class="quantity-control">
+            <button
+              class="quantity-btn"
+              :disabled="quantity <= (purchaseType === 'Satuan' ? 1 : 20)"
+              @click="handleQuantityChange(quantity - 1)"
+            >
+              <i class="fas fa-minus"></i>
+            </button>
+
+            <input
+              type="number"
+              v-model.number="quantity"
+              :min="purchaseType === 'Satuan' ? 1 : 20"
+              @change="handleQuantityChange(quantity)"
+            />
+
+            <button class="quantity-btn" @click="handleQuantityChange(quantity + 1)">
+              <i class="fas fa-plus"></i>
+            </button>
           </div>
 
-          <div class="details-row">
-            <div class="detail-group">
-              <label>Warna :</label>
-              <div class="color-input">
-                <input type="color" v-model="selectedColor" @input="handleColorChange" />
-                <input type="text" v-model="selectedColor" class="color-text" readonly />
+          <!-- Add after the quantity-control div -->
+          <div class="purchase-info">
+            <div class="info-item" :class="{ active: purchaseType === 'Satuan' }">
+              <i class="fas fa-info-circle"></i>
+              <div class="info-content">
+                <h4>Pembelian Satuan</h4>
+                <p>Minimum pembelian 1 pcs. Cocok untuk pembelian personal atau sample produk.</p>
               </div>
             </div>
-            <div class="detail-group">
-              <label>Aksesoris :</label>
-              <div class="select-wrapper">
-                <div class="select-field" @click="isAksesorisOpen = !isAksesorisOpen">
-                  <span class="selected-text">
-                    {{
+            <div class="info-item" :class="{ active: purchaseType === 'Souvenir' }">
+              <i class="fas fa-info-circle"></i>
+              <div class="info-content">
+                <h4>Pembelian Souvenir</h4>
+                <p>
+                  Minimum pembelian 20 pcs. Ideal untuk acara, souvenir perusahaan, atau merchandise
+                  dengan desain custom.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Product Details -->
+        <section class="config-section product-details">
+          <h3>Detail Produk</h3>
+          <div class="details-form">
+            <!-- Materials Selection -->
+            <div class="form-row">
+              <div class="input-group">
+                <label>Bahan Luar</label>
+                <select v-model="selectedBahanLuar" :class="{ error: errors.bahanLuar }">
+                  <option value="" disabled selected>Select material</option>
+                  <option value="Finish Glossy">Finish Glossy</option>
+                  <option value="Finish Doff">Finish Doff</option>
+                </select>
+                <span class="error-text" v-if="errors.bahanLuar">{{ errors.bahanLuar }}</span>
+              </div>
+
+              <div class="input-group">
+                <label>Bahan Dalam</label>
+                <select v-model="selectedBahanDalam" :class="{ error: errors.bahanDalam }">
+                  <option value="" disabled selected>Select material</option>
+                  <option value="Puring Glossy">Puring Glossy</option>
+                  <option value="Puring Doff">Puring Doff</option>
+                </select>
+                <span class="error-text" v-if="errors.bahanDalam">{{ errors.bahanDalam }}</span>
+              </div>
+            </div>
+
+            <!-- Color and Accessories -->
+            <div class="form-row">
+              <div class="input-group">
+                <label>Warna</label>
+                <div class="color-selector">
+                  <input type="color" v-model="selectedColor" @input="handleColorChange" />
+                  <input type="text" v-model="selectedColor" readonly />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label>Aksesoris</label>
+                <div class="dropdown-select" :class="{ active: isAksesorisOpen }">
+                  <div class="selected" @click="isAksesorisOpen = !isAksesorisOpen">
+                    <span>{{
                       selectedAksesoris.length
                         ? `${selectedAksesoris.length} selected`
                         : 'Select accessories'
-                    }}
-                  </span>
-                  <span class="arrow">{{ isAksesorisOpen ? '▲' : '▼' }}</span>
-                </div>
-                <div class="select-dropdown" :class="{ open: isAksesorisOpen }">
-                  <div v-for="aksesoris in availableAksesoris" :key="aksesoris" class="option-item">
-                    <span class="option-text">{{ aksesoris }}</span>
-                    <input
-                      type="checkbox"
-                      :value="aksesoris"
-                      v-model="selectedAksesoris"
-                      class="option-checkbox"
-                    />
+                    }}</span>
+                    <i class="arrow"></i>
+                  </div>
+                  <div class="options-dropdown">
+                    <label
+                      v-for="aksesoris in availableAksesoris"
+                      :key="aksesoris"
+                      class="dropdown-option"
+                    >
+                      <input type="checkbox" :value="aksesoris" v-model="selectedAksesoris" />
+                      <span>{{ aksesoris }}</span>
+                    </label>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Centered upload section -->
-          <!-- Only show upload section for souvenir purchases -->
-          <div class="upload-row" v-if="purchaseType === 'Souvenir'">
-            <div class="detail-group upload-group">
-              <label>Upload Photo :</label>
-              <div class="upload-area-small">
-                <input
-                  type="file"
-                  id="imageUpload"
-                  @change="handleImageUpload"
-                  hidden
-                  accept="image/*"
-                />
-                <label for="imageUpload" class="upload-area">
-                  <!-- Replace text arrow with Font Awesome icon -->
-                  <i class="fas fa-cloud-upload-alt upload-icon"></i>
-
-                  <!-- Add image preview -->
-                  <img
-                    v-if="uploadedImage"
-                    :src="uploadedImage"
-                    alt="Preview"
-                    class="image-preview"
-                  />
-                </label>
+            <!-- Add after accessories dropdown and before image upload -->
+            <div class="form-row">
+              <div class="input-group full-width">
+                <label>Catatan (Opsional)</label>
+                <textarea
+                  v-model="note"
+                  placeholder="Tambahkan catatan khusus untuk pesanan Anda..."
+                  class="note-input"
+                  rows="3"
+                ></textarea>
               </div>
-              <!-- Add remove button when image is uploaded -->
-              <button
-                v-if="uploadedImage"
-                @click="removeUploadedImage"
-                class="remove-image-btn"
-                type="button"
-              >
-                <i class="fas fa-times"></i> Remove
-              </button>
+            </div>
+
+            <!-- Image Upload for Souvenir -->
+            <div class="form-row" v-if="purchaseType === 'Souvenir'">
+              <div class="input-group full-width">
+                <label>Upload Photo</label>
+                <div class="upload-zone" :class="{ 'has-image': uploadedImage }">
+                  <input
+                    type="file"
+                    id="imageUpload"
+                    @change="handleImageUpload"
+                    accept="image/*"
+                    hidden
+                  />
+                  <label for="imageUpload" class="upload-trigger">
+                    <i class="upload-icon fas fa-cloud-upload-alt"></i>
+                    <img v-if="uploadedImage" :src="uploadedImage" alt="Preview" />
+                  </label>
+                  <button v-if="uploadedImage" @click="removeUploadedImage" class="remove-image">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <!-- Modify buttons to show disabled state -->
+      <!-- Action Buttons -->
       <div class="action-buttons">
         <button
-          class="cart-button"
+          class="action-btn cart"
           @click="addToCart"
           :disabled="
             isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
@@ -445,7 +502,7 @@ const validateBudgetInput = () => {
           {{ isSubmitting ? 'Menambahkan...' : 'Masukan keranjang' }}
         </button>
         <button
-          class="buy-button"
+          class="action-btn buy"
           @click="handleBuyNow"
           :disabled="
             isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
@@ -459,475 +516,548 @@ const validateBudgetInput = () => {
 </template>
 
 <style scoped>
-.custom-container {
-  max-width: 1444px;
+/* Root Container */
+.product-container {
+  --primary-color: #02163b;
+  --accent-color: #e8ba38;
+  --error-color: #dc3545;
+  --border-radius: 8px;
+  --transition: 0.2s ease;
+
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  background-color: #f5f5f5;
+  background: #f5f5f5;
   min-height: 100vh;
+  position: relative; /* Add this */
+  overflow-x: hidden; /* Add this to prevent horizontal scrolling */
+  padding-top: 64px; /* Adjust this value based on your navbar height */
 }
 
-.header {
+/* Navigation Header */
+.nav-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: fixed; /* Change from sticky to fixed */
+  top: 0;
+  left: 0; /* Add this */
+  right: 0; /* Add this */
+  z-index: 100;
+  width: 100%; /* Change from 100vw */
+  margin: 0; /* Remove margin calculations */
 }
 
-.back-link {
+/* Adjust title positioning */
+.nav-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 500;
+  margin-left: 1rem; /* Add some spacing from the back button */
+}
+
+/* Adjust back button container */
+.nav-back {
+  font-size: 1.5rem;
+  color: var(--primary-color);
   text-decoration: none;
-  color: #000;
-  font-size: 24px;
-}
-
-.header h1 {
-  font-size: 24px;
-  margin: 0;
-  font-weight: 500;
-}
-
-.product-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 15px;
-}
-
-.product-content {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.product-image {
-  width: 80px;
-  height: 80px;
-  background: #f0f0f0;
-  border-radius: 8px;
-  overflow: hidden; /* Add this */
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* This ensures the image covers the container nicely */
-  display: block; /* This removes any extra space below the image */
-}
-
-.product-info h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.product-info p {
-  margin: 5px 0 0;
-  color: #333;
-}
-
-.custom-note {
-  color: #666;
-  margin-bottom: 15px;
-  font-size: 14px;
-}
-
-.price-card,
-.details-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 15px;
-  padding-bottom: 4rem;
-}
-
-.section-header {
-  background: #02163b;
-  padding: 12px 20px;
-}
-
-.section-header h3 {
-  color: #fff;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.price-content,
-.details-content {
-  padding: 20px;
-}
-
-.price-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.price-option:last-child {
-  margin-bottom: 0;
-}
-
-.budget-input {
-  width: 200px;
-  height: 35px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f5f5f5;
-  padding: 0 10px;
-  -moz-appearance: textfield; /* Firefox */
-}
-
-/* Remove arrows for Chrome, Safari, Edge, Opera */
-.budget-input::-webkit-outer-spin-button,
-.budget-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.budget-input:disabled {
-  background-color: #eee;
-  cursor: not-allowed;
-}
-
-.budget-input:focus {
-  outline: none;
-  border-color: #02163b;
-  background: #fff;
-}
-
-.details-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 15px;
-}
-
-.detail-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.detail-group input[type='text'],
-.detail-group select {
-  width: 90%;
-  height: 35px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f5f5f5;
-  padding: 0 10px;
-}
-
-.color-input {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  width: 89.9%;
-}
-
-.color-input input[type='color'] {
-  width: 35px;
-  height: 35px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-}
-
-.color-text {
-  flex: 1;
-  height: 35px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 0 10px;
-  background: #f5f5f5;
-}
-
-.upload-section {
-  text-align: center;
-  margin-top: 20px;
-}
-
-.upload-area {
-  width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: var(--transition);
+  margin-left: 1rem; /* Add some spacing from the left edge */
 }
 
-.upload-note {
-  margin: 8px 0 0;
-  color: #666;
-  font-size: 14px;
+.nav-back:hover {
+  background: #e0e0e0;
 }
 
-.action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-top: 20px;
+/* Product Overview */
+.product-overview {
+  padding: 1rem;
+  margin-top: 1rem; /* Add this */
 }
 
-.cart-button,
-.buy-button {
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.cart-button {
-  background: #e8ba38;
-  color: #fff;
-}
-
-.buy-button {
-  background: #02163b;
-  color: #fff;
-}
-
-.radio-label {
+.product-preview {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.square-radio {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #02163b;
-  border-radius: 4px; /* Sedikit rounded corners */
+.product-preview img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.product-meta {
+  flex: 1;
+}
+
+.product-meta h2 {
   margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary-color);
+}
+
+.price-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.price {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.quantity {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* Configuration Grid */
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+/* Configuration Section */
+.config-section {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.config-section h3 {
+  margin: 0;
+  padding: 1rem;
+  background: var(--primary-color);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  /* Tambahkan border radius pada h3 */
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
+}
+
+/* Price Options */
+.options-list {
+  padding: 1rem;
+}
+
+.option-item {
+  margin-bottom: 0.5rem;
   cursor: pointer;
+}
+
+.option-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.option-item:hover .option-content {
+  background: #f5f5f5;
+}
+
+/* Custom Radio Button */
+.custom-radio {
   position: relative;
-  background-color: white;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+
+.custom-radio input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.radio-checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 24px;
+  width: 24px;
+  background-color: #fff;
+  border: 2px solid #ddd;
+  border-radius: 4px; /* Ubah dari 50% ke 4px untuk bentuk kotak */
   transition: all 0.2s ease;
 }
 
-.square-radio:checked {
-  background-color: #02163b;
+.custom-radio:hover .radio-checkmark {
+  border-color: var(--primary-color);
 }
 
-.square-radio:checked::after {
-  content: '\f00c'; /* Font Awesome checkmark icon */
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
+.custom-radio input[type='radio']:checked ~ .radio-checkmark {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color);
+}
+
+/* Update untuk icon check */
+.radio-checkmark i {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: 12px; /* Sesuaikan ukuran checkmark */
+  font-size: 14px;
+  display: none;
 }
 
-/* Hover effect */
-.square-radio:hover {
-  background-color: rgba(2, 22, 59, 0.1);
+.custom-radio input[type='radio']:checked ~ .radio-checkmark i {
+  display: block;
 }
 
-.budget-input:disabled {
-  background-color: #eee;
-  cursor: not-allowed;
+/* Budget Option Modifications */
+.budget-option .option-content {
+  flex-wrap: nowrap; /* Change from wrap to nowrap */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.radio-wrapper {
+.budget-control {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  justify-content: flex-end; /* This will push items to the right */
+  gap: 1rem;
+  width: 65%; /* Add width constraint */
+  margin-top: 0; /* Remove top margin */
 }
 
-.detail-group select:focus {
-  outline: none;
-  border-color: #02163b;
-}
-
-.accessories-group {
-  background: #f5f5f5;
+.budget-control input[type='number'] {
+  width: 150px; /* Set fixed width for input */
+  padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  padding: 8px;
-  max-height: 120px;
-  overflow-y: auto;
+  font-size: 0.875rem;
 }
 
-.accessory-item {
-  margin-bottom: 8px;
-}
-
-.accessory-item:last-child {
-  margin-bottom: 0;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.checkbox-label:hover {
-  background: #e8e8e8;
-  border-radius: 4px;
-}
-
-.checkbox-label input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #02163b;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.checkbox-text {
-  font-size: 14px;
-  color: #333;
-}
-
-/* Adjust the detail group for accessories */
-.detail-group:has(.accessories-group) {
-  flex: 1;
-}
-
-/* Make the accessories group take full width on mobile */
+/* Add responsive styles */
 @media (max-width: 480px) {
-  .details-row {
-    grid-template-columns: 1fr;
+  .budget-option .option-content {
+    flex-wrap: wrap;
+  }
+
+  .budget-control {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .budget-control input[type='number'] {
+    width: 100%;
   }
 }
 
-/* New styles for the dropdown */
-.select-wrapper {
-  position: relative;
-  width: 90%;
+/* Hover state untuk budget option */
+.budget-option:hover .radio-checkmark {
+  border-color: var(--primary-color);
 }
 
-.select-field {
-  width: 100%;
-  height: 35px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f5f5f5;
-  padding: 0 10px;
+/* Focus styles for accessibility */
+.custom-radio input[type='radio']:focus-visible ~ .radio-checkmark {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Purchase Type */
+.type-selector {
+  display: flex;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.type-option {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.type-option input[type='radio'] {
+  display: none;
+}
+
+.type-option input[type='radio']:checked + .type-label {
+  color: var(--primary-color);
+}
+
+.type-option:has(input:checked) {
+  border-color: var(--primary-color);
+  background: rgba(2, 22, 59, 0.05);
+}
+
+/* Quantity Control */
+.quantity-control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0 1rem 1rem;
 }
 
-.selected-text {
-  color: #333;
-  font-size: 14px;
+.quantity-control input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.quantity-control input::-webkit-outer-spin-button,
+.quantity-control input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantity-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: var(--primary-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.quantity-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: var(--accent-color);
+}
+
+.quantity-btn:disabled {
+  background: #f5f5f5;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Product Details Form */
+.details-form {
+  padding: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.input-group select,
+.input-group input[type='text'] {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  transition: var(--transition);
+}
+
+.input-group select:focus,
+.input-group input[type='text']:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.error-text {
+  color: var(--error-color);
+  font-size: 0.75rem;
+}
+
+/* Color Selector */
+.color-selector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.color-selector input[type='color'] {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+}
+
+.color-selector input[type='text'] {
+  flex: 1;
+}
+
+/* Dropdown Select */
+.dropdown-select {
+  position: relative;
+  z-index: 20; /* Tambahkan z-index yang lebih tinggi */
+}
+
+.selected {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
 }
 
 .arrow {
-  color: #666;
-  font-size: 12px;
+  border: solid var(--primary-color);
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 3px;
+  transform: rotate(45deg);
+  transition: var(--transition);
 }
 
-.select-dropdown {
+.dropdown-select.active .arrow {
+  transform: rotate(-135deg);
+}
+
+.options-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   background: white;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-top: 4px;
+  border-radius: var(--border-radius);
+  margin-top: 0.25rem;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 30; /* Naikkan z-index */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.select-dropdown.open {
+.dropdown-select.active .options-dropdown {
   display: block;
 }
 
-.option-item {
-  padding: 8px 12px;
+.dropdown-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: var(--transition);
 }
 
-.option-item:hover {
-  background-color: #f5f5f5;
-}
-
-.option-text {
-  font-size: 14px;
-  color: #333;
-}
-
-.option-checkbox {
-  width: 20px; /* Increased checkbox size */
-  height: 20px; /* Increased checkbox size */
-  border: 2px solid #02163b;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-/* Close dropdown when clicking outside */
-:deep(.custom-container) {
-  position: relative;
-}
-
-.single-column {
-  grid-template-columns: 1fr !important;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.upload-area-small {
-  height: 120px; /* Increased height to accommodate preview */
-  width: 100%;
+.dropdown-option:hover {
   background: #f5f5f5;
-  border: 2px dashed #ccc;
-  border-radius: 8px;
+}
+
+.dropdown-option input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary-color);
+  border-radius: 3px;
+  position: relative;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dropdown-option input[type='checkbox']:checked {
+  background: var(--primary-color);
+}
+
+.dropdown-option input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Upload Zone */
+.upload-zone {
+  border: 2px dashed #ddd;
+  border-radius: var(--border-radius);
+  position: relative;
+  transition: var(--transition);
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  position: relative;
   overflow: hidden;
 }
 
-.upload-area-small:hover {
-  border-color: #02163b;
-  background: #f0f0f0;
+.upload-zone:hover {
+  border-color: var(--primary-color);
+  background: rgba(2, 22, 59, 0.02);
+}
+
+.upload-trigger {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 2rem;
 }
 
 .upload-icon {
-  font-size: 2rem;
-  color: #666;
-  transition: all 0.2s ease;
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  opacity: 0.5;
+  transition: var(--transition);
 }
 
-.upload-area:hover .upload-icon {
-  color: #02163b;
+.upload-zone:hover .upload-icon {
+  opacity: 1;
   transform: scale(1.1);
 }
 
-/* Add these new styles */
-.image-preview {
+.upload-zone img {
   position: absolute;
   top: 0;
   left: 0;
@@ -937,101 +1067,91 @@ const validateBudgetInput = () => {
   z-index: 1;
 }
 
-.remove-image-btn {
-  margin-top: 8px;
-  padding: 6px 12px;
-  background-color: #dc3545;
+.remove-image {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--error-color);
   color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-  transition: background-color 0.2s;
-}
-
-.remove-image-btn:hover {
-  background-color: #c82333;
-}
-
-/* Handle upload area when image is present */
-.upload-area-small:has(.image-preview) .upload-icon {
-  display: none;
-}
-
-/* Show upload icon on hover when image exists */
-.upload-area-small:has(.image-preview):hover::before {
-  content: '\f093'; /* Font Awesome upload icon */
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 2rem;
-  color: white;
+  justify-content: center;
+  cursor: pointer;
   z-index: 2;
-  background: rgba(0, 0, 0, 0.5);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: var(--transition);
 }
 
-.upload-row {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  width: 100%;
+.remove-image:hover {
+  transform: scale(1.1);
 }
 
-.upload-group {
-  width: 200px; /* Keep compact width */
+/* Action Buttons */
+.action-buttons {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: white;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.upload-area {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.action-btn {
+  padding: 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 500;
   cursor: pointer;
+  transition: var(--transition);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-/* Add these new styles */
-.error-message {
-  color: #dc3545;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.cart-button:disabled,
-.buy-button:disabled {
+.action-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* Optional: Add loading state styles */
-.cart-button.loading,
-.buy-button.loading {
+.action-btn.cart {
+  background: var(--accent-color);
+  color: white;
+}
+
+.action-btn.cart:not(:disabled):hover {
+  background: #d6ab33;
+}
+
+.action-btn.buy {
+  background: var(--primary-color);
+  color: white;
+}
+
+.action-btn.buy:not(:disabled):hover {
+  background: #032155;
+}
+
+/* Loading State */
+.action-btn.loading {
   position: relative;
   color: transparent;
 }
 
-.cart-button.loading::after,
-.buy-button.loading::after {
+.action-btn.loading::after {
   content: '';
   position: absolute;
-  width: 16px;
-  height: 16px;
-  top: 50%;
-  left: 50%;
-  margin: -8px 0 0 -8px;
-  border: 2px solid #fff;
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
   border-radius: 50%;
   border-right-color: transparent;
   animation: spin 0.8s linear infinite;
@@ -1043,55 +1163,162 @@ const validateBudgetInput = () => {
   }
 }
 
-.purchase-type-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 15px;
+/* Full Width Utility */
+.full-width {
+  grid-column: 1 / -1;
 }
 
-.purchase-options {
-  padding: 20px;
-  display: flex;
-  gap: 30px;
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .product-preview {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .product-preview img {
+    width: 150px;
+    height: 150px;
+  }
+
+  .type-selector {
+    flex-direction: column;
+  }
+
+  .budget-option {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .budget-control {
+    width: 100%;
+  }
+
+  .budget-control input[type='number'] {
+    width: 100%;
+  }
 }
 
-.purchase-option {
-  display: flex;
-  align-items: center;
+/* Custom Scrollbar */
+.options-dropdown::-webkit-scrollbar {
+  width: 8px;
 }
 
-.purchase-option .radio-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
+.options-dropdown::-webkit-scrollbar-track {
+  background: #f5f5f5;
 }
 
-.purchase-option span {
-  font-size: 16px;
-  color: #333;
-}
-
-/* Add these new styles */
-.price-quantity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.price-quantity p {
-  margin: 0;
-  color: #333;
-}
-
-.quantity-badge {
-  background-color: #02163b;
-  color: white;
-  padding: 4px 8px;
+.options-dropdown::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
   border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
+}
+
+.options-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #032155;
+}
+
+/* Focus States for Accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Animation for Dropdowns and Transitions */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.options-dropdown {
+  animation: slideDown 0.2s ease;
+}
+
+/* Purchase Info Styles */
+.purchase-info {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+  border: 1px solid #e9ecef;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.info-item.active {
+  background: rgba(2, 22, 59, 0.05);
+  border-color: var(--primary-color);
+  opacity: 1;
+}
+
+.info-item i {
+  color: var(--primary-color);
+  font-size: 1.25rem;
+  padding-top: 0.25rem;
+}
+
+.info-content h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.info-content p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .purchase-info {
+    padding: 0.5rem 1rem 1rem;
+  }
+}
+
+/* Add with other input styles */
+.note-input {
+  width: 92%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-family: 'Montserrat', sans-serif;
+  resize: vertical;
+  min-height: 80px;
+  transition: var(--transition);
+  background-color: #f8f9fa;
+}
+
+.note-input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  background-color: white;
+}
+
+.note-input::placeholder {
+  color: #6c757d;
+  font-family: 'Montserrat', sans-serif;
 }
 </style>

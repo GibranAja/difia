@@ -1,5 +1,3 @@
-// stores/CartStore.js
-
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { db } from '@/config/firebase'
@@ -41,7 +39,7 @@ export const useCartStore = defineStore('cart', () => {
         ...doc.data(),
       }))
 
-      return cartItems.value // Return the data
+      return cartItems.value
     } catch (err) {
       error.value = err.message
       toast.error('Failed to fetch cart items')
@@ -57,8 +55,9 @@ export const useCartStore = defineStore('cart', () => {
       loading.value = true
       error.value = null
 
-      // Ensure minimum quantity is 20
-      const quantity = Math.max(cartItem.quantity, 20)
+      // Use the quantity from custom view, with minimum validation
+      const minQuantity = cartItem.customOptions.purchaseType === 'Satuan' ? 1 : 20
+      const quantity = Math.max(cartItem.quantity || minQuantity, minQuantity)
 
       const newItem = {
         userId: authStore.currentUser?.id,
@@ -66,8 +65,11 @@ export const useCartStore = defineStore('cart', () => {
         name: cartItem.name,
         image: cartItem.image,
         price: cartItem.price,
-        quantity: quantity, // Set minimum 20
-        customOptions: cartItem.customOptions,
+        quantity: quantity,
+        customOptions: {
+          ...cartItem.customOptions,
+          purchaseType: cartItem.customOptions.purchaseType // Preserve purchase type
+        },
         createdAt: serverTimestamp(),
       }
 
@@ -106,20 +108,23 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   // Update item quantity
-  const updateQuantity = async (itemId, quantity) => {
+  const updateQuantity = async (itemId, newQuantity) => {
     try {
       loading.value = true
       error.value = null
 
+      const item = cartItems.value.find((item) => item.id === itemId)
+      if (!item) throw new Error('Item not found')
+
+      // Validate minimum quantity based on purchase type
+      const minQuantity = item.customOptions.purchaseType === 'Satuan' ? 1 : 20
+      const quantity = Math.max(newQuantity, minQuantity)
+
       const cartRef = doc(db, 'cart', itemId)
       await updateDoc(cartRef, { quantity })
 
-      const item = cartItems.value.find((item) => item.id === itemId)
-      if (item) {
-        item.quantity = quantity
-      }
+      item.quantity = quantity
 
-      //   toast.success('Quantity updated')
     } catch (err) {
       error.value = err.message
       toast.error('Failed to update quantity')
