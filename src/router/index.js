@@ -24,6 +24,7 @@ import CustomView from '@/views/CustomView.vue'
 import CartView from '@/views/CartView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
 import ChatCustomer from '@/views/ChatCustomer.vue'
+import NotificationVIew from '@/views/NotificationVIew.vue'
 
 // Auth Views
 import LoginPage from '@/views/LoginPage.vue'
@@ -63,6 +64,11 @@ const router = createRouter({
       path: '/',
       name: 'HomeView',
       component: HomeView,
+    },
+    {
+      path: '/Notification',
+      name: 'NotificationVIew',
+      component: NotificationVIew,
     },
     {
       path: '/detail/:id',
