@@ -44,7 +44,7 @@
     <!-- Replace old modal with NegativeModal -->
     <NegativeModal
       v-if="showLogoutModal"
-      title="Konfirmasi Logout" 
+      title="Konfirmasi Logout"
       message="Apakah Anda yakin ingin keluar?"
       :loading="isLoggingOut"
       @close="showLogoutModal = false"
@@ -100,7 +100,7 @@ const items = computed(() => {
     { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },
     { text: 'Staff', icon: 'fas fa-person', pathName: 'StaffView' },
     { text: 'Voucher', icon: 'fas fa-tags', pathName: 'VoucherView' },
-    { text: 'Slider', icon: 'fas-solid fa-angels-right', pathName: 'SliderView' },
+    { text: 'Banner', icon: 'fas fa-ad', pathName: 'SliderView' },
     { text: 'Home', icon: 'fas fa-arrow-left', pathName: 'HomeView' },
   ]
 })
@@ -132,6 +132,15 @@ const handleLogout = async () => {
   z-index: 20;
   display: flex;
   flex-direction: column;
+
+  /* Hide scrollbar but keep scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Hide webkit (Chrome/Safari) scrollbar */
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.collapsed {
@@ -197,6 +206,15 @@ const handleLogout = async () => {
   gap: 8px;
   padding: 0 16px;
   margin-bottom: 80px;
+
+  /* Hide scrollbar but keep scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Hide webkit (Chrome/Safari) scrollbar */
+.nav-links::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.collapsed .nav-links {
@@ -238,7 +256,7 @@ const handleLogout = async () => {
 /* Mengatur active state saat collapsed */
 .nav-item.active {
   background-color: rgba(0, 0, 0, 0.15);
-  color: #2c3e50;
+  color: white;
   border-radius: 60px;
   border: 1px solid #ffffff;
   font-weight: 500;

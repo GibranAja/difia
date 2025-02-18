@@ -1,10 +1,10 @@
 <!-- src/views/admin/PartnerView.vue -->
 <template>
   <div class="partner-container">
-    <h1>Daftar Partner</h1>
+    <h1>DAFTAR CLIENT</h1>
     <div class="top-controls">
       <router-link to="/admin/partner/create" class="add-btn">
-        Add Partner
+        Add Client
       </router-link>
     </div>
 
@@ -114,7 +114,7 @@ const confirmDelete = async (id) => {
 }
 
 .edit-btn {
-  background: #4caf50;
+  background: #2196f3;
   color: white;
 }
 

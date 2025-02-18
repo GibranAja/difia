@@ -100,7 +100,7 @@
               <option
                 v-for="province in provinces"
                 :key="province.province_id"
-                :value="province.province_id"
+                :value="province.province"
               >
                 {{ province.province }}
               </option>
@@ -124,7 +124,11 @@
                       : 'Pilih Kota'
                 }}
               </option>
-              <option v-for="city in cities" :key="city.city_id" :value="city.city_id">
+              <option
+                v-for="city in cities"
+                :key="city.city_id"
+                :value="`${city.type} ${city.city_name}`"
+              >
                 {{ city.type }} {{ city.city_name }}
               </option>
             </select>
@@ -295,12 +299,16 @@ const loadProvinces = async () => {
 }
 
 // Update loadCities function
-const loadCities = async (provinceId) => {
-  if (!provinceId) return
+const loadCities = async (provinceName) => {
+  if (!provinceName) return
 
   try {
     isLoadingCities.value = true
-    cities.value = await rajaOngkir.getCities(provinceId)
+    // Find province ID from provinces list
+    const province = provinces.value.find((p) => p.province === provinceName)
+    if (province) {
+      cities.value = await rajaOngkir.getCities(province.province_id)
+    }
     selectedCity.value = '' // Reset selected city when province changes
     shippingCost.value = 0 // Reset shipping cost
   } catch (error) {
@@ -315,9 +323,14 @@ const calculateShipping = async () => {
 
   try {
     isLoadingShipping.value = true
-    const weight = orderStore.currentOrder?.quantity * 1000 || 1000 // Assume 1kg per item
-    const costs = await rajaOngkir.calculateShipping(selectedCity.value, weight, courier.value)
-    shippingCost.value = costs[0]?.cost[0]?.value || 0
+    // Find city ID from cities list
+    const city = cities.value.find((c) => `${c.type} ${c.city_name}` === selectedCity.value)
+
+    if (city) {
+      const weight = orderStore.currentOrder?.quantity * 1000 || 1000 // Assume 1kg per item
+      const costs = await rajaOngkir.calculateShipping(city.city_id, weight, courier.value)
+      shippingCost.value = costs[0]?.cost[0]?.value || 0
+    }
   } catch (error) {
     console.error('Error calculating shipping:', error)
     shippingCost.value = 0

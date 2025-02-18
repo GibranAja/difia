@@ -2,11 +2,11 @@
 
 <template>
   <div class="blog-container">
-    <h1>DAFTAR BLOG</h1>
+    <h1>DAFTAR ARTIKEL</h1>
 
     <div class="blog-controls">
       <div class="top-controls">
-        <router-link to="/admin/blog/create" class="add-btn"> Tambah Blog </router-link>
+        <router-link to="/admin/blog/create" class="add-btn"> Tambah Artikel</router-link>
       </div>
 
       <div class="filter-controls">

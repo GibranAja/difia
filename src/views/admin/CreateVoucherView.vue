@@ -86,10 +86,9 @@
 
       <div class="form-actions">
         <button type="button" @click="goBack" class="cancel-btn">
-          <i class="fas fa-times"></i> Batal
+           Batal
         </button>
         <button type="submit" class="submit-btn" :disabled="isSubmitting">
-          <i class="fas fa-save"></i>
           {{ isSubmitting ? 'Menyimpan...' : isEditing ? 'Update Voucher' : 'Tambah Voucher' }}
         </button>
       </div>

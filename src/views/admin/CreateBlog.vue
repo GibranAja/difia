@@ -1,6 +1,6 @@
 <template>
   <div class="create-blog-container">
-    <h1>{{ isEditing ? 'Edit Blog' : 'Create New Blog' }}</h1>
+    <h1>{{ isEditing ? 'Edit Artikel' : 'Tambah Artikel' }}</h1>
 
     <form @submit.prevent="handleSubmit" class="blog-form">
       <div class="form-group">

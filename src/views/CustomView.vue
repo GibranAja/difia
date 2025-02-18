@@ -5,6 +5,8 @@ import { useKatalogStore } from '@/stores/KatalogStore'
 import { storeToRefs } from 'pinia'
 import { useCartStore } from '@/stores/CartStore' // Add this import
 import { useOrderStore } from '@/stores/OrderStore' // Add this import
+import { getDoc, doc } from 'firebase/firestore' // Add this import
+import { db } from '@/config/firebase' // Add this import
 
 const route = useRoute()
 const router = useRouter() // Add this
@@ -45,11 +47,33 @@ const budgetInput = ref(null)
 // Add after other refs
 const quantity = ref(1) // Default to 1 for 'Satuan'
 
+// Add this computed property in the script section
+const isMinusDisabled = computed(() => {
+  return quantity.value <= 1
+})
+
 onMounted(async () => {
   if (katalogItems.value.length === 0) {
     await store.fetchKatalog()
   }
   selectedProduct.value = katalogItems.value.find((item) => item.id === productId)
+
+  if (route.query.reorder) {
+    const orderId = route.query.orderId
+    // Fetch original order data and pre-fill form
+    const orderDoc = await getDoc(doc(db, 'orders', orderId))
+    if (orderDoc.exists()) {
+      const orderData = orderDoc.data()
+      // Pre-fill form data
+      selectedBahanLuar.value = orderData.customOptions.bahanLuar
+      selectedBahanDalam.value = orderData.customOptions.bahanDalam
+      selectedAksesoris.value = orderData.customOptions.aksesoris
+      selectedPrice.value = orderData.customOptions.priceType
+      quantity.value = orderData.quantity
+      note.value = orderData.customOptions.note
+      // etc.
+    }
+  }
 })
 
 // Add validation function
@@ -215,20 +239,39 @@ const validateBudgetInput = () => {
   }
 }
 
-// Add this watcher to handle quantity changes when purchase type changes
-watch(purchaseType, (newType) => {
-  quantity.value = newType === 'Satuan' ? 1 : 20
+// Add this watch for quantity
+watch(quantity, (newQuantity) => {
+  // Automatically switch to Souvenir if quantity reaches or exceeds 20
+  if (newQuantity >= 20) {
+    purchaseType.value = 'Souvenir'
+  } else {
+    purchaseType.value = 'Satuan'
+  }
 })
 
-// Add this function to handle quantity changes
+// Modify handleQuantityChange function
 const handleQuantityChange = (newQuantity) => {
-  const minQuantity = purchaseType.value === 'Satuan' ? 1 : 20
-  if (newQuantity < minQuantity) {
-    quantity.value = minQuantity
-    return
+  // Always allow decreasing quantity
+  if (newQuantity >= 1) {
+    quantity.value = newQuantity
+  } else {
+    quantity.value = 1
   }
-  quantity.value = newQuantity
 }
+
+// Update this watch for purchaseType changes
+watch(purchaseType, (newType) => {
+  if (newType === 'Souvenir') {
+    quantity.value = 20
+  } else if (newType === 'Satuan') {
+    quantity.value = 1 // Reset to 1 when switching to Satuan
+  }
+})
+
+// Remove or comment out the watcher for purchaseType changes that resets quantity
+// watch(purchaseType, (newType) => {
+//   quantity.value = newType === 'Satuan' ? 1 : 20
+// })
 </script>
 
 <template>
@@ -350,8 +393,8 @@ const handleQuantityChange = (newQuantity) => {
           <div class="quantity-control">
             <button
               class="quantity-btn"
-              :disabled="quantity <= (purchaseType === 'Satuan' ? 1 : 20)"
               @click="handleQuantityChange(quantity - 1)"
+              :disabled="isMinusDisabled"
             >
               <i class="fas fa-minus"></i>
             </button>
@@ -359,7 +402,7 @@ const handleQuantityChange = (newQuantity) => {
             <input
               type="number"
               v-model.number="quantity"
-              :min="purchaseType === 'Satuan' ? 1 : 20"
+              min="1"
               @change="handleQuantityChange(quantity)"
             />
 
@@ -855,15 +898,22 @@ const handleQuantityChange = (newQuantity) => {
   transition: all 0.2s ease;
 }
 
-.quantity-btn:hover:not(:disabled) {
+.quantity-btn:hover {
   background: #f5f5f5;
   color: var(--accent-color);
 }
 
+/* Add these styles to the existing .quantity-btn styles */
 .quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
   background: #f5f5f5;
   color: #ccc;
-  cursor: not-allowed;
+}
+
+.quantity-btn:disabled:hover {
+  background: #f5f5f5;
+  color: #ccc;
 }
 
 /* Product Details Form */

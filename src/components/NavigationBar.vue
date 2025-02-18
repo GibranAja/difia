@@ -14,7 +14,7 @@
       <router-link v-if="authStore.currentUser?.isAdmin" to="/admin"><b>Dashboard</b></router-link>
     </div>
 
-    <a href="">
+    <a href="/notification">
       <i class="fas fa-bell"></i>
     </a>
 
@@ -330,8 +330,8 @@ a.keluar {
   position: absolute;
   top: -2px;
   right: -1px;
-  background-color: #e8ba38;
-  color: #02163b;
+  background-color: #e83838;
+  color: #ffffff;
   border-radius: 50%;
   padding: 1px px;
   font-size: 12px;
@@ -341,6 +341,6 @@ a.keluar {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
+  /* border: 2px solid #fff; */
 }
 </style>

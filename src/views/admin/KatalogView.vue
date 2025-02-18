@@ -544,7 +544,7 @@ const prevImage = () => {
 }
 
 .edit-btn {
-  background-color: #4caf50;
+  background-color: #2196f3;
   color: white;
 }
 

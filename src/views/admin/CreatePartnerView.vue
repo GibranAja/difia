@@ -1,10 +1,10 @@
 <template>
   <div class="create-partner-container">
-    <h1>{{ isEditing ? 'Edit Partner' : 'Tambah Partner Baru' }}</h1>
+    <h1>{{ isEditing ? 'Edit Client' : 'Tambah Client Baru' }}</h1>
 
     <form @submit.prevent="handleSubmit" class="partner-form">
       <div class="form-group">
-        <label for="name">Nama Partner</label>
+        <label for="name">Nama Client</label>
         <input
           type="text"
           id="name"

@@ -1,7 +1,7 @@
 <!-- views/admin/admin/ChatListView.vue -->
 <template>
   <div class="chat-list-container">
-    <h2>Daftar Pesan</h2>
+    <h2>DAFTAR PESAN</h2>
     <div v-if="!chatThreads.length" class="no-chats">
       <div class="empty-state">
         <i class="fas fa-comments"></i>

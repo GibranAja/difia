@@ -8,7 +8,7 @@
     <div class="aside">
       <p>Status</p>
       <a href="">
-        <i class="fas fa-arrow-down"></i>
+        <i class="fas fa-chevron-down"></i>
       </a>
     </div>
   </div>

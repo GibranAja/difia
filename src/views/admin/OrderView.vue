@@ -34,11 +34,11 @@
               <tr>
                 <th>Order ID</th>
                 <th>Customer</th>
+                <th>Address</th>
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Total Amount</th>
                 <th>Payment Proof</th>
-                <!-- Add this -->
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -50,6 +50,16 @@
                   <div class="customer-info">
                     <div>{{ order.shippingDetails.name }}</div>
                     <div class="customer-email">{{ order.shippingDetails.email }}</div>
+                    <div class="customer-email">{{ order.shippingDetails.phone }}</div>
+                  </div>
+                </td>
+                <td>
+                  <div class="address-info">
+                    <div class="full-address">{{ order.shippingDetails.address }}</div>
+                    <div class="location">
+                      {{ order.shippingDetails.city }}, {{ order.shippingDetails.province }}
+                    </div>
+                    <div class="postal-code">{{ order.shippingDetails.zip }}</div>
                   </div>
                 </td>
                 <td>{{ order.productName }}</td>
@@ -101,7 +111,7 @@
                 <th>Total Amount</th>
                 <th>Payment Proof</th>
                 <!-- Add this -->
-                <th>Design</th>
+                <th>Emboss</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -113,6 +123,7 @@
                   <div class="customer-info">
                     <div>{{ order.shippingDetails.name }}</div>
                     <div class="customer-email">{{ order.shippingDetails.email }}</div>
+                    <div class="customer-email">{{ order.shippingDetails.phone }}</div>
                   </div>
                 </td>
                 <td>{{ order.productName }}</td>
@@ -133,9 +144,9 @@
                 <td>
                   <div
                     class="design-preview"
-                    @click="openImagePreview(order.customOptions.designImage)"
+                    @click="openImagePreview(order.customOptions.uploadedImage)"
                   >
-                    <img :src="order.customOptions.designImage" alt="Design preview" />
+                    <img :src="order.customOptions.uploadedImage" alt="Design preview" />
                   </div>
                 </td>
                 <td>
@@ -444,6 +455,8 @@ h3,
 /* Ensure table text uses Montserrat */
 .order-table {
   font-family: 'Montserrat', sans-serif;
+  width: 100%;
+  min-width: 1200px; /* Increased from 1000px */
 }
 
 /* Ensure modal content uses Montserrat */
@@ -489,7 +502,7 @@ button:not([class*='fas']) {
 
 .order-table {
   width: 100%;
-  min-width: 1000px;
+  min-width: 1200px; /* Increased from 1000px */
   border-collapse: collapse;
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1247,5 +1260,34 @@ h1 {
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Add this */
+.address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 250px;
+}
+
+.full-address {
+  font-size: 0.9em;
+  line-height: 1.4;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.location {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.postal-code {
+  color: #666;
+  font-size: 0.85em;
 }
 </style>

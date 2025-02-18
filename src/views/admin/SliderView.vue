@@ -3,7 +3,7 @@
     <LoadComponent v-if="sliderStore.isLoading" />
     
     <template v-else>
-      <h1>KELOLA SLIDER</h1>
+      <h1>KELOLA BANNER</h1>
 
       <div class="slider-controls">
         <div class="top-controls">
@@ -17,7 +17,7 @@
             >
             {{ isUploading 
               ? `Mengunggah (${uploadProgress.current}/${uploadProgress.total})` 
-              : 'Tambah Slider' 
+              : 'Tambah Banner' 
             }}
           </label>
         </div>

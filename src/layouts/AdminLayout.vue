@@ -20,9 +20,9 @@
         <div class="navbar-right">
           <!-- Search Bar -->
           <div class="search-container" v-click-outside="closeSearch">
-            <input 
-              type="text" 
-              placeholder="Search..." 
+            <input
+              type="text"
+              placeholder="Search..."
               class="search-input"
               v-model="searchQuery"
               @focus="showSearchOverlay = true"
@@ -38,8 +38,8 @@
               <div class="search-section" v-if="searchQuery">
                 <h3>Search Results</h3>
                 <div v-if="searchResults.length" class="search-items">
-                  <div 
-                    v-for="result in searchResults" 
+                  <div
+                    v-for="result in searchResults"
                     :key="result.id"
                     class="search-item"
                     @click="navigateToResult(result)"
@@ -58,17 +58,13 @@
               <div class="search-section" v-if="recentSearches.length">
                 <h3>Recent Searches</h3>
                 <div class="search-items">
-                  <div 
-                    v-for="(search, index) in recentSearches" 
-                    :key="index"
-                    class="search-item"
-                  >
+                  <div v-for="(search, index) in recentSearches" :key="index" class="search-item">
                     <div class="search-item-content" @click="handleSearchItemClick(search)">
                       <i class="fas fa-history"></i>
                       <span v-html="highlightText(search.text)"></span>
                     </div>
-                    <button 
-                      class="delete-search" 
+                    <button
+                      class="delete-search"
                       @click.stop="deleteFromRecentSearches(index)"
                       title="Remove from history"
                     >
@@ -109,7 +105,7 @@ import { useRouter } from 'vue-router'
 // Add these imports at the top of your script section
 import { useKatalogStore } from '@/stores/KatalogStore'
 import { useBlogStore } from '@/stores/BlogStore'
-// import { useOrderStore } from '@/stores/OrderStore'
+import { useOrderStore } from '@/stores/OrderStore'
 import { usePartnerStore } from '@/stores/PartnerStore'
 import { useStaffStore } from '@/stores/StaffStore'
 
@@ -125,7 +121,7 @@ const recentSearches = ref([])
 // Initialize stores
 const katalogStore = useKatalogStore()
 const blogStore = useBlogStore()
-// const orderStore = useOrderStore()
+const orderStore = useOrderStore()
 const partnerStore = usePartnerStore()
 const staffStore = useStaffStore()
 
@@ -137,7 +133,7 @@ const currentPageTitle = computed(() => {
     case 'KatalogView':
       return 'KELOLA KATALOG'
     case 'BlogView':
-      return 'KELOLA BLOG'
+      return 'KELOLA ARTIKEL'
     case 'OrderView':
       return 'KELOLA PESANAN'
     case 'ChatList':
@@ -147,13 +143,13 @@ const currentPageTitle = computed(() => {
     case 'EditKatalog':
       return 'EDIT KATALOG'
     case 'CreateBlog':
-      return 'TAMBAH BLOG'
+      return 'TAMBAH ARTIKEL'
     case 'EditBlog':
-      return 'EDIT BLOG'
+      return 'EDIT ARTIKEL'
     case 'ChatView':
       return 'DETAIL CHAT'
     case 'SliderView':
-      return 'KELOLA SLIDER'
+      return 'KELOLA BANNER'
     case 'PartnerView':
       return 'KELOLA PARTNER'
     case 'StaffView':
@@ -177,7 +173,7 @@ const toggleSidebar = () => {
 onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
-  
+
   // Load recent searches
   const savedSearches = localStorage.getItem('recentSearches')
   if (savedSearches) {
@@ -191,7 +187,7 @@ onMounted(async () => {
       blogStore.fetchBlogs(),
       // orderStore.fetchOrders(),
       partnerStore.fetchPartners(),
-      staffStore.fetchStaff()
+      staffStore.fetchStaff(),
     ])
   } catch (error) {
     console.error('Error fetching data:', error)
@@ -214,7 +210,7 @@ const vClickOutside = {
   },
   unmounted(el) {
     document.removeEventListener('click', el.clickOutsideEvent)
-  }
+  },
 }
 
 const closeSearch = () => {
@@ -235,65 +231,71 @@ const handleSearch = () => {
   const query = searchQuery.value.toLowerCase()
   const results = []
 
-  // Search in Katalog
-  katalogStore.katalogItems.forEach(item => {
-    if (item.nama.toLowerCase().includes(query)) {
-      results.push({
-        id: item.id,
-        type: 'katalog',
-        text: `Katalog: ${item.nama}`,
-        route: `/admin/katalog`
-      })
-    }
-  })
+  // Tambahkan pengecekan null/undefined untuk setiap store
+  if (katalogStore.katalogItems && katalogStore.katalogItems.length) {
+    katalogStore.katalogItems.forEach((item) => {
+      if (item.nama?.toLowerCase().includes(query)) {
+        results.push({
+          id: item.id,
+          type: 'katalog',
+          text: `Katalog: ${item.nama}`,
+          route: '/admin/katalog',
+        })
+      }
+    })
+  }
 
-  // Search in Blog
-  blogStore.blogItems.forEach(item => {
-    if (item.title.toLowerCase().includes(query)) {
-      results.push({
-        id: item.id,
-        type: 'blog',
-        text: `Blog: ${item.title}`,
-        route: `/admin/blog`
-      })
-    }
-  })
+  if (blogStore.blogItems && blogStore.blogItems.length) {
+    blogStore.blogItems.forEach((item) => {
+      if (item.title?.toLowerCase().includes(query)) {
+        results.push({
+          id: item.id,
+          type: 'blog',
+          text: `Blog: ${item.title}`,
+          route: '/admin/blog',
+        })
+      }
+    })
+  }
 
-  // Search in Orders
-  // orderStore.orderItems.forEach(item => {
-  //   if (item.orderNumber?.toLowerCase().includes(query)) {
-  //     results.push({
-  //       id: item.id,
-  //       type: 'order',
-  //       text: `Order #${item.orderNumber}`,
-  //       route: `/admin/order/${item.id}`
-  //     })
-  //   }
-  // })
+  if (orderStore.orderItems && orderStore.orderItems.length) {
+    orderStore.orderItems.forEach((item) => {
+      if (item.orderNumber?.toLowerCase().includes(query)) {
+        results.push({
+          id: item.id,
+          type: 'order',
+          text: `Order #${item.orderNumber}`,
+          route: `/admin/order/${item.id}`,
+        })
+      }
+    })
+  }
 
-  // Search in Partners
-  partnerStore.partners.forEach(item => {
-    if (item.name?.toLowerCase().includes(query)) {
-      results.push({
-        id: item.id,
-        type: 'partner',
-        text: `Partner: ${item.name}`,
-        route: `/admin/partner`
-      })
-    }
-  })
+  if (partnerStore.partners && partnerStore.partners.length) {
+    partnerStore.partners.forEach((item) => {
+      if (item.name?.toLowerCase().includes(query)) {
+        results.push({
+          id: item.id,
+          type: 'partner',
+          text: `Partner: ${item.name}`,
+          route: '/admin/partner',
+        })
+      }
+    })
+  }
 
-  // Search in Staff
-  staffStore.staffItems.forEach(item => {
-    if (item.name?.toLowerCase().includes(query)) {
-      results.push({
-        id: item.id,
-        type: 'staff',
-        text: `Staff: ${item.name}`,
-        route: `/admin/staff`
-      })
-    }
-  })
+  if (staffStore.staffItems && staffStore.staffItems.length) {
+    staffStore.staffItems.forEach((item) => {
+      if (item.name?.toLowerCase().includes(query)) {
+        results.push({
+          id: item.id,
+          type: 'staff',
+          text: `Staff: ${item.name}`,
+          route: '/admin/staff',
+        })
+      }
+    })
+  }
 
   searchResults.value = results
 }
@@ -310,7 +312,7 @@ const getIconForType = (type) => {
     blog: 'fas fa-newspaper',
     order: 'fas fa-shopping-cart',
     partner: 'fas fa-handshake',
-    staff: 'fas fa-user-tie'
+    staff: 'fas fa-user-tie',
   }
   return icons[type] || 'fas fa-search'
 }
@@ -320,14 +322,14 @@ const saveToRecentSearches = (searchItem) => {
     text: searchItem.text,
     type: searchItem.type,
     route: searchItem.route,
-    timestamp: new Date().getTime()
+    timestamp: new Date().getTime(),
   }
-  
+
   recentSearches.value = [
     newSearch,
-    ...recentSearches.value.filter(s => s.text !== searchItem.text)
+    ...recentSearches.value.filter((s) => s.text !== searchItem.text),
   ].slice(0, 5) // Keep only last 5 searches
-  
+
   localStorage.setItem('recentSearches', JSON.stringify(recentSearches.value))
 }
 
@@ -646,7 +648,7 @@ const handleSearchItemClick = (search) => {
 }
 
 mark {
-  background-color: #FFE082;
+  background-color: #ffe082;
   padding: 2px;
   border-radius: 2px;
 }
