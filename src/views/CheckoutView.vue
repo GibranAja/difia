@@ -71,10 +71,12 @@
           <div class="form-group">
             <label for="phone">No Telp</label>
             <input
-              type="tel"
-              id="phone"
+              type="text"
               v-model="formData.phone"
               placeholder="Masukkan nomor telepon"
+              maxlength="13"
+              class="no-spinner"
+              @input="validatePhone"
             />
           </div>
           <div class="form-group">
@@ -193,8 +195,13 @@
             placeholder="Masukkan kode voucher"
             :disabled="isApplyingVoucher"
           />
-          <button @click="applyVoucher" :disabled="!voucherCode || isApplyingVoucher">
-            {{ isApplyingVoucher ? 'Memproses...' : 'Gunakan' }}
+          <button
+            @click="applyVoucher"
+            :disabled="!voucherCode || isApplyingVoucher"
+            class="voucher-button"
+          >
+            <span v-if="isApplyingVoucher"> Process<span class="loading-dots">...</span> </span>
+            <span v-else>Gunakan</span>
           </button>
         </div>
         <div v-if="appliedVoucher" class="applied-voucher">
@@ -235,10 +242,11 @@
 
         <button
           class="checkout-button"
-          :disabled="!selectedCity || isLoadingShipping"
+          :disabled="!selectedCity || isLoadingShipping || isProcessing"
           @click="handleSubmitOrder"
         >
-          Bayar Sekarang
+          <span v-if="isProcessing"> Process<span class="loading-dots">...</span> </span>
+          <span v-else>Bayar Sekarang</span>
         </button>
         <p class="terms">Dengan melakukan pembayaran, Anda menyetujui Syarat & Ketentuan kami</p>
       </section>
@@ -251,9 +259,11 @@
 
 <script setup>
 import { ref, onMounted, computed, onBeforeMount, watch, onBeforeUnmount } from 'vue'
+// import { doc, getDoc } from 'firebase/firestore'
+// import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useOrderStore } from '@/stores/OrderStore'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import rajaOngkir from '@/api/RajaOngkir'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
@@ -261,6 +271,7 @@ import { useToast } from 'vue-toastification'
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
 const router = useRouter()
+const route = useRoute()
 const voucherStore = useVoucherStore()
 const toast = useToast()
 
@@ -286,6 +297,8 @@ const isLoadingShipping = ref(false)
 const isLoadingProvinces = ref(false)
 const isLoadingCities = ref(false)
 
+const isProcessing = ref(false) // Add this with other refs
+
 // Update loadProvinces function
 const loadProvinces = async () => {
   try {
@@ -304,15 +317,14 @@ const loadCities = async (provinceName) => {
 
   try {
     isLoadingCities.value = true
-    // Find province ID from provinces list
     const province = provinces.value.find((p) => p.province === provinceName)
+
     if (province) {
       cities.value = await rajaOngkir.getCities(province.province_id)
     }
-    selectedCity.value = '' // Reset selected city when province changes
-    shippingCost.value = 0 // Reset shipping cost
   } catch (error) {
     console.error('Error loading cities:', error)
+    toast.error('Gagal memuat data kota')
   } finally {
     isLoadingCities.value = false
   }
@@ -343,11 +355,53 @@ const calculateShipping = async () => {
 //   return getSubtotal.value + shippingCost.value
 // })
 
+const loadShippingDetails = async () => {
+  try {
+    // Check if there are shipping details in route query
+    if (route.query.shippingDetails) {
+      const shippingDetails = JSON.parse(route.query.shippingDetails)
+
+      // Pre-fill form data
+      formData.value = {
+        name: shippingDetails.name || '',
+        email: shippingDetails.email || '',
+        phone: shippingDetails.phone || '',
+        address: shippingDetails.address || '',
+        zip: shippingDetails.zip || '',
+      }
+
+      // Set province and city
+      selectedProvince.value = shippingDetails.province || ''
+
+      // Load cities first then set selected city
+      if (shippingDetails.province) {
+        await loadCities(shippingDetails.province)
+        selectedCity.value = shippingDetails.city || ''
+
+        // Calculate shipping after city is selected
+        if (shippingDetails.city) {
+          await calculateShipping()
+        }
+      }
+    } else {
+      // Fallback to user data if available
+      if (authStore.currentUser) {
+        formData.value.name = authStore.currentUser.name || ''
+        formData.value.email = authStore.currentUser.email || ''
+      }
+    }
+  } catch (error) {
+    console.error('Error loading shipping details:', error)
+    toast.error('Gagal memuat data pengiriman')
+  }
+}
+
 onMounted(async () => {
-  await loadProvinces()
-  if (authStore.currentUser) {
-    formData.value.name = authStore.currentUser.name || ''
-    formData.value.email = authStore.currentUser.email || ''
+  try {
+    await loadProvinces() // Load provinces first
+    await loadShippingDetails() // Then load shipping details
+  } catch (error) {
+    console.error('Error in onMounted:', error)
   }
 })
 
@@ -363,31 +417,95 @@ const getSubtotal = computed(() => {
 
 // Fungsi untuk menyimpan order ke localStorage
 const saveOrderToLocal = (orderData) => {
-  if (orderData) {
-    localStorage.setItem('currentOrder', JSON.stringify(orderData))
+  if (!orderData) return
+
+  // Bersihkan data yang tidak perlu
+  const cleanOrder = {
+    id: orderData.id,
+    productId: orderData.productId,
+    name: orderData.name,
+    price: orderData.price,
+    quantity: orderData.quantity,
+    image: orderData.image,
+    customOptions: {
+      purchaseType: orderData.customOptions.purchaseType,
+      priceType: orderData.customOptions.priceType,
+      bahanLuar: orderData.customOptions.bahanLuar,
+      bahanDalam: orderData.customOptions.bahanDalam,
+      aksesoris: orderData.customOptions.aksesoris,
+      note: orderData.customOptions.note,
+      uploadedImage: orderData.customOptions.uploadedImage,
+    },
+  }
+
+  try {
+    // Coba simpan ke localStorage
+    const orderString = JSON.stringify(cleanOrder)
+    localStorage.setItem('currentOrder', orderString)
+  } catch (error) {
+    console.error('Error saving to localStorage:', error)
+    // Jika quota terlampaui, bersihkan localStorage dan coba lagi
+    if (error.name === 'QuotaExceededError') {
+      try {
+        localStorage.clear()
+        localStorage.setItem('currentOrder', JSON.stringify(cleanOrder))
+      } catch (retryError) {
+        console.error('Failed to save after clearing storage:', retryError)
+      }
+    }
   }
 }
 
 // Fungsi untuk mendapatkan order dari localStorage
 const getOrderFromLocal = () => {
-  const savedOrder = localStorage.getItem('currentOrder')
-  return savedOrder ? JSON.parse(savedOrder) : null
+  try {
+    const savedOrder = localStorage.getItem('currentOrder')
+    if (savedOrder) {
+      const parsedOrder = JSON.parse(savedOrder)
+      // Check if order has shipping details
+      if (parsedOrder.shippingDetails) {
+        formData.value = {
+          name: parsedOrder.shippingDetails.name || '',
+          email: parsedOrder.shippingDetails.email || '',
+          phone: parsedOrder.shippingDetails.phone || '',
+          address: parsedOrder.shippingDetails.address || '',
+          zip: parsedOrder.shippingDetails.zip || '',
+        }
+        selectedProvince.value = parsedOrder.shippingDetails.province || ''
+        if (parsedOrder.shippingDetails.province) {
+          loadCities(parsedOrder.shippingDetails.province).then(() => {
+            selectedCity.value = parsedOrder.shippingDetails.city || ''
+            if (parsedOrder.shippingDetails.city) {
+              calculateShipping()
+            }
+          })
+        }
+      }
+      return parsedOrder
+    }
+    return null
+  } catch (error) {
+    console.error('Error getting order from local:', error)
+    return null
+  }
 }
 
-// Modifikasi onMounted
+// Modifikasi onBeforeMount
 onBeforeMount(() => {
-  // Cek jika tidak ada order di store tapi ada di localStorage
-  if (!orderStore.currentOrder) {
-    const savedOrder = getOrderFromLocal()
-    if (savedOrder) {
-      orderStore.setCurrentOrder(savedOrder)
+  try {
+    if (!orderStore.currentOrder) {
+      const savedOrder = getOrderFromLocal()
+      if (savedOrder) {
+        orderStore.setCurrentOrder(savedOrder)
+      } else {
+        router.push('/')
+      }
     } else {
-      // Redirect ke home jika tidak ada data order
-      router.push('/')
+      saveOrderToLocal(orderStore.currentOrder)
     }
-  } else {
-    // Simpan order saat ini ke localStorage
-    saveOrderToLocal(orderStore.currentOrder)
+  } catch (error) {
+    console.error('Error in onBeforeMount:', error)
+    router.push('/')
   }
 })
 
@@ -437,6 +555,12 @@ const applyVoucher = async () => {
     const result = await voucherStore.validateVoucher(voucherCode.value)
 
     if (result.success) {
+      // Real-time check saat apply voucher
+      if (result.voucher.currentUses >= result.voucher.maxUses) {
+        toast.error('Voucher sudah mencapai batas penggunaan')
+        return
+      }
+
       appliedVoucher.value = result.voucher
       voucherCode.value = ''
       toast.success('Voucher berhasil diterapkan')
@@ -472,25 +596,91 @@ const handlePaymentProofUpload = async (event) => {
   }
 }
 
+const processVoucherUsage = async () => {
+  if (appliedVoucher.value) {
+    const result = await voucherStore.updateVoucherUsage(appliedVoucher.value.id)
+    if (!result.success) {
+      toast.error('Gagal menggunakan voucher: ' + result.error)
+      return false
+    }
+  }
+  return true
+}
+
+// Tambahkan fungsi helper untuk scroll smooth
+const scrollToElement = (elementId) => {
+  const element = document.getElementById(elementId)
+  if (element) {
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+    // Tambahkan highlight effect
+    element.classList.add('highlight-error')
+    setTimeout(() => {
+      element.classList.remove('highlight-error')
+    }, 2000)
+  }
+}
+
+// Modifikasi handleSubmitOrder
 const handleSubmitOrder = async () => {
   try {
+    isProcessing.value = true
+
+    // Check bukti pembayaran
     if (!orderStore.paymentProof) {
       toast.error('Mohon upload bukti pembayaran')
+      scrollToElement('paymentProof')
       return
     }
 
-    // Validate required fields
-    if (
-      !formData.value.name ||
-      !formData.value.email ||
-      !formData.value.phone ||
-      !formData.value.address ||
-      !formData.value.zip ||
-      !selectedCity.value
-    ) {
-      toast.error('Mohon lengkapi semua data pengiriman')
+    // Cek field satu per satu
+    if (!formData.value.name) {
+      toast.error('Mohon isi nama penerima')
+      scrollToElement('name')
       return
     }
+
+    if (!formData.value.email) {
+      toast.error('Mohon isi email')
+      scrollToElement('email')
+      return
+    }
+
+    if (!formData.value.phone) {
+      toast.error('Mohon isi nomor telepon')
+      scrollToElement('phone')
+      return
+    }
+
+    if (!formData.value.address) {
+      toast.error('Mohon isi alamat lengkap')
+      scrollToElement('address')
+      return
+    }
+
+    if (!selectedProvince.value) {
+      toast.error('Mohon pilih provinsi')
+      scrollToElement('province')
+      return
+    }
+
+    if (!selectedCity.value) {
+      toast.error('Mohon pilih kota')
+      scrollToElement('town')
+      return
+    }
+
+    if (!formData.value.zip) {
+      toast.error('Mohon isi kode pos')
+      scrollToElement('zip')
+      return
+    }
+
+    // Lanjutkan dengan proses checkout jika semua field terisi
+    const voucherProcessed = await processVoucherUsage()
+    if (!voucherProcessed) return
 
     const orderDetails = {
       name: formData.value.name,
@@ -508,12 +698,23 @@ const handleSubmitOrder = async () => {
 
     const result = await orderStore.createOrder(orderDetails)
     if (result.success) {
-      router.push('/orders')
-      localStorage.removeItem('currentOrder') // Clear stored order
+      router.push('/notification')
+      localStorage.removeItem('currentOrder')
     }
   } catch (error) {
     toast.error('Gagal membuat pesanan: ' + error.message)
+  } finally {
+    isProcessing.value = false
   }
+}
+
+// Tambahkan watch untuk memvalidasi nomor telepon
+const validatePhone = (event) => {
+  // Hanya izinkan angka
+  const value = event.target.value.replace(/\D/g, '')
+
+  // Batasi panjang maksimal 13 digit
+  formData.value.phone = value.slice(0, 13)
 }
 </script>
 
@@ -1114,5 +1315,122 @@ select:disabled option {
 
 .discount-amount {
   font-weight: 500;
+}
+
+/* Add loading dots animation */
+.loading-dots {
+  display: inline-block;
+  animation: loadingDots 1.5s infinite;
+  min-width: 24px;
+}
+
+@keyframes loadingDots {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+  100% {
+    content: '.';
+  }
+}
+
+/* Update button styles */
+.checkout-button,
+.voucher-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.checkout-button:disabled,
+.voucher-button:disabled {
+  background-color: #cccccc;
+  cursor: wait;
+}
+
+/* Add subtle loading background animation */
+.checkout-button:disabled::before,
+.voucher-button:disabled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(50%);
+  }
+}
+
+/* Menghilangkan panah di input number */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  appearance: textfield; /* Safari */
+  -moz-appearance: textfield; /* Firefox */
+}
+
+/* Update button styles untuk hover */
+.checkout-button:hover:not(:disabled),
+.voucher-button:hover:not(:disabled) {
+  background-color: #d5a832;
+  cursor: pointer;
+}
+
+.checkout-button:disabled,
+.voucher-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Tambahkan di bagian <style> */
+@keyframes highlightField {
+  0% {
+    background-color: rgba(255, 70, 70, 0.2);
+    border-color: #ff4646;
+  }
+  100% {
+    background-color: #f8f8f8;
+    border-color: #e0e0e0;
+  }
+}
+
+.highlight-error {
+  animation: highlightField 2s ease;
+}
+
+/* Tambahkan smooth scroll untuk semua */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Pastikan elemen yang akan discroll memiliki padding/margin agar tidak terlalu mepet */
+.form-group {
+  scroll-margin-top: 20px;
+}
+
+.upload-area {
+  scroll-margin-top: 20px;
 }
 </style>

@@ -63,9 +63,12 @@
               <td>
                 <span
                   class="status-badge"
-                  :class="{ active: isVoucherActive(voucher), inactive: !isVoucherActive(voucher) }"
+                  :class="{
+                    active: voucherStatus(voucher) === 'Aktif',
+                    inactive: voucherStatus(voucher) !== 'Aktif',
+                  }"
                 >
-                  {{ isVoucherActive(voucher) ? 'Aktif' : 'Nonaktif' }}
+                  {{ voucherStatus(voucher) }}
                 </span>
               </td>
               <td>
@@ -141,6 +144,21 @@ const paginatedVouchers = computed(() => {
 
 const totalPages = computed(() => Math.ceil(filteredVouchers.value.length / entriesPerPage.value))
 
+const voucherStatus = computed(() => (voucher) => {
+  const now = new Date()
+  const expiryDate = new Date(voucher.validUntil)
+  const isExpired = expiryDate < now
+  const isMaxedOut = voucher.currentUses >= voucher.maxUses
+
+  if (isMaxedOut) {
+    return 'Habis'
+  } else if (isExpired) {
+    return 'Kadaluarsa'
+  } else {
+    return 'Aktif'
+  }
+})
+
 // Helper functions
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('id-ID', {
@@ -158,12 +176,6 @@ const formatDiscount = (type, value) => {
     style: 'currency',
     currency: 'IDR',
   }).format(value)
-}
-
-const isVoucherActive = (voucher) => {
-  const now = new Date()
-  const expiryDate = new Date(voucher.validUntil)
-  return voucher.isActive && expiryDate > now && voucher.currentUses < voucher.maxUses
 }
 
 // Modal functions

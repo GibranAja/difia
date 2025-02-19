@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   where,
   updateDoc,
+  getDoc,
 } from 'firebase/firestore'
 
 export const useVoucherStore = defineStore('voucher', () => {
@@ -249,6 +250,46 @@ export const useVoucherStore = defineStore('voucher', () => {
     }
   }
 
+  // Update voucher usage
+  const updateVoucherUsage = async (voucherId) => {
+    try {
+      const voucherRef = doc(db, 'vouchers', voucherId)
+      const voucherDoc = await getDoc(voucherRef)
+
+      if (!voucherDoc.exists()) {
+        throw new Error('Voucher tidak ditemukan')
+      }
+
+      const voucherData = voucherDoc.data()
+      const newUsage = voucherData.currentUses + 1
+
+      // Cek apakah sudah mencapai batas
+      if (newUsage > voucherData.maxUses) {
+        throw new Error('Voucher sudah mencapai batas penggunaan')
+      }
+
+      // Update penggunaan voucher
+      await updateDoc(voucherRef, {
+        currentUses: newUsage,
+        isActive: newUsage < voucherData.maxUses,
+      })
+
+      // Update local state
+      const index = voucherItems.value.findIndex((v) => v.id === voucherId)
+      if (index !== -1) {
+        voucherItems.value[index] = {
+          ...voucherItems.value[index],
+          currentUses: newUsage,
+          isActive: newUsage < voucherData.maxUses,
+        }
+      }
+
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     voucherItems,
     isLoading,
@@ -258,5 +299,6 @@ export const useVoucherStore = defineStore('voucher', () => {
     deleteVoucher,
     validateVoucher,
     updateVoucher,
+    updateVoucherUsage,
   }
 })

@@ -1,11 +1,14 @@
 <template>
-  <nav :class="{
-    'nav-hidden': isHidden,
-    'at-top': !isScrolled
-  }" :style="{
-    // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
-    // backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
-  }">
+  <nav
+    :class="{
+      'nav-hidden': isHidden,
+      'at-top': !isScrolled,
+    }"
+    :style="{
+      // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
+      // backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
+    }"
+  >
     <div class="link">
       <a @click.prevent="navigateTo('/', 'home')" href="#home"><b>Beranda</b></a>
       <a @click.prevent="navigateTo('/', 'about')" href="#about"><b>Tentang Kami</b></a>
@@ -14,8 +17,11 @@
       <router-link v-if="authStore.currentUser?.isAdmin" to="/admin"><b>Dashboard</b></router-link>
     </div>
 
-    <a href="/notification">
+    <a href="/notification" class="notification-icon-container" @click="handleNotificationClick">
       <i class="fas fa-bell"></i>
+      <span v-if="notificationStore.notificationCount > 0" class="notification-counter">
+        {{ notificationStore.notificationCount }}
+      </span>
     </a>
 
     <a href="/cart" class="cart-icon-container">
@@ -30,8 +36,12 @@
     <template v-if="authStore.isLoggedIn">
       <div class="login">
         <div class="profile-photo-container" @click="showProfileModal = true">
-          <img :src="userProfilePhoto" :alt="authStore.currentUser?.name || 'User'" class="profile-photo"
-            @error="handleImageError" />
+          <img
+            :src="userProfilePhoto"
+            :alt="authStore.currentUser?.name || 'User'"
+            class="profile-photo"
+            @error="handleImageError"
+          />
         </div>
         <a href="" class="keluar" @click.prevent="showLogoutModal = true">Log out</a>
       </div>
@@ -39,8 +49,14 @@
 
     <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
 
-    <NegativeModal v-if="showLogoutModal" title="Konfirmasi Logout" message="Apakah Anda yakin ingin keluar?"
-      :loading="isLoggingOut" @close="showLogoutModal = false" @confirm="handleLogout" />
+    <NegativeModal
+      v-if="showLogoutModal"
+      title="Konfirmasi Logout"
+      message="Apakah Anda yakin ingin keluar?"
+      :loading="isLoggingOut"
+      @close="showLogoutModal = false"
+      @confirm="handleLogout"
+    />
   </nav>
 </template>
 
@@ -52,11 +68,13 @@ import { useRouter, useRoute } from 'vue-router' // Add useRoute
 import ModalProfile from './ModalProfile.vue'
 import NegativeModal from './NegativeModal.vue' // Add this import
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png' // Import the image directly
+import { useNotificationStore } from '@/stores/NotificationStore' // Add this import
 
 const router = useRouter()
 const route = useRoute() // Add this
 const authStore = useAuthStore()
 const cartStore = useCartStore() // Add this
+const notificationStore = useNotificationStore() // Add this
 const showProfileModal = ref(false)
 const isScrolled = ref(false)
 const isHidden = ref(false)
@@ -155,6 +173,16 @@ onMounted(async () => {
   if (authStore.isLoggedIn) {
     await cartStore.fetchCartItems()
   }
+
+  // Setup notification tracking if user is logged in
+  if (authStore.isLoggedIn && authStore.currentUser?.id) {
+    const unsubscribe = notificationStore.trackStatusUpdates(authStore.currentUser.id)
+
+    // Cleanup on unmount
+    onUnmounted(() => {
+      unsubscribe && unsubscribe()
+    })
+  }
 })
 
 // Add event listeners
@@ -165,6 +193,10 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
+
+const handleNotificationClick = () => {
+  notificationStore.resetCount()
+}
 </script>
 
 <style scoped>
@@ -342,5 +374,28 @@ a.keluar {
   align-items: center;
   justify-content: center;
   /* border: 2px solid #fff; */
+}
+
+/* Add these styles to your existing CSS */
+.notification-icon-container {
+  position: relative;
+  display: inline-block;
+}
+
+.notification-counter {
+  position: absolute;
+  top: -2px;
+  right: -1px;
+  background-color: #e83838;
+  color: #ffffff;
+  border-radius: 50%;
+  padding: 1px;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

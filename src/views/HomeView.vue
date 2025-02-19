@@ -1,16 +1,34 @@
 <template>
   <header id="home">
-    <Swiper :spaceBetween="30" :centeredSlides="true" :autoplay="{
-      delay: 2500,
-      disableOnInteraction: false,
-    }" :pagination="{
-      clickable: true,
-    }" :navigation="false" :modules="modules" :allowTouchMove="false" :speed="800" :loop="true"
-      :loopAdditionalSlides="3" class="mySwiper">
+    <Swiper
+      :spaceBetween="30"
+      :centeredSlides="true"
+      :autoplay="{
+        delay: 2500,
+        disableOnInteraction: false,
+      }"
+      :pagination="{
+        clickable: true,
+      }"
+      :navigation="false"
+      :modules="modules"
+      :allowTouchMove="false"
+      :speed="800"
+      :loop="sliderStore.sliderItems.length > 1"
+      :loopedSlides="2"
+      class="mySwiper"
+    >
       <SwiperSlide v-for="slide in sliderStore.sliderItems" :key="slide.id" class="swiper-slide">
         <div class="slide-wrapper">
           <div class="slide-overlay"></div>
           <img :src="slide.image" :alt="`Slider ${slide.id}`" class="slide-image" />
+        </div>
+      </SwiperSlide>
+      <!-- Tambahkan fallback slide jika tidak ada slider -->
+      <SwiperSlide v-if="!sliderStore.sliderItems.length">
+        <div class="slide-wrapper">
+          <div class="slide-overlay"></div>
+          <img src="@/assets/Logo Difia Haki.png" alt="Default Slider" class="slide-image" />
         </div>
       </SwiperSlide>
     </Swiper>
@@ -25,7 +43,11 @@
         <div class="gambar">
           <span class="kotak"></span>
           <span class="bulet"></span>
-          <img src="../assets/Logo Difia Haki.PNG" alt="foto-tentang-kami" class="foto-tentang-kami" />
+          <img
+            src="../assets/Logo Difia Haki.PNG"
+            alt="foto-tentang-kami"
+            class="foto-tentang-kami"
+          />
         </div>
         <div class="text">
           <h1><b>TENTANG KAMI</b></h1>
@@ -41,9 +63,7 @@
         <p><b>PENGHARGAAN</b></p>
         <span class="ring"></span>
         <span class="bg-scroll"></span>
-        <span class="side-color">
-
-        </span>
+        <span class="side-color"> </span>
         <CardAchivement></CardAchivement>
       </div>
     </section>
@@ -52,8 +72,12 @@
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog v-for="(katalog, index) in katalogStore.katalogItems" :key="katalog.id" :item="katalog"
-          :index="index" />
+        <CardCatalog
+          v-for="(katalog, index) in katalogStore.katalogItems"
+          :key="katalog.id"
+          :item="katalog"
+          :index="index"
+        />
       </div>
     </section>
     <section class="blog" id="articel">
@@ -227,7 +251,6 @@ header .text {
   position: absolute;
   left: -30px;
   font-size: 1.5rem;
-
 }
 
 .tentang-kami .gambar .bulet {
@@ -483,7 +506,6 @@ footer img {
 }
 
 @keyframes bounce {
-
   0%,
   20%,
   50%,

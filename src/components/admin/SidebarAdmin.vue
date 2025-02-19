@@ -26,8 +26,17 @@
           active: $route.name === item.pathName,
         }"
       >
-        <i :class="item.icon"></i>
-        <span :class="{ 'hide-text': !isOpen }">{{ item.text }}</span>
+        <div class="nav-item-content">
+          <i :class="item.icon"></i>
+          <span :class="{ 'hide-text': !isOpen }">{{ item.text }}</span>
+          <!-- Add notification counter -->
+          <span
+            v-if="item.pathName === 'OrderView' && orderStore.newOrdersCount > 0"
+            class="order-counter"
+          >
+            {{ orderStore.newOrdersCount }}
+          </span>
+        </div>
       </router-link>
 
       <!-- Add Logout Button -->
@@ -54,9 +63,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue' // Add computed
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useOrderStore } from '@/stores/OrderStore'
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import NegativeModal from '@/components/NegativeModal.vue'
 
 defineProps({
@@ -74,6 +86,8 @@ const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
 const router = useRouter()
 const authStore = useAuthStore()
+const orderStore = useOrderStore()
+let unsubscribe = null
 
 // Convert items to computed property to make it dynamic
 const items = computed(() => {
@@ -116,6 +130,47 @@ const handleLogout = async () => {
     isLoggingOut.value = false
   }
 }
+
+// Listen for new orders
+onMounted(() => {
+  const ordersRef = collection(db, 'orders')
+  const q = query(ordersRef, where('status', '==', 'pending'))
+
+  unsubscribe = onSnapshot(q, (snapshot) => {
+    // Get array of orders with their IDs
+    const orders = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+
+    // Pass full orders array to let store handle filtering
+    orderStore.setNewOrdersCount(orders)
+  })
+})
+
+// Watch route changes to reset counter when visiting OrderView
+watch(
+  () => router.currentRoute.value.name,
+  (newRoute) => {
+    if (newRoute === 'OrderView') {
+      // Get current orders and mark them all as viewed
+      const ordersRef = collection(db, 'orders')
+      const q = query(ordersRef, where('status', '==', 'pending'))
+      getDocs(q).then((snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          orderStore.markOrderAsViewed(doc.id)
+        })
+      })
+      orderStore.resetNewOrdersCount()
+    }
+  },
+)
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
 </script>
 
 <style scoped>
@@ -426,5 +481,36 @@ const handleLogout = async () => {
 
 .modal-content {
   animation: modalFadeIn 0.3s ease;
+}
+
+/* Add these styles to your existing <style> section */
+.nav-item-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.order-counter {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #f44336;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.sidebar.collapsed .nav-item-content .order-counter {
+  right: -4px;
+  top: -4px;
 }
 </style>

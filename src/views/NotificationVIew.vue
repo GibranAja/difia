@@ -133,6 +133,7 @@ import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { updateDoc } from 'firebase/firestore'
+import { useNotificationStore } from '@/stores/NotificationStore'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -140,6 +141,7 @@ const searchQuery = ref('')
 const expandedOrders = ref({})
 const orders = ref([])
 let unsubscribe = null
+const notificationStore = useNotificationStore()
 
 // Handle image error
 const handleImageError = (e) => {
@@ -278,6 +280,7 @@ const toggleOrder = (orderId) => {
     ...expandedOrders.value,
     [orderId]: !expandedOrders.value[orderId],
   }
+  notificationStore.markAsViewed(orderId)
 }
 
 const completeOrder = async (orderId) => {
@@ -368,6 +371,7 @@ input {
   border-radius: 12px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
+  font-family: 'Montserrat', sans-serif; /* Add this line */
 }
 
 input:focus {
@@ -417,6 +421,7 @@ input:focus {
 .order-id {
   font-weight: 600;
   color: #02163b;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .order-details p {
@@ -438,6 +443,7 @@ input:focus {
   text-transform: uppercase;
   min-width: 120px;
   text-align: center;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .status-success {
@@ -470,6 +476,7 @@ input:focus {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   color: #666;
   font-size: 1.1rem;
+  font-family: 'Montserrat', sans-serif;
 }
 
 /* Slide Animation */
@@ -590,6 +597,7 @@ input:focus {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
+  font-family: 'Montserrat', sans-serif; /* Add this line */
 }
 
 .complete-btn {

@@ -1,4 +1,10 @@
 <template>
+  <!-- Move back button outside container -->
+  <button class="back-button" @click="goBack">
+    <i class="fas fa-arrow-left"></i>
+    <span>Kembali</span>
+  </button>
+
   <div class="blog-view-container">
     <div v-if="blog" class="blog-content">
       <!-- Blog Header Section -->
@@ -14,14 +20,16 @@
 
       <!-- Blog Image -->
       <div class="blog-image-container">
-        <img :src="blog.image" :alt="blog.title" class="blog-image">
+        <img :src="blog.image" :alt="blog.title" class="blog-image" />
       </div>
 
       <!-- Blog Content -->
       <article class="blog-description">
-        <p v-for="(paragraph, idx) in blog.description.split('\n')" 
-           :key="idx" 
-           class="description-paragraph">
+        <p
+          v-for="(paragraph, idx) in blog.description.split('\n')"
+          :key="idx"
+          class="description-paragraph"
+        >
           {{ paragraph }}
         </p>
       </article>
@@ -30,26 +38,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useBlogStore } from '@/stores/BlogStore';
-import { useRoute } from 'vue-router';
+import { ref, onMounted } from 'vue'
+import { useBlogStore } from '@/stores/BlogStore'
+import { useRoute } from 'vue-router'
 
-const route = useRoute();
-const blogStore = useBlogStore();
-const blog = ref(null);
+const route = useRoute()
+const blogStore = useBlogStore()
+const blog = ref(null)
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('id-ID', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
-  });
-};
+    day: 'numeric',
+  })
+}
+
+const goBack = () => {
+  window.history.back()
+}
 
 onMounted(async () => {
-  const blogId = route.params.id;
-  blog.value = await blogStore.getBlogById(blogId);
-});
+  const blogId = route.params.id
+  blog.value = await blogStore.getBlogById(blogId)
+})
 </script>
 
 <style scoped>
@@ -58,6 +70,36 @@ onMounted(async () => {
   margin: 0 auto;
   padding: 2rem;
   font-family: 'Montserrat', sans-serif;
+  margin-top: 2rem; /* Add margin-top to create space below back button */
+}
+
+/* Update back button styles to position it absolutely */
+.back-button {
+  position: fixed;
+  top: 2rem;
+  left: 8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #e8ba38;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  font-size: 1rem;
+  z-index: 10; /* Ensure button stays above other content */
+  transition: all 0.3s ease;
+}
+
+.back-button i {
+  font-size: 1.2rem;
+}
+
+.back-button:hover {
+  background-color: #d1a32e;
+  transform: translateX(-5px);
 }
 
 .blog-content {
@@ -156,6 +198,7 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .blog-view-container {
     padding: 1.5rem;
+    margin-top: 4rem; /* Reduce margin on smaller screens */
   }
 
   .blog-content {
@@ -188,11 +231,18 @@ onMounted(async () => {
   .description-paragraph {
     margin-bottom: 1rem;
   }
+
+  /* Add responsive styles for back button */
+  .back-button {
+    top: 1rem;
+    left: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
   .blog-view-container {
     padding: 1rem;
+    margin-top: 3.5rem; /* Further reduce margin on mobile */
   }
 
   .blog-title {

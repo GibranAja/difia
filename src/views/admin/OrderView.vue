@@ -28,7 +28,17 @@
       <!-- Regular Orders Section -->
       <div class="order-section" v-if="activeOrderType === 'regular'">
         <h2>Regular Orders</h2>
-        <div class="table-responsive">
+        <!-- Add empty state -->
+        <div v-if="!regularOrders.length" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-box-open empty-state-icon"></i>
+            <h3>Belum Ada Pesanan</h3>
+            <p>Saat ini belum ada pesanan satuan yang masuk</p>
+          </div>
+        </div>
+
+        <!-- Show table only if there are orders -->
+        <div v-else class="table-responsive">
           <table class="order-table">
             <thead>
               <tr>
@@ -100,7 +110,17 @@
       <!-- Souvenir Orders Section -->
       <div class="order-section" v-if="activeOrderType === 'souvenir'">
         <h2>Souvenir Orders</h2>
-        <div class="table-responsive">
+        <!-- Add empty state -->
+        <div v-if="!souvenirOrders.length" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-gift empty-state-icon"></i>
+            <h3>Belum Ada Pesanan Souvenir</h3>
+            <p>Saat ini belum ada pesanan souvenir yang masuk</p>
+          </div>
+        </div>
+
+        <!-- Show table only if there are orders -->
+        <div v-else class="table-responsive">
           <table class="order-table">
             <thead>
               <tr>

@@ -20,6 +20,8 @@ export const useOrderStore = defineStore('order', () => {
   const authStore = useAuthStore()
   const toast = useToast()
   const paymentProof = ref(null)
+  const newOrdersCount = ref(0)
+  const viewedOrders = ref(new Set()) // Track viewed order IDs
 
   // Set current order from CustomView
   const setCurrentOrder = (orderData) => {
@@ -117,6 +119,20 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
+  const setNewOrdersCount = (orders) => {
+    // Only count orders that haven't been viewed
+    const newCount = orders.filter((order) => !viewedOrders.value.has(order.id)).length
+    newOrdersCount.value = newCount
+  }
+
+  const markOrderAsViewed = (orderId) => {
+    viewedOrders.value.add(orderId)
+  }
+
+  const resetNewOrdersCount = () => {
+    newOrdersCount.value = 0
+  }
+
   return {
     currentOrder,
     loading,
@@ -126,5 +142,9 @@ export const useOrderStore = defineStore('order', () => {
     setPaymentProof,
     createOrder,
     getUserOrders,
+    newOrdersCount,
+    setNewOrdersCount,
+    markOrderAsViewed,
+    resetNewOrdersCount,
   }
 })
