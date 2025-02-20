@@ -590,6 +590,13 @@ const handlePaymentProofUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
+  const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+
+  if (file.size > MAX_FILE_SIZE) {
+    toast.error(`Ukuran file tidak boleh lebih dari ${MAX_FILE_SIZE / 1024 / 1024}MB`)
+    return
+  }
+
   try {
     await orderStore.setPaymentProof(file)
     paymentFile.value = file

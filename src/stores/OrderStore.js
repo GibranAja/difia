@@ -31,13 +31,20 @@ export const useOrderStore = defineStore('order', () => {
   // Handle payment proof upload
   const setPaymentProof = async (file) => {
     try {
+      // Add file size validation (example: 2MB limit)
+      const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB in bytes
+
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`Ukuran file tidak boleh lebih dari ${MAX_FILE_SIZE / 1024 / 1024}MB`)
+      }
+
       const reader = new FileReader()
       reader.onload = (e) => {
         paymentProof.value = e.target.result
       }
       reader.readAsDataURL(file)
     } catch (err) {
-      toast.error('Failed to process payment proof')
+      toast.error(err.message || 'Failed to process payment proof')
       throw err
     }
   }
