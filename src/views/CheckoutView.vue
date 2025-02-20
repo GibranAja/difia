@@ -248,7 +248,10 @@
           <span v-if="isProcessing"> Process<span class="loading-dots">...</span> </span>
           <span v-else>Bayar Sekarang</span>
         </button>
-        <p class="terms">Dengan melakukan pembayaran, Anda menyetujui Syarat & Ketentuan kami</p>
+        <p class="terms">
+          Dengan melakukan pembayaran, Anda menyetujui
+          <a href="/terms" target="_blank" class="terms-link">Syarat & Ketentuan</a> kami
+        </p>
       </section>
     </div>
     <div v-else>
@@ -1264,6 +1267,18 @@ select:disabled option {
 .checkout-button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+.terms-link {
+  color: #e8ba38;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.terms-link:hover {
+  color: #02163b;
+  text-decoration: underline;
 }
 
 .loading {

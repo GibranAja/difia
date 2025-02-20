@@ -52,7 +52,22 @@
                     @error="handleImageError"
                   />
                   <div class="product-details">
-                    <h4>{{ order.productName }}</h4>
+                    <div class="product-header">
+                      <h4>{{ order.productName }}</h4>
+                      <!-- Tambahkan container baru untuk design logo -->
+                      <div
+                        class="custom-design-container"
+                        v-if="
+                          order.customOptions?.purchaseType === 'Souvenir' &&
+                          order.customOptions?.uploadedImage
+                        "
+                      >
+                        <span class="design-logo-label">Design Logo</span>
+                        <div class="custom-design-thumbnail">
+                          <img :src="order.customOptions.uploadedImage" alt="Design Logo" />
+                        </div>
+                      </div>
+                    </div>
                     <p>Tipe: {{ order.customOptions.purchaseType }}</p>
                     <p>Harga: {{ order.customOptions.priceType }}</p>
                     <p>Jumlah: {{ order.quantity }} pcs</p>
@@ -61,18 +76,6 @@
                     <p>Aksesoris: {{ order.customOptions.aksesoris.join(', ') }}</p>
                     <p v-if="order.customOptions.note">Catatan: {{ order.customOptions.note }}</p>
                   </div>
-                </div>
-
-                <!-- Custom Design Image (for Souvenir) -->
-                <div
-                  v-if="
-                    order.customOptions?.purchaseType === 'Souvenir' &&
-                    order.customOptions?.uploadedImage
-                  "
-                  class="custom-design"
-                >
-                  <h4>Desain Custom</h4>
-                  <img :src="order.customOptions.uploadedImage" alt="Custom Design" />
                 </div>
               </div>
 
@@ -371,7 +374,7 @@ input {
   border-radius: 12px;
   font-size: 0.95rem;
   transition: all 0.2s ease;
-  font-family: 'Montserrat', sans-serif; /* Add this line */
+  font-family: 'Montserrat', sans-serif;
 }
 
 input:focus {
@@ -571,14 +574,57 @@ input:focus {
   border-radius: 8px;
 }
 
-.custom-design {
-  margin-top: 1rem;
+/* New styles for product header with custom design */
+.product-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between; /* Pastikan space-between untuk memisahkan konten */
+  margin-bottom: 0.75rem;
+  position: relative; /* Add this to help with absolute positioning */
+  width: 100%;
 }
 
-.custom-design img {
-  max-width: 200px;
+.custom-design-container {
+  position: absolute; /* Change to absolute positioning */
+  right: -24rem;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: -20px; /* Push it further right */
+}
+
+.design-logo-label {
+  font-size: 0.875rem;
+  font-weight: 600; /* Increased weight */
+  color: #666;
+  margin: 0;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Increase thumbnail size */
+.custom-design-thumbnail {
+  flex-shrink: 0;
   border-radius: 8px;
-  margin-top: 0.5rem;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  width: 120px; /* Increased from 80px to 120px */
+  height: 120px; /* Increased from 80px to 120px */
+}
+
+.custom-design-thumbnail img {
+  width: 120px; /* Increased from 80px to 120px */
+  height: 120px; /* Increased from 80px to 120px */
+  object-fit: cover;
+  display: block;
+}
+
+/* Ensure the product name takes appropriate space */
+.product-header h4 {
+  margin: 0;
+  flex: 1;
+  margin-right: 140px; /* Increased from 100px to 140px */
 }
 
 .action-section {
@@ -597,7 +643,7 @@ input:focus {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
-  font-family: 'Montserrat', sans-serif; /* Add this line */
+  font-family: 'Montserrat', sans-serif;
 }
 
 .complete-btn {
@@ -637,6 +683,23 @@ input:focus {
 .status-canceled {
   background: #f8d7da;
   color: #842029;
+}
+
+/* Responsive adjustments for custom design */
+@media (max-width: 640px) {
+  .product-header {
+    flex-direction: row; /* Ubah ke row untuk tetap sejajar */
+    align-items: center;
+  }
+
+  .custom-design-container {
+    position: relative; /* Reset position for mobile */
+    margin-right: 0; /* Reset margin for mobile */
+  }
+
+  .product-header h4 {
+    margin-right: 0; /* Reset margin for mobile */
+  }
 }
 
 @media (min-width: 768px) {

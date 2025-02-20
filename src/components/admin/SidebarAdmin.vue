@@ -109,6 +109,7 @@ const items = computed(() => {
     ...baseItems,
     { text: 'Katalog', icon: 'fas fa-th', pathName: 'KatalogView' },
     { text: 'Artikel', icon: 'fas fa-newspaper', pathName: 'BlogView' },
+    { text: 'Penghargaan', icon: 'fas fa-trophy', pathName: 'AchievementView' },
     { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
     { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
     { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },

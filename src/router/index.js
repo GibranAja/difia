@@ -14,6 +14,8 @@ import CreateStaff from '@/views/admin/CreateStaffView.vue'
 import SliderView from '@/views/admin/SliderView.vue'
 import VoucherView from '@/views/admin/VoucherView.vue'
 import CreateVoucherView from '@/views/admin/CreateVoucherView.vue'
+import AchievementView from '@/views/admin/AchievementView.vue'
+import CreateAchievementView from '@/views/admin/CreateAchievementView.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 // Customer Views
@@ -25,6 +27,7 @@ import CartView from '@/views/CartView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
 import ChatCustomer from '@/views/ChatCustomer.vue'
 import NotificationVIew from '@/views/NotificationVIew.vue'
+import TermsConditionView from '@/views/TermsConditionView.vue'
 
 // Auth Views
 import LoginPage from '@/views/LoginPage.vue'
@@ -94,6 +97,11 @@ const router = createRouter({
       path: '/checkout',
       name: 'CheckoutView',
       component: CheckoutView,
+    },
+    {
+      path: '/terms',
+      name: 'TermsView',
+      component: TermsConditionView,
     },
     {
       path: '/chat',
@@ -258,6 +266,24 @@ const router = createRouter({
           name: 'ChatDetail',
           component: ChatDetailView,
           meta: { requiresAuth: true },
+        },
+        {
+          path: 'achievement',
+          name: 'AchievementView',
+          component: AchievementView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'achievement/create',
+          name: 'CreateAchievement',
+          component: CreateAchievementView,
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'achievement/edit/:id',
+          name: 'EditAchievement',
+          component: CreateAchievementView,
+          meta: { requiresAdmin: true },
         },
       ],
     },

@@ -940,7 +940,9 @@ watch(purchaseType, (newType) => {
 }
 
 .input-group select,
-.input-group input[type='text'] {
+.input-group input[type='text'],
+.input-group input[type='number'] {
+  font-family: 'Montserrat', sans-serif;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: var(--border-radius);
@@ -980,7 +982,8 @@ watch(purchaseType, (newType) => {
 /* Dropdown Select */
 .dropdown-select {
   position: relative;
-  z-index: 20; /* Tambahkan z-index yang lebih tinggi */
+  z-index: 20;
+  font-family: 'Montserrat', sans-serif; /* Tambahkan ini */
 }
 
 .selected {
@@ -991,6 +994,7 @@ watch(purchaseType, (newType) => {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  font-family: 'Montserrat', sans-serif; /* Tambahkan ini */
 }
 
 .arrow {
@@ -1017,9 +1021,10 @@ watch(purchaseType, (newType) => {
   margin-top: 0.25rem;
   max-height: 200px;
   overflow-y: auto;
-  z-index: 30; /* Naikkan z-index */
+  z-index: 30;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: none;
+  font-family: 'Montserrat', sans-serif; /* Tambahkan ini */
 }
 
 .dropdown-select.active .options-dropdown {
@@ -1033,6 +1038,7 @@ watch(purchaseType, (newType) => {
   padding: 0.75rem;
   cursor: pointer;
   transition: var(--transition);
+  font-family: 'Montserrat', sans-serif; /* Tambahkan ini */
 }
 
 .dropdown-option:hover {

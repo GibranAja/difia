@@ -23,17 +23,49 @@
             Souvenir
           </button>
         </div>
+
+        <!-- Add this new filter dropdown -->
+        <div class="status-filter">
+          <div class="dropdown-select" @click="toggleDropdown" ref="dropdownRef">
+            <div class="selected-text">
+              {{
+                selectedStatuses.length ? `${selectedStatuses.length} selected` : 'Filter Status'
+              }}
+            </div>
+            <div class="dropdown-menu" v-if="isDropdownOpen">
+              <label
+                v-for="status in ['pending', 'process', 'delivery', 'complete', 'cancelled']"
+                :key="status"
+                class="dropdown-item"
+                @click.stop
+              >
+                <input type="checkbox" v-model="selectedStatuses" :value="status" />
+                <span class="status-badge" :class="status">{{ status }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Regular Orders Section -->
       <div class="order-section" v-if="activeOrderType === 'regular'">
         <h2>Regular Orders</h2>
-        <!-- Add empty state -->
-        <div v-if="!regularOrders.length" class="empty-state">
+
+        <!-- Show empty state for no orders -->
+        <div v-if="!orders.length" class="empty-state">
           <div class="empty-state-content">
             <i class="fas fa-box-open empty-state-icon"></i>
             <h3>Belum Ada Pesanan</h3>
             <p>Saat ini belum ada pesanan satuan yang masuk</p>
+          </div>
+        </div>
+
+        <!-- Show empty state for filtered orders -->
+        <div v-else-if="!regularOrders.length" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-box-open empty-state-icon"></i>
+            <h3>Tidak ada data order</h3>
+            <p>Tidak ditemukan pesanan dengan filter yang dipilih</p>
           </div>
         </div>
 
@@ -110,12 +142,22 @@
       <!-- Souvenir Orders Section -->
       <div class="order-section" v-if="activeOrderType === 'souvenir'">
         <h2>Souvenir Orders</h2>
-        <!-- Add empty state -->
-        <div v-if="!souvenirOrders.length" class="empty-state">
+
+        <!-- Show empty state for no orders -->
+        <div v-if="!orders.length" class="empty-state">
           <div class="empty-state-content">
             <i class="fas fa-gift empty-state-icon"></i>
-            <h3>Belum Ada Pesanan Souvenir</h3>
+            <h3>Belum Ada Pesanan</h3>
             <p>Saat ini belum ada pesanan souvenir yang masuk</p>
+          </div>
+        </div>
+
+        <!-- Show empty state for filtered orders -->
+        <div v-else-if="!souvenirOrders.length" class="empty-state">
+          <div class="empty-state-content">
+            <i class="fas fa-gift empty-state-icon"></i>
+            <h3>Tidak ada data order</h3>
+            <p>Tidak ditemukan pesanan dengan filter yang dipilih</p>
           </div>
         </div>
 
@@ -275,7 +317,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { db } from '@/config/firebase'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
 import LoadComponent from '@/components/LoadComponent.vue'
@@ -293,6 +335,9 @@ const previewImage = ref('')
 const showPaymentProofModal = ref(false)
 const paymentProofImage = ref('')
 const activeOrderType = ref('regular')
+const selectedStatuses = ref([])
+const isDropdownOpen = ref(false)
+const dropdownRef = ref(null)
 
 const statusFlow = {
   pending: ['process', 'cancelled'],
@@ -310,9 +355,21 @@ defineProps({
 })
 
 // Computed properties for filtered orders
-const regularOrders = computed(() => orders.value.filter((order) => !order.isBulkOrder))
+const regularOrders = computed(() => {
+  let filtered = orders.value.filter((order) => !order.isBulkOrder)
+  if (selectedStatuses.value.length > 0) {
+    filtered = filtered.filter((order) => selectedStatuses.value.includes(order.status))
+  }
+  return filtered
+})
 
-const souvenirOrders = computed(() => orders.value.filter((order) => order.isBulkOrder))
+const souvenirOrders = computed(() => {
+  let filtered = orders.value.filter((order) => order.isBulkOrder)
+  if (selectedStatuses.value.length > 0) {
+    filtered = filtered.filter((order) => selectedStatuses.value.includes(order.status))
+  }
+  return filtered
+})
 
 const availableStatuses = computed(() => {
   if (!selectedOrder.value) return []
@@ -441,6 +498,27 @@ const getStatusIcon = (status) => {
   }
   return icons[status] || 'fas fa-circle'
 }
+
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+// Add click outside handler
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+      isDropdownOpen.value = false
+    }
+  })
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', (e) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+      isDropdownOpen.value = false
+    }
+  })
+})
 </script>
 
 <style scoped>
@@ -571,9 +649,10 @@ button:not([class*='fas']) {
   color: #004085;
 }
 
+/* Update status-badge for delivery */
 .status-badge.delivery {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e9d5ff;
+  color: #6b21a8;
 }
 
 .status-badge.complete {
@@ -1309,5 +1388,73 @@ h1 {
 .postal-code {
   color: #666;
   font-size: 0.85em;
+}
+
+/* Add these new styles */
+.order-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.status-filter {
+  position: relative;
+  min-width: 200px;
+}
+
+.dropdown-select {
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.selected-text {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selected-text::after {
+  content: '▼';
+  font-size: 0.8em;
+  margin-left: 8px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  gap: 8px;
+  user-select: none; /* Prevent text selection */
+}
+
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.dropdown-item input[type='checkbox'] {
+  margin: 0;
+  cursor: pointer;
 }
 </style>
