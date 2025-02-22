@@ -95,6 +95,21 @@
 
               <!-- Action Buttons -->
               <div class="action-section">
+                <!-- Add download invoice button for orders in process -->
+                <button
+                  v-if="order.status === 'process'"
+                  class="invoice-btn"
+                  @click="downloadOrderInvoice(order.id)"
+                  :disabled="processingInvoice === order.id || cooldowns[order.id] > 0"
+                >
+                  <i class="fas fa-file-invoice"></i>
+                  <span v-if="processingInvoice === order.id">Processing...</span>
+                  <span v-else-if="cooldowns[order.id] > 0">
+                    Tunggu ({{ cooldowns[order.id] }}s)
+                  </span>
+                  <span v-else>Lihat Invoice</span>
+                </button>
+
                 <button
                   v-if="order.status === 'delivery'"
                   class="complete-btn"
@@ -137,6 +152,7 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { updateDoc } from 'firebase/firestore'
 import { useNotificationStore } from '@/stores/NotificationStore'
+import { useInvoiceStore } from '@/stores/InvoiceStore' // Add this import
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -145,6 +161,10 @@ const expandedOrders = ref({})
 const orders = ref([])
 let unsubscribe = null
 const notificationStore = useNotificationStore()
+const invoiceStore = useInvoiceStore() // Add this
+// Add these with other refs
+const processingInvoice = ref(null) // Tracks which invoice is being processed
+const cooldowns = ref({}) // Tracks cooldown timers for each invoice
 
 // Handle image error
 const handleImageError = (e) => {
@@ -295,6 +315,35 @@ const completeOrder = async (orderId) => {
   } catch (error) {
     console.error('Error completing order:', error)
     toast.error('Gagal menyelesaikan pesanan')
+  }
+}
+
+// Add this function
+const downloadOrderInvoice = async (orderId) => {
+  if (processingInvoice.value === orderId || cooldowns.value[orderId] > 0) return
+
+  try {
+    processingInvoice.value = orderId
+    const result = await invoiceStore.downloadInvoice(orderId)
+
+    if (!result.success) {
+      throw new Error(result.error)
+    }
+
+    // Start cooldown after successful download
+    cooldowns.value[orderId] = 10
+    const timer = setInterval(() => {
+      cooldowns.value[orderId]--
+      if (cooldowns.value[orderId] <= 0) {
+        clearInterval(timer)
+        delete cooldowns.value[orderId]
+      }
+    }, 1000)
+  } catch (error) {
+    console.error('Error downloading invoice:', error)
+    toast.error('Gagal mengunduh invoice: ' + error.message)
+  } finally {
+    processingInvoice.value = null
   }
 }
 </script>
@@ -710,5 +759,37 @@ input:focus {
   .action-section {
     grid-column: 1 / -1;
   }
+}
+
+/* Add these styles */
+.invoice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.invoice-btn:hover {
+  background-color: #45a049;
+}
+
+.invoice-btn i {
+  font-size: 1rem;
+}
+
+.invoice-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.invoice-btn:disabled:hover {
+  background-color: #cccccc;
 }
 </style>
