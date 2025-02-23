@@ -328,6 +328,36 @@ onUnmounted(() => {
   justify-content: center;
 }
 
+.sidebar.collapsed .nav-item.active .nav-item-content {
+  justify-content: center;
+  padding: 0;
+  width: auto;
+}
+
+.sidebar.collapsed .nav-item.active i {
+  margin: 0;
+  min-width: unset;
+  font-size: 1.1em;
+}
+
+/* Adjust the nav-item-content for collapsed state */
+.sidebar.collapsed .nav-item-content {
+  justify-content: center;
+  padding: 0;
+}
+
+/* Hide text in collapsed state */
+.sidebar.collapsed .nav-item-content span {
+  display: none;
+}
+
+/* Ensure counter badge stays visible and properly positioned */
+.sidebar.collapsed .nav-item-content .order-counter {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+}
+
 /* Mengatur logout button saat collapsed */
 .logout-btn {
   color: #f44336;
