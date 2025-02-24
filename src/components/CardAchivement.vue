@@ -20,21 +20,24 @@ export default {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-around;
-  width: 33%;
+  width: 100%;
+  height: 50vh;
   background-color: white;
   padding: 10px;
   border-radius: 10px;
-  box-shadow: 0 0 20px black;
+  text-align: center;
+  /* box-shadow: 0 0 20px black; */
+  border: 1px solid black;
 }
 .card .picture img{
   width: 100px;
   border-radius: 10px;
 }
 .card .text{
-  width: 60%;
+  width: 100%;
   text-align: justify;
 }
 .card .picture{
-  width: 30%;
+  width: 100%;
 }
 </style>

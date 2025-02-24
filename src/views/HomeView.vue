@@ -51,6 +51,7 @@
         </div>
         <div class="text">
           <h1><b>TENTANG KAMI</b></h1>
+          <br>
           <p>
             Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
             covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang
@@ -64,7 +65,39 @@
         <span class="ring"></span>
         <span class="bg-scroll"></span>
         <span class="side-color"> </span>
-        <CardAchivement></CardAchivement>
+        <div class="swipper-controll">
+          <Swiper :slides-per-view="4" :space-between="30" :modules="modules" :pagination="{ clickable: true }"
+            :autoplay="{ delay: 2500, disableOnInteraction: false, }" :navigation="false" :speed="800" :loop="true"
+            class="swipper-container">
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+            <SwiperSlide>
+              <CardAchivement></CardAchivement>
+            </SwiperSlide>
+          </Swiper>
+        </div>
       </div>
     </section>
     <section class="katalog" id="catalog">
@@ -252,12 +285,12 @@ header {
   height: 100vh;
 }
 
-.mySwiper {
+header .mySwiper {
   width: 100%;
   height: 100vh;
 }
 
-.swiper-slide {
+header .swiper-slide {
   width: 100%;
   height: 100vh;
   width: 100vh;
@@ -350,8 +383,24 @@ header .text {
   position: relative;
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
+  justify-content: right;
   align-items: center;
+}
+
+.swiper-container {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-slide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Tambahkan gaya sesuai kebutuhan */
+}
+
+.swipper-controll {
+  width: 85%;
 }
 
 .tentang-kami .swipper .bg-scroll {
