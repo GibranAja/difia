@@ -1,19 +1,42 @@
 <template>
   <Navbar />
   <main class="cart-view">
-    <!-- Back Button -->
     <router-link to="/" class="back-button">
       <i class="fas fa-arrow-left"></i>
     </router-link>
 
-    <!-- Page Title -->
     <h1 class="page-title">Keranjang</h1>
 
-    <!-- Cart Items Section -->
     <div class="cart-container">
-      <!-- Product List -->
       <section class="cart-items" v-if="cartStore.cartItems.length">
+        <!-- Select All Checkbox -->
+        <div class="select-all-container">
+          <label class="custom-checkbox">
+            <input
+              type="checkbox"
+              v-model="selectAll"
+              @change="handleSelectAll"
+              :checked="isAllSelected"
+            />
+            <span class="checkmark"></span>
+            <span class="select-all-text">Pilih Semua</span>
+          </label>
+        </div>
+
         <div class="cart-card" v-for="item in cartStore.cartItems" :key="item.id">
+          <!-- Item Checkbox -->
+          <div class="item-checkbox">
+            <label class="custom-checkbox">
+              <input
+                type="checkbox"
+                v-model="selectedItems"
+                :value="item.id"
+                @change="handleItemSelection"
+              />
+              <span class="checkmark"></span>
+            </label>
+          </div>
+
           <!-- Product Image -->
           <div class="cart-card__image">
             <img :src="item.image" :alt="item.name" />
@@ -23,14 +46,12 @@
           <div class="cart-card__content">
             <h2 class="cart-card__title">{{ item.name }}</h2>
 
-            <!-- Custom Options -->
             <div class="cart-card__options">
               <p>Bahan Luar: {{ item.customOptions.bahanLuar }}</p>
               <p>Bahan Dalam: {{ item.customOptions.bahanDalam }}</p>
               <p>Aksesoris: {{ item.customOptions.aksesoris.join(', ') }}</p>
             </div>
 
-            <!-- Quantity and Price -->
             <div class="cart-card__controls">
               <div class="quantity-control">
                 <button
@@ -59,7 +80,6 @@
               <p class="subtotal">Rp {{ formatPrice(item.price * item.quantity) }}</p>
             </div>
 
-            <!-- Delete Button -->
             <button class="cart-card__delete" @click="removeItem(item.id)" title="Hapus Item">
               <i class="fas fa-trash"></i>
             </button>
@@ -67,20 +87,23 @@
         </div>
       </section>
 
-      <!-- Empty Cart Message -->
       <section class="empty-cart" v-else>
         <p>Keranjang belanja Anda kosong</p>
-        <router-link to="/" class="continue-shopping"> Lanjutkan Belanja </router-link>
+        <router-link to="/" class="continue-shopping">Lanjutkan Belanja</router-link>
       </section>
 
-      <!-- Order Summary -->
       <aside class="order-summary" v-if="cartStore.cartItems.length">
         <h2>Total Pembelian</h2>
 
         <div class="summary-details">
           <div class="summary-row">
+            <span>Item Dipilih</span>
+            <span>{{ selectedItems.length }} item</span>
+          </div>
+
+          <div class="summary-row">
             <span>Subtotal</span>
-            <span>Rp {{ formatPrice(cartTotal) }}</span>
+            <span>Rp {{ formatPrice(getSelectedItemsTotal) }}</span>
           </div>
 
           <div class="summary-row">
@@ -92,29 +115,88 @@
 
           <div class="summary-row total">
             <span>Total</span>
-            <span>Rp {{ formatPrice(cartTotal + (shippingCost || 0)) }}</span>
+            <span>Rp {{ formatPrice(getSelectedItemsTotal + (shippingCost || 0)) }}</span>
           </div>
         </div>
 
-        <router-link to="/checkout" class="checkout-button"> Lanjutkan Ke Pembayaran </router-link>
+        <button
+          class="checkout-button"
+          :disabled="selectedItems.length === 0"
+          @click="proceedToCheckout"
+        >
+          Lanjutkan Ke Pembayaran
+        </button>
       </aside>
     </div>
   </main>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useCartStore } from '@/stores/CartStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useRouter } from 'vue-router'
 import Navbar from '@/components/NavigationBar.vue'
 import { useToast } from 'vue-toastification'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const router = useRouter()
 const toast = useToast()
 const shippingCost = 0
 const isLoading = ref(false)
-const cartTotal = computed(() => cartStore.getCartTotal())
+const selectedItems = ref([])
+const selectAll = ref(false)
+
+// Computed property to check if all items are selected
+const isAllSelected = computed(() => {
+  return cartStore.cartItems.length > 0 && selectedItems.value.length === cartStore.cartItems.length
+})
+
+// Computed property to get total of selected items
+const getSelectedItemsTotal = computed(() => {
+  return cartStore.cartItems
+    .filter((item) => selectedItems.value.includes(item.id))
+    .reduce((total, item) => total + item.price * item.quantity, 0)
+})
+
+// Watch for changes in cart items to update selection state
+watch(
+  () => cartStore.cartItems.length,
+  (newLength) => {
+    if (newLength === 0) {
+      selectedItems.value = []
+      selectAll.value = false
+    }
+  },
+)
+
+// Handle select all checkbox
+const handleSelectAll = (event) => {
+  const isChecked = event.target.checked
+  if (isChecked) {
+    selectedItems.value = cartStore.cartItems.map((item) => item.id)
+  } else {
+    selectedItems.value = []
+  }
+}
+
+// Handle individual item selection
+const handleItemSelection = () => {
+  selectAll.value = isAllSelected.value
+}
+
+// Navigate to checkout with selected items
+const proceedToCheckout = () => {
+  if (selectedItems.value.length === 0) {
+    toast.warning('Pilih minimal satu item untuk checkout')
+    return
+  }
+  router.push({
+    path: '/checkout',
+    query: { items: selectedItems.value.join(',') },
+  })
+}
 
 // Add function to save cart to localStorage
 const saveCartToCache = (cartData) => {
@@ -181,7 +263,7 @@ onMounted(async () => {
   }
 })
 
-// Update other functions to maintain cache
+// Handle quantity change
 const handleQuantityChange = async (itemId, quantity) => {
   const item = cartStore.cartItems.find((item) => item.id === itemId)
   const minQuantity = item.customOptions.purchaseType === 'Satuan' ? 1 : 20
@@ -194,6 +276,7 @@ const handleQuantityChange = async (itemId, quantity) => {
   saveCartToCache(cartStore.cartItems)
 }
 
+// Update quantity
 const updateQuantity = async (itemId, quantity) => {
   const item = cartStore.cartItems.find((item) => item.id === itemId)
   const minQuantity = item.customOptions.purchaseType === 'Satuan' ? 1 : 20
@@ -206,13 +289,21 @@ const updateQuantity = async (itemId, quantity) => {
   saveCartToCache(cartStore.cartItems)
 }
 
+// Remove item
 const removeItem = async (itemId) => {
   if (confirm('Apakah Anda yakin ingin menghapus item ini?')) {
+    // Remove item from selected items if it was selected
+    selectedItems.value = selectedItems.value.filter((id) => id !== itemId)
+    // Update selectAll state
+    selectAll.value = isAllSelected.value
+
     await cartStore.removeFromCart(itemId)
-    saveCartToCache(cartStore.cartItems) // Update cache after item removal
+    saveCartToCache(cartStore.cartItems)
+    toast.success('Item berhasil dihapus')
   }
 }
 
+// Format price
 const formatPrice = (price) => {
   return price.toLocaleString('id-ID')
 }
@@ -258,18 +349,100 @@ const formatPrice = (price) => {
 .cart-items {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.select-all-container {
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px 12px 0 0;
+  margin-bottom: 0;
+  border-bottom: 1px solid #eee;
+}
+
+.select-all-text {
+  margin-left: 0.5rem;
+  font-weight: 500;
+  color: #02163b;
 }
 
 .cart-card {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: auto 150px 1fr;
   gap: 1.5rem;
   padding: 1.5rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid #eee;
   position: relative;
+}
+
+.cart-card:last-child {
+  border-bottom: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.item-checkbox {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+/* Custom Checkbox Styles */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: relative;
+  height: 24px;
+  width: 24px;
+  background-color: #fff;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+  border-color: #02163b;
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+  background-color: #02163b;
+  border-color: #02163b;
+}
+
+.checkmark:after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -65%) rotate(45deg);
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+  display: block;
 }
 
 .cart-card__image img {
@@ -317,11 +490,11 @@ const formatPrice = (price) => {
   border: 1px solid #ddd;
   border-radius: 6px;
   text-align: center;
-  appearance: textfield; /* Safari */
-  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
-quantity-control input::-webkit-outer-spin-button,
+.quantity-control input::-webkit-outer-spin-button,
 .quantity-control input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
@@ -417,10 +590,17 @@ quantity-control input::-webkit-outer-spin-button,
   border-radius: 8px;
   transition: background-color 0.2s;
   font-weight: 500;
+  border: none;
+  cursor: pointer;
 }
 
-.checkout-button:hover {
+.checkout-button:hover:not(:disabled) {
   background-color: #d4a832;
+}
+
+.checkout-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 /* Empty Cart */
@@ -455,8 +635,9 @@ quantity-control input::-webkit-outer-spin-button,
   }
 
   .cart-card {
-    grid-template-columns: 100px 1fr;
+    grid-template-columns: auto 100px 1fr;
     gap: 1rem;
+    padding: 1rem;
   }
 
   .cart-card__image img {
@@ -469,9 +650,107 @@ quantity-control input::-webkit-outer-spin-button,
   }
 
   .quantity-control {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     gap: 0.5rem;
   }
+
+  .unit-price {
+    font-size: 0.9rem;
+  }
+
+  .cart-card__controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .subtotal {
+    align-self: flex-end;
+  }
+
+  .back-button {
+    top: 4rem;
+    left: 1rem;
+  }
+
+  .page-title {
+    margin: 2rem 0 1.5rem;
+    font-size: 1.5rem;
+  }
+
+  .select-all-container {
+    padding: 0.75rem 1rem;
+  }
+
+  .checkmark {
+    height: 20px;
+    width: 20px;
+  }
+
+  .checkmark:after {
+    left: 6px;
+    top: 3px;
+    width: 4px;
+    height: 8px;
+  }
+}
+
+/* Add loading state styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #e8ba38;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Add focus styles for accessibility */
+.custom-checkbox input:focus ~ .checkmark {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.quantity-btn:focus,
+.cart-card__delete:focus,
+.checkout-button:focus,
+.continue-shopping:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+/* Add transition for smoother interactions */
+.cart-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.cart-card:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: #f8f9fa;
 }
 </style>
