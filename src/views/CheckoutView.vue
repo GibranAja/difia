@@ -240,17 +240,29 @@
           <span>Rp {{ formatPrice(finalTotal) }}</span>
         </div>
 
+        <div class="terms-checkbox">
+          <label class="custom-checkbox">
+            <input type="checkbox" v-model="acceptedTerms" id="termsCheckbox" />
+            <span class="checkmark"></span>
+            <span class="terms-text">
+              Saya menyetujui
+              <a href="/terms" target="_blank" class="terms-link">Syarat & Ketentuan</a> yang
+              berlaku
+            </span>
+          </label>
+        </div>
+
         <button
           class="checkout-button"
-          :disabled="!selectedCity || isLoadingShipping || isProcessing"
+          :disabled="!selectedCity || isLoadingShipping || isProcessing || !acceptedTerms"
           @click="handleSubmitOrder"
         >
-          <span v-if="isProcessing"> Process<span class="loading-dots">...</span> </span>
+          <span v-if="isProcessing">Process<span class="loading-dots">...</span></span>
           <span v-else>Bayar Sekarang</span>
         </button>
-        <p class="terms">
-          Dengan melakukan pembayaran, Anda menyetujui
-          <a href="/terms" target="_blank" class="terms-link">Syarat & Ketentuan</a> kami
+
+        <p class="terms-notice" v-if="!acceptedTerms">
+          Anda harus menyetujui syarat & ketentuan untuk melanjutkan
         </p>
       </section>
     </div>
@@ -301,6 +313,12 @@ const isLoadingProvinces = ref(false)
 const isLoadingCities = ref(false)
 
 const isProcessing = ref(false) // Add this with other refs
+
+// Add these refs with your existing refs
+const cartItems = ref([])
+
+// Add near other refs
+const acceptedTerms = ref(false)
 
 // Update loadProvinces function
 const loadProvinces = async () => {
@@ -494,8 +512,107 @@ const getOrderFromLocal = () => {
 }
 
 // Modifikasi onBeforeMount
+const loadCartItems = () => {
+  try {
+    const savedCheckout = localStorage.getItem('checkout_items')
+    if (!savedCheckout) {
+      router.push('/cart')
+      return
+    }
+
+    const { items, timestamp, userId } = JSON.parse(savedCheckout)
+
+    // Validate checkout data
+    if (userId !== authStore.currentUser?.id) {
+      router.push('/cart')
+      return
+    }
+
+    // Check if checkout is expired (30 minutes)
+    if (Date.now() - timestamp > 30 * 60 * 1000) {
+      localStorage.removeItem('checkout_items')
+      router.push('/cart')
+      return
+    }
+
+    cartItems.value = items
+
+    // Update your order store with cart data
+    const firstItem = items[0] // For single item checkout
+    orderStore.setCurrentOrder({
+      id: firstItem.id,
+      productId: firstItem.productId,
+      name: firstItem.name,
+      price: firstItem.price,
+      quantity: firstItem.quantity,
+      image: firstItem.image,
+      customOptions: firstItem.customOptions,
+    })
+  } catch (error) {
+    console.error('Error loading checkout items:', error)
+    router.push('/cart')
+  }
+}
+
 onBeforeMount(() => {
   try {
+    // Check if this is a reorder
+    const reorderData = localStorage.getItem('reorder_data')
+    if (reorderData) {
+      const parsedData = JSON.parse(reorderData)
+
+      // Set order data
+      orderStore.setCurrentOrder({
+        id: parsedData.id,
+        productId: parsedData.productId,
+        name: parsedData.name,
+        price: parsedData.price,
+        quantity: parsedData.quantity,
+        image: parsedData.image,
+        customOptions: parsedData.customOptions,
+      })
+
+      // Pre-fill shipping form
+      formData.value = {
+        name: parsedData.shippingDetails.name,
+        email: parsedData.shippingDetails.email,
+        phone: parsedData.shippingDetails.phone,
+        address: parsedData.shippingDetails.address,
+        zip: parsedData.shippingDetails.zip,
+      }
+
+      // First load provinces
+      loadProvinces().then(async () => {
+        // Set province after provinces are loaded
+        selectedProvince.value = parsedData.shippingDetails.province
+
+        // Then load cities for the selected province
+        const province = provinces.value.find(
+          (p) => p.province === parsedData.shippingDetails.province,
+        )
+        if (province) {
+          try {
+            // Load cities using province ID
+            cities.value = await rajaOngkir.getCities(province.province_id)
+            // Now set the selected city
+            selectedCity.value = parsedData.shippingDetails.city
+            // Calculate shipping after city is set
+            await calculateShipping()
+          } catch (error) {
+            console.error('Error loading cities:', error)
+            toast.error('Gagal memuat data kota')
+          }
+        }
+      })
+
+      // Clear reorder data
+      localStorage.removeItem('reorder_data')
+      return
+    }
+
+    // Existing logic for normal checkout
+    loadCartItems()
+
     if (!orderStore.currentOrder) {
       const savedOrder = getOrderFromLocal()
       if (savedOrder) {
@@ -503,8 +620,6 @@ onBeforeMount(() => {
       } else {
         router.push('/')
       }
-    } else {
-      saveOrderToLocal(orderStore.currentOrder)
     }
   } catch (error) {
     console.error('Error in onBeforeMount:', error)
@@ -638,6 +753,13 @@ const handleSubmitOrder = async () => {
   try {
     isProcessing.value = true
 
+    // Check terms acceptance
+    if (!acceptedTerms.value) {
+      toast.error('Mohon setujui syarat & ketentuan')
+      scrollToElement('termsCheckbox')
+      return
+    }
+
     // Check bukti pembayaran
     if (!orderStore.paymentProof) {
       toast.error('Mohon upload bukti pembayaran')
@@ -708,6 +830,8 @@ const handleSubmitOrder = async () => {
 
     const result = await orderStore.createOrder(orderDetails)
     if (result.success) {
+      // Clear checkout data
+      localStorage.removeItem('checkout_items')
       router.push('/notification')
       localStorage.removeItem('currentOrder')
     }
@@ -1454,5 +1578,76 @@ html {
 
 .upload-area {
   scroll-margin-top: 20px;
+}
+
+.terms-checkbox {
+  margin: 1rem 0;
+}
+
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  position: relative;
+  padding-left: 30px;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  border: 2px solid #e8ba38;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+  background-color: rgba(232, 186, 56, 0.1);
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+  background-color: #e8ba38;
+}
+
+.checkmark:after {
+  content: '';
+  position: absolute;
+  display: none;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.custom-checkbox .checkmark:after {
+  left: 6px;
+  top: 2px;
+  width: 4px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.terms-text {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.terms-notice {
+  margin-top: 0.5rem;
+  color: #ff4646;
+  font-size: 0.8rem;
+  text-align: center;
 }
 </style>
