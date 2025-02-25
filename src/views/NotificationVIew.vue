@@ -128,6 +128,16 @@
                   >
                     Beli Lagi
                   </router-link>
+                  <router-link
+                    :to="{
+                      path: '/checkout',
+                      query: { reorder: true, orderId: order.id },
+                    }"
+                    class="buy-again-btn"
+                    @click="handleReorder(order)"
+                  >
+                    Beli Lagi
+                  </router-link>
                   <button class="review-btn">Tulis Ulasan</button>
                 </div>
               </div>
@@ -345,6 +355,24 @@ const downloadOrderInvoice = async (orderId) => {
   } finally {
     processingInvoice.value = null
   }
+}
+
+// Add this function
+const handleReorder = (order) => {
+  // Prepare order data for checkout
+  const reorderData = {
+    id: Date.now().toString(), // Generate new ID
+    productId: order.productId,
+    name: order.productName,
+    price: order.price,
+    quantity: order.quantity,
+    image: order.customOptions.productImage,
+    customOptions: order.customOptions,
+    shippingDetails: order.shippingDetails,
+  }
+
+  // Save to localStorage for checkout
+  localStorage.setItem('reorder_data', JSON.stringify(reorderData))
 }
 </script>
 
