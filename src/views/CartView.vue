@@ -186,16 +186,43 @@ const handleItemSelection = () => {
   selectAll.value = isAllSelected.value
 }
 
-// Navigate to checkout with selected items
+// Updated proceedToCheckout function
 const proceedToCheckout = () => {
   if (selectedItems.value.length === 0) {
     toast.warning('Pilih minimal satu item untuk checkout')
     return
   }
-  router.push({
-    path: '/checkout',
-    query: { items: selectedItems.value.join(',') },
-  })
+
+  // Get selected items data
+  const selectedItemsData = cartStore.cartItems
+    .filter((item) => selectedItems.value.includes(item.id))
+    .map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      customOptions: item.customOptions,
+    }))
+
+  try {
+    // Store selected items in localStorage for checkout
+    localStorage.setItem(
+      'checkout_items',
+      JSON.stringify({
+        items: selectedItemsData,
+        timestamp: Date.now(),
+        userId: authStore.currentUser?.id,
+      }),
+    )
+
+    // Navigate to checkout
+    router.push('/checkout')
+  } catch (error) {
+    console.error('Error preparing checkout:', error)
+    toast.error('Gagal memproses checkout')
+  }
 }
 
 // Add function to save cart to localStorage
