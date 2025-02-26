@@ -12,6 +12,7 @@ import {
   limit,
   startAfter,
   where,
+  onSnapshot,
 } from 'firebase/firestore'
 
 export const useKatalogStore = defineStore('katalog', {
@@ -21,6 +22,9 @@ export const useKatalogStore = defineStore('katalog', {
     error: null,
     lastDoc: null,
     hasMore: true,
+    reviews: [],
+    reviewsLoading: false,
+    reviewError: null,
   }),
 
   actions: {
@@ -54,25 +58,25 @@ export const useKatalogStore = defineStore('katalog', {
           harga: {
             standar: Number(katalogData.harga.standar),
             premium: Number(katalogData.harga.premium),
-            budgetting: 'By Request'
+            budgetting: 'By Request',
           },
           detail: {
             ukuran: {
               panjang: katalogData.detail.ukuran.panjang,
               tinggi: katalogData.detail.ukuran.tinggi,
-              lebar: katalogData.detail.ukuran.lebar
+              lebar: katalogData.detail.ukuran.lebar,
             },
             bahanLuar: katalogData.detail.bahanLuar,
             bahanDalam: katalogData.detail.bahanDalam,
             aksesoris: katalogData.detail.aksesoris,
-            warna: katalogData.detail.warna
+            warna: katalogData.detail.warna,
           },
           waktuPengerjaan: {
             pcs50_100: katalogData.waktuPengerjaan.pcs50_100,
             pcs200: katalogData.waktuPengerjaan.pcs200,
             pcs300: katalogData.waktuPengerjaan.pcs300,
             pcsAbove300: katalogData.waktuPengerjaan.pcsAbove300,
-            express: "Additional 5% dari totalan"
+            express: 'Additional 5% dari totalan',
           },
           images: base64Images,
           createdAt: new Date(),
@@ -81,7 +85,6 @@ export const useKatalogStore = defineStore('katalog', {
         const docRef = await addDoc(collection(db, 'katalog'), newKatalog)
         this.katalogItems.unshift({ id: docRef.id, ...newKatalog })
         return { success: true, id: docRef.id }
-
       } catch (error) {
         console.error('Error in addKatalog:', error)
         return { success: false, error: error.message }
@@ -107,25 +110,25 @@ export const useKatalogStore = defineStore('katalog', {
           harga: {
             standar: Number(updateData.harga.standar),
             premium: Number(updateData.harga.premium),
-            budgetting: 'By Request'
+            budgetting: 'By Request',
           },
           detail: {
             ukuran: {
               panjang: updateData.detail.ukuran.panjang,
               tinggi: updateData.detail.ukuran.tinggi,
-              lebar: updateData.detail.ukuran.lebar
+              lebar: updateData.detail.ukuran.lebar,
             },
             bahanLuar: updateData.detail.bahanLuar,
             bahanDalam: updateData.detail.bahanDalam,
             aksesoris: updateData.detail.aksesoris,
-            warna: updateData.detail.warna
+            warna: updateData.detail.warna,
           },
           waktuPengerjaan: {
             pcs50_100: updateData.waktuPengerjaan.pcs50_100,
             pcs200: updateData.waktuPengerjaan.pcs200,
             pcs300: updateData.waktuPengerjaan.pcs300,
             pcsAbove300: updateData.waktuPengerjaan.pcsAbove300,
-            express: "Additional 5% dari totalan"
+            express: 'Additional 5% dari totalan',
           },
           updatedAt: new Date(),
         }
@@ -151,7 +154,7 @@ export const useKatalogStore = defineStore('katalog', {
         const q = query(
           collection(db, 'katalog'),
           orderBy('createdAt', 'asc'), // Change 'desc' to 'asc'
-          limit(pageSize)
+          limit(pageSize),
         )
 
         const querySnapshot = await getDocs(q)
@@ -183,7 +186,7 @@ export const useKatalogStore = defineStore('katalog', {
           collection(db, 'katalog'),
           orderBy('createdAt', 'asc'), // Change 'desc' to 'asc'
           startAfter(this.lastDoc),
-          limit(pageSize)
+          limit(pageSize),
         )
 
         const querySnapshot = await getDocs(q)
@@ -232,7 +235,7 @@ export const useKatalogStore = defineStore('katalog', {
           collection(db, 'katalog'),
           where('nama', '>=', searchTerm),
           where('nama', '<=', searchTerm + '\uf8ff'),
-          limit(10)
+          limit(10),
         )
 
         const querySnapshot = await getDocs(q)
@@ -248,6 +251,34 @@ export const useKatalogStore = defineStore('katalog', {
         return { success: false, error: error.message }
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchReviews(katalogId) {
+      try {
+        this.reviewsLoading = true
+        const reviewsRef = collection(db, 'reviews')
+        const q = query(
+          reviewsRef,
+          where('katalogId', '==', katalogId),
+          orderBy('createdAt', 'desc'),
+        )
+
+        // Set up real-time listener
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          this.reviews = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate(),
+          }))
+        })
+
+        return unsubscribe
+      } catch (error) {
+        this.reviewError = error.message
+        console.error('Error fetching reviews:', error)
+      } finally {
+        this.reviewsLoading = false
       }
     },
 

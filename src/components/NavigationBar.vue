@@ -1,7 +1,7 @@
 <template>
   <nav
     :class="{
-      'nav-hidden': isHidden,
+      'nav-hidden': isHidden || (!isScrolled && isAtTop),
       'at-top': !isScrolled,
     }"
     :style="{
@@ -79,6 +79,7 @@ const showProfileModal = ref(false)
 const isScrolled = ref(false)
 const isHidden = ref(false)
 const lastScrollPosition = ref(0)
+const isAtTop = ref(true) // Add this new ref
 
 // Add these refs
 const showLogoutModal = ref(false)
@@ -87,21 +88,25 @@ const isLoggingOut = ref(false)
 // Handle scroll event
 const handleScroll = () => {
   const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop
+
+  // Update scroll state untuk backdrop styling
   isScrolled.value = currentScrollPosition > 0
 
-  // Hide navbar when at the very top
+  // Update state saat di paling atas
+  isAtTop.value = currentScrollPosition < 50
+
+  // Selalu sembunyikan navbar saat di paling atas
   if (currentScrollPosition < 50) {
     isHidden.value = true
     return
   }
 
-  // Only trigger hide/show if we've scrolled more than 50px
-  if (Math.abs(currentScrollPosition - lastScrollPosition.value) < 50) {
-    return
+  // Jika scroll lebih dari 50px dari posisi terakhir
+  if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 50) {
+    // Sembunyikan saat scroll ke bawah, tampilkan saat scroll ke atas
+    isHidden.value = currentScrollPosition > lastScrollPosition.value
   }
 
-  // Hide when scrolling down, show when scrolling up
-  isHidden.value = currentScrollPosition > lastScrollPosition.value
   lastScrollPosition.value = currentScrollPosition
 }
 
@@ -188,6 +193,9 @@ onMounted(async () => {
 // Add event listeners
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  // Set initial state
+  isHidden.value = true
+  handleScroll()
 })
 
 onUnmounted(() => {
@@ -228,10 +236,11 @@ nav {
 
 .nav-hidden {
   transform: translateY(-100%);
+  opacity: 0;
   pointer-events: none;
 }
 
-/* Add style for when at top */
+/* Style untuk navbar saat di paling atas */
 nav.at-top {
   background: transparent;
   backdrop-filter: none;

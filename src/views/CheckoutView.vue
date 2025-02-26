@@ -986,7 +986,7 @@ const validatePhone = (event) => {
   display: grid;
   grid-template-columns: 1fr; /* Single column */
   gap: 1rem;
-  width: 50%; /* Set width to 50% */
+  width: 100%; /* Set width to 50% */
   margin: 0; /* Remove auto margin to align left */
 }
 
@@ -1649,5 +1649,11 @@ html {
   color: #ff4646;
   font-size: 0.8rem;
   text-align: center;
+}
+
+#address {
+  resize: vertical;
+  min-height: 100px;
+  max-height: 200px;
 }
 </style>

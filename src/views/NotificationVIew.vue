@@ -121,15 +121,6 @@
                 <div v-if="order.status === 'complete'" class="completed-actions">
                   <router-link
                     :to="{
-                      path: `/custom/${order.productId}`,
-                      query: { reorder: true, orderId: order.id },
-                    }"
-                    class="buy-again-btn"
-                  >
-                    Beli Lagi
-                  </router-link>
-                  <router-link
-                    :to="{
                       path: '/checkout',
                       query: { reorder: true, orderId: order.id },
                     }"
@@ -138,7 +129,7 @@
                   >
                     Beli Lagi
                   </router-link>
-                  <button class="review-btn">Tulis Ulasan</button>
+                  <button class="review-btn" @click="openReviewModal(order)">Tulis Ulasan</button>
                 </div>
               </div>
             </div>
@@ -151,6 +142,7 @@
         Tidak ada pesanan yang ditemukan
       </div>
     </div>
+    <ReviewModal v-if="showReviewModal" :order="selectedOrder" @close="closeReviewModal" />
   </div>
 </template>
 
@@ -163,6 +155,7 @@ import { useToast } from 'vue-toastification'
 import { updateDoc } from 'firebase/firestore'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useInvoiceStore } from '@/stores/InvoiceStore' // Add this import
+import ReviewModal from '@/components/ReviewModal.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -175,6 +168,8 @@ const invoiceStore = useInvoiceStore() // Add this
 // Add these with other refs
 const processingInvoice = ref(null) // Tracks which invoice is being processed
 const cooldowns = ref({}) // Tracks cooldown timers for each invoice
+const showReviewModal = ref(false)
+const selectedOrder = ref(null)
 
 // Handle image error
 const handleImageError = (e) => {
@@ -373,6 +368,16 @@ const handleReorder = (order) => {
 
   // Save to localStorage for checkout
   localStorage.setItem('reorder_data', JSON.stringify(reorderData))
+}
+
+const openReviewModal = (order) => {
+  selectedOrder.value = order
+  showReviewModal.value = true
+}
+
+const closeReviewModal = () => {
+  showReviewModal.value = false
+  selectedOrder.value = null
 }
 </script>
 
