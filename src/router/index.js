@@ -229,7 +229,7 @@ const router = createRouter({
           path: 'voucher',
           name: 'VoucherView',
           component: VoucherView,
-          meta: { requiresAdmin: true },
+          meta: { requiresAuth: true },
         },
         {
           path: 'voucher/create',

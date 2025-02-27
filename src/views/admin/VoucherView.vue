@@ -73,9 +73,6 @@
               </td>
               <td>
                 <div class="action-buttons">
-                  <router-link :to="`/admin/voucher/edit/${voucher.id}`" class="edit-btn">
-                    <i class="fas fa-edit"></i>
-                  </router-link>
                   <button class="delete-btn" @click="showDeleteConfirmation(voucher.id)">
                     <i class="fas fa-trash"></i>
                   </button>
