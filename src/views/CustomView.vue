@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue' // Add computed, watch
+import { ref, onMounted, computed, watch, nextTick } from 'vue' // Add computed, watch, nextTick
 import { useRoute, useRouter } from 'vue-router' // Add useRouter
 import { useKatalogStore } from '@/stores/KatalogStore'
 import { storeToRefs } from 'pinia'
@@ -191,13 +191,28 @@ const handleBuyNow = async () => {
         color: selectedColor.value,
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null,
-        note: note.value, // Pastikan note dimasukkan ke customOptions
+        note: note.value,
         uploadedImage: uploadedImage.value,
       },
     }
 
-    orderStore.setCurrentOrder(orderData)
-    router.push('/checkout')
+    // Simpan order ke localStorage sebelum redirect
+    localStorage.setItem(
+      'currentOrder',
+      JSON.stringify({
+        ...orderData,
+        timestamp: Date.now(),
+      }),
+    )
+
+    // Set order di store
+    await orderStore.setCurrentOrder(orderData)
+
+    // Pastikan data tersimpan sebelum redirect
+    await nextTick()
+
+    // Redirect ke checkout
+    await router.push('/checkout')
   } catch (error) {
     console.error('Error processing order:', error)
   } finally {
