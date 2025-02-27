@@ -668,7 +668,7 @@ input:focus {
 
 .custom-design-container {
   position: absolute; /* Change to absolute positioning */
-  right: -24rem;
+  right: -19rem;
   top: 0;
   display: flex;
   flex-direction: column;
@@ -796,6 +796,7 @@ input:focus {
 
 /* Add these styles */
 .invoice-btn {
+  font-family: 'Montserrat', sans-serif;
   display: flex;
   align-items: center;
   gap: 0.5rem;
