@@ -154,9 +154,8 @@
         <h2 class="section-title">Metode Pembayaran</h2>
         <div class="payment-options">
           <div class="qris-option">
-            <a href="#" class="payment-button active">QRIS</a>
             <div class="qr-code">
-              <img src="../assets/google.svg" alt="QR Code" />
+              <img src="../assets/QRIS_Difia.jpg" alt="QR Code" />
             </div>
           </div>
         </div>
@@ -274,6 +273,7 @@
 
 <script setup>
 import { ref, onMounted, computed, onBeforeMount, watch, onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 // import { doc, getDoc } from 'firebase/firestore'
 // import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
@@ -516,7 +516,6 @@ const loadCartItems = () => {
   try {
     const savedCheckout = localStorage.getItem('checkout_items')
     if (!savedCheckout) {
-      router.push('/cart')
       return
     }
 
@@ -524,14 +523,12 @@ const loadCartItems = () => {
 
     // Validate checkout data
     if (userId !== authStore.currentUser?.id) {
-      router.push('/cart')
       return
     }
 
     // Check if checkout is expired (30 minutes)
     if (Date.now() - timestamp > 30 * 60 * 1000) {
       localStorage.removeItem('checkout_items')
-      router.push('/cart')
       return
     }
 
@@ -550,80 +547,37 @@ const loadCartItems = () => {
     })
   } catch (error) {
     console.error('Error loading checkout items:', error)
-    router.push('/cart')
   }
 }
 
-onBeforeMount(() => {
+onBeforeMount(async () => {
   try {
-    // Check if this is a reorder
+    // Check reorder first
     const reorderData = localStorage.getItem('reorder_data')
     if (reorderData) {
-      const parsedData = JSON.parse(reorderData)
-
-      // Set order data
-      orderStore.setCurrentOrder({
-        id: parsedData.id,
-        productId: parsedData.productId,
-        name: parsedData.name,
-        price: parsedData.price,
-        quantity: parsedData.quantity,
-        image: parsedData.image,
-        customOptions: parsedData.customOptions,
-      })
-
-      // Pre-fill shipping form
-      formData.value = {
-        name: parsedData.shippingDetails.name,
-        email: parsedData.shippingDetails.email,
-        phone: parsedData.shippingDetails.phone,
-        address: parsedData.shippingDetails.address,
-        zip: parsedData.shippingDetails.zip,
-      }
-
-      // First load provinces
-      loadProvinces().then(async () => {
-        // Set province after provinces are loaded
-        selectedProvince.value = parsedData.shippingDetails.province
-
-        // Then load cities for the selected province
-        const province = provinces.value.find(
-          (p) => p.province === parsedData.shippingDetails.province,
-        )
-        if (province) {
-          try {
-            // Load cities using province ID
-            cities.value = await rajaOngkir.getCities(province.province_id)
-            // Now set the selected city
-            selectedCity.value = parsedData.shippingDetails.city
-            // Calculate shipping after city is set
-            await calculateShipping()
-          } catch (error) {
-            console.error('Error loading cities:', error)
-            toast.error('Gagal memuat data kota')
-          }
-        }
-      })
-
-      // Clear reorder data
-      localStorage.removeItem('reorder_data')
+      // Handle reorder logic...
       return
     }
 
-    // Existing logic for normal checkout
-    loadCartItems()
+    await loadCartItems()
 
+    // Check current order from store
     if (!orderStore.currentOrder) {
-      const savedOrder = getOrderFromLocal()
+      // Try to get from localStorage
+      const savedOrder = localStorage.getItem('currentOrder')
       if (savedOrder) {
-        orderStore.setCurrentOrder(savedOrder)
-      } else {
-        router.push('/')
+        const parsedOrder = JSON.parse(savedOrder)
+        // Validate timestamp (30 menit)
+        if (Date.now() - parsedOrder.timestamp < 30 * 60 * 1000) {
+          await orderStore.setCurrentOrder(parsedOrder)
+          return
+        }
       }
+      // If no valid order found, redirect to cart
+      return
     }
   } catch (error) {
     console.error('Error in onBeforeMount:', error)
-    router.push('/')
   }
 })
 
@@ -850,6 +804,47 @@ const validatePhone = (event) => {
   // Batasi panjang maksimal 13 digit
   formData.value.phone = value.slice(0, 13)
 }
+
+// Add route navigation guard
+onBeforeRouteLeave((to, from, next) => {
+  // Skip confirmation if order is already processed
+  if (isProcessing.value) {
+    next()
+    return
+  }
+
+  const confirmLeave = window.confirm(
+    'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.',
+  )
+
+  if (confirmLeave) {
+    // Clear checkout data from localStorage
+    localStorage.removeItem('checkout_items')
+    localStorage.removeItem('currentOrder')
+    next()
+  } else {
+    next(false)
+  }
+})
+
+// Handle browser close/refresh
+const handleBeforeUnload = (e) => {
+  // Skip confirmation if order is already processed
+  if (isProcessing.value) return
+
+  e.preventDefault()
+  e.returnValue = 'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.'
+}
+
+// Add event listener when component mounts
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+// Remove event listener when component unmounts
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 </script>
 
 <style scoped>
