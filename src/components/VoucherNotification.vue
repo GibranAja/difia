@@ -180,7 +180,7 @@ const toggleTerms = () => {
 }
 
 .voucher-notification:hover {
-  background-color: #d6ac33;
+  background-color: #010c1f;
 }
 
 .notification-content {

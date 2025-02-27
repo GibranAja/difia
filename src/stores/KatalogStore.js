@@ -93,6 +93,50 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
+    async addKatalogWithFormData(formData) {
+      try {
+        this.loading = true
+
+        // Get the basic info from FormData
+        const basicInfo = JSON.parse(formData.get('data'))
+
+        // Convert images to base64
+        const imagePromises = []
+        for (let i = 0; formData.get(`image_${i}`); i++) {
+          imagePromises.push(this.fileToBase64(formData.get(`image_${i}`)))
+        }
+        const images = await Promise.all(imagePromises)
+
+        // Check total image size
+        if (images.join('').length > 900000) {
+          throw new Error(
+            'Total ukuran gambar terlalu besar. Mohon kurangi jumlah atau ukuran gambar.',
+          )
+        }
+
+        const newKatalog = {
+          nomor: Date.now().toString(),
+          nama: basicInfo.nama,
+          harga: basicInfo.harga,
+          detail: basicInfo.detail,
+          waktuPengerjaan: basicInfo.waktuPengerjaan,
+          images: images,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+
+        const docRef = await addDoc(collection(db, 'katalog'), newKatalog)
+        this.katalogItems.unshift({ id: docRef.id, ...newKatalog })
+
+        return { success: true }
+      } catch (error) {
+        console.error('Error in addKatalogWithFormData:', error)
+        return { success: false, error: error.message }
+      } finally {
+        this.loading = false
+      }
+    },
+
     async updateKatalog(id, updateData) {
       try {
         this.loading = true
@@ -146,15 +190,69 @@ export const useKatalogStore = defineStore('katalog', {
       }
     },
 
-    // Rest of the store remains unchanged
-    async fetchKatalog(pageSize = 10) {
+    async updateKatalogWithFormData(id, formData) {
       try {
         this.loading = true
 
+        // Get the basic info from FormData
+        const basicInfo = JSON.parse(formData.get('data'))
+
+        // Convert new images to base64
+        const imagePromises = []
+        for (let i = 0; formData.get(`image_${i}`); i++) {
+          imagePromises.push(this.fileToBase64(formData.get(`image_${i}`)))
+        }
+        const newImages = await Promise.all(imagePromises)
+
+        // Combine existing and new images
+        const finalImages = [...(basicInfo.existingImages || []), ...newImages]
+
+        // Check total image size
+        if (finalImages.join('').length > 900000) {
+          throw new Error(
+            'Total ukuran gambar terlalu besar. Mohon kurangi jumlah atau ukuran gambar.',
+          )
+        }
+
+        const updatePayload = {
+          nama: basicInfo.nama,
+          harga: basicInfo.harga,
+          detail: basicInfo.detail,
+          waktuPengerjaan: basicInfo.waktuPengerjaan,
+          images: finalImages,
+          updatedAt: new Date(),
+        }
+
+        const katalogRef = doc(db, 'katalog', id)
+        await updateDoc(katalogRef, updatePayload)
+
+        // Update local state
+        const index = this.katalogItems.findIndex((item) => item.id === id)
+        if (index !== -1) {
+          this.katalogItems[index] = {
+            ...this.katalogItems[index],
+            ...updatePayload,
+          }
+        }
+
+        return { success: true }
+      } catch (error) {
+        console.error('Error in updateKatalogWithFormData:', error)
+        return { success: false, error: error.message }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Rest of the store remains unchanged
+    async fetchKatalog() {
+      try {
+        this.loading = true
+
+        // Remove the limit to get all items
         const q = query(
           collection(db, 'katalog'),
-          orderBy('createdAt', 'asc'), // Change 'desc' to 'asc'
-          limit(pageSize),
+          orderBy('createdAt', 'desc'), // Sort by creation date, newest first
         )
 
         const querySnapshot = await getDocs(q)
@@ -163,9 +261,6 @@ export const useKatalogStore = defineStore('katalog', {
           id: doc.id,
           ...doc.data(),
         }))
-
-        this.lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1]
-        this.hasMore = querySnapshot.docs.length === pageSize
 
         return { success: true }
       } catch (error) {

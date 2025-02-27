@@ -190,7 +190,6 @@ export const useSliderStore = defineStore('slider', () => {
       sliderItems.value = sliderItems.value.filter((item) => item.id !== id)
       cache.set('sliders', sliderItems.value)
 
-      toast.success('Slider deleted successfully')
       return { success: true }
     } catch (err) {
       error.value = err.message

@@ -66,46 +66,17 @@
         <span class="ring"></span>
         <span class="bg-scroll"></span>
         <span class="side-color"> </span>
-        <div class="swipper-controll">
-          <Swiper
-            :slides-per-view="4"
-            :space-between="30"
-            :modules="modules"
-            :pagination="{ clickable: true }"
-            :autoplay="{ delay: 2500, disableOnInteraction: false }"
-            :navigation="false"
-            :speed="800"
-            :loop="true"
-            class="swipper-container"
-          >
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-            <SwiperSlide>
-              <CardAchivement></CardAchivement>
-            </SwiperSlide>
-          </Swiper>
+        <div class="carousel-container">
+          <div class="carousel-track" ref="carouselTrack">
+            <!-- Use cardIndex prop to manage achievement cycling -->
+            <div
+              v-for="(item, index) in achievementItems"
+              :key="`achievement-${index}`"
+              class="carousel-item"
+            >
+              <CardAchivement :card-index="index" />
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -238,7 +209,7 @@ import CardBlog from '@/components/CardBlog.vue'
 import NavigationBar from '@/components/NavigationBar.vue'
 import VoucherNotification from '@/components/VoucherNotification.vue'
 import { useAuthStore } from '@/stores/AuthStore'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useKatalogStore } from '@/stores/KatalogStore'
 import CardUlasan from '@/components/CardUlasan.vue'
@@ -254,6 +225,39 @@ const katalogStore = useKatalogStore()
 const partnerStore = usePartnerStore()
 const sliderStore = useSliderStore()
 
+// Array untuk endless carousel penghargaan (minimal 8 item)
+const achievementItems = ref([])
+const carouselTrack = ref(null)
+let animationId = null
+let position = 0
+const speed = 0.5 // Kecepatan scroll
+
+// Modifikasi bagian script untuk carousel
+const animateCarousel = () => {
+  if (!carouselTrack.value) return
+
+  position -= speed
+
+  // Get first item width
+  const firstItemWidth = carouselTrack.value.querySelector('.carousel-item')?.offsetWidth || 0
+
+  if (firstItemWidth > 0) {
+    // Check if first item has moved completely out of view
+    if (-position >= firstItemWidth) {
+      // Move first item to end
+      const firstItem = carouselTrack.value.firstElementChild
+      carouselTrack.value.appendChild(firstItem.cloneNode(true))
+      carouselTrack.value.removeChild(firstItem)
+
+      // Reset position by first item width to create seamless effect
+      position += firstItemWidth
+    }
+  }
+
+  carouselTrack.value.style.transform = `translateX(${position}px)`
+  animationId = requestAnimationFrame(animateCarousel)
+}
+
 const handleLogout = async () => {
   try {
     await authStore.logoutUser(router)
@@ -266,6 +270,24 @@ onMounted(async () => {
   await katalogStore.fetchKatalog()
   await partnerStore.fetchPartners()
   await sliderStore.fetchSliders()
+
+  // Membuat array achievements untuk endless carousel
+  // Duplikasi item agar endless bahkan dengan sedikit data
+  achievementItems.value = Array(12)
+    .fill(null)
+    .map((_, index) => ({ id: index }))
+
+  // Mulai animasi carousel setelah DOM dirender sepenuhnya
+  setTimeout(() => {
+    animationId = requestAnimationFrame(animateCarousel)
+  }, 500)
+})
+
+// Bersihkan animation frame saat komponen diunmount
+onBeforeUnmount(() => {
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+  }
 })
 
 const modules = [Autoplay, Pagination, Navigation]
@@ -289,7 +311,7 @@ const hasMoreItems = computed(() => {
 <style scoped>
 header {
   margin-top: 0; /* Remove negative margin since nav will be hidden initially */
-  height: 100vh;
+  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
   position: relative;
 }
 
@@ -304,17 +326,17 @@ header {
   justify-content: space-around;
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
 }
 
 header .mySwiper {
   width: 100%;
-  height: 100vh;
+  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
 }
 
 header .swiper-slide {
   width: 100%;
-  height: 100vh;
+  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
   width: 100vh;
   text-align: center;
 }
@@ -409,21 +431,52 @@ header .text {
   align-items: center;
 }
 
-.swiper-container {
-  width: 100%;
-  height: 100%;
+/* STYLE UNTUK CAROUSEL PENGHARGAAN */
+.carousel-container {
+  width: 91%;
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
 }
 
-.swiper-slide {
+.carousel-track {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Tambahkan gaya sesuai kebutuhan */
+  transition: none; /* Remove transition untuk animasi yang lebih smooth */
+  will-change: transform; /* Optimize performance */
 }
 
-.swipper-controll {
-  width: 85%;
+.carousel-item {
+  flex: 0 0 25%; /* 4 items in view */
+  padding: 0 25px; /* Increased padding from 15px to 25px */
+  box-sizing: border-box;
+  opacity: 1;
 }
+
+/* Optional: Add margin for extra separation */
+.card {
+  margin: 10px 0;
+}
+
+/* Responsive settings */
+@media (max-width: 1200px) {
+  .carousel-item {
+    flex: 0 0 33.33%;
+  }
+}
+
+@media (max-width: 992px) {
+  .carousel-item {
+    flex: 0 0 50%;
+  }
+}
+
+@media (max-width: 576px) {
+  .carousel-item {
+    flex: 0 0 100%;
+  }
+}
+/* END OF CAROUSEL STYLES */
 
 .tentang-kami .swipper .bg-scroll {
   position: absolute;
@@ -488,8 +541,14 @@ header .text {
   padding: 20px;
   width: 100%;
   max-width: 1200px;
-  /* Optional: limits maximum width */
   margin: 0 auto;
+  /* Tambahkan properti berikut */
+  justify-items: center;
+}
+
+/* Tambahkan style baru untuk card terakhir ketika jumlah item tidak habis dibagi 3 */
+.catalog-grid > *:last-child:nth-child(3n - 2) {
+  grid-column: 2;
 }
 
 .blog {

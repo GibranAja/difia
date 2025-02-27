@@ -61,19 +61,6 @@
 
         <button class="hub">Pesan Sekarang</button>
 
-        <div class="toko-section">
-          <h2>Kunjungi Toko Kami :</h2>
-          <div class="sosmed-link">
-            <a href="#" class="sosmed">
-              <i class="fas fa-brands fa-instagram"></i>
-              <b>DIFIA.ID</b>
-            </a>
-            <a href="#" class="sosmed">
-              <i class="fas fa-bag-shopping"></i>
-              <b>DIFIA OFFICIAL SHOP</b>
-            </a>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -232,8 +219,10 @@
                 <button
                   :class="['helpful-btn', { active: review.userFoundHelpful }]"
                   @click="toggleHelpful(index)"
+                  :disabled="!authStore.isLoggedIn || review.userFoundHelpful"
                 >
-                  <i class="fas fa-thumbs-up"></i> Membantu ({{ review.helpfulCount }})
+                  <i class="fas fa-thumbs-up"></i>
+                  Membantu ({{ review.helpfulCount }})
                 </button>
               </div>
               <div class="review-timestamp">{{ timeAgo(review.date) }}</div>
@@ -287,6 +276,7 @@
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useKatalogStore } from '@/stores/KatalogStore'
 import {
@@ -306,6 +296,7 @@ import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
 const route = useRoute()
 const toast = useToast()
 const katalogStore = useKatalogStore()
+const authStore = useAuthStore()
 const katalog = ref(null)
 
 // Function to save catalog to localStorage
@@ -538,20 +529,39 @@ const getCountForStar = (star) => {
 
 // Toggle helpful button
 const toggleHelpful = async (index) => {
+  // Check if user is logged in
+  if (!authStore.isLoggedIn) {
+    toast.error('Silakan login untuk memberikan umpan balik')
+    return
+  }
+
   const review = filteredReviews.value[index]
   if (!review || !review.id) return
+
+  // Check if user has already marked this review as helpful
+  const helpfulKey = `helpful_${review.id}_${authStore.currentUser.id}`
+  if (localStorage.getItem(helpfulKey)) {
+    toast.info('Anda sudah memberikan umpan balik untuk ulasan ini')
+    return
+  }
 
   try {
     const reviewRef = doc(db, 'reviews', review.id)
     await updateDoc(reviewRef, {
-      helpfulCount: review.userFoundHelpful ? increment(-1) : increment(1),
+      helpfulCount: increment(1),
     })
 
-    // Toggle local state
-    review.userFoundHelpful = !review.userFoundHelpful
+    // Save to localStorage to prevent multiple clicks
+    localStorage.setItem(helpfulKey, 'true')
+
+    // Update local state
+    review.userFoundHelpful = true
+    review.helpfulCount++
+
+    toast.success('Terima kasih atas umpan balik Anda')
   } catch (error) {
     console.error('Error updating helpful count:', error)
-    toast.error('Failed to update helpful count')
+    toast.error('Gagal memberikan umpan balik')
   }
 }
 
@@ -638,20 +648,21 @@ const goToModalImage = (index) => {
   padding: 60px 100px; /* Reduced top padding from 100px to 60px */
   position: relative;
   display: flex;
+  margin-top: -10px;
   flex-direction: column;
   align-items: flex-start;
 }
 
 .back {
   position: absolute;
-  top: 1.5rem; /* Slightly adjusted for better spacing */
+  top: 2rem; /* Slightly adjusted for better spacing */
   left: 1rem;
   text-decoration: none;
 }
 
 .back i {
-  color: #e8ba38;
-  font-size: 1.5rem;
+  color: #353535;
+  font-size: 2rem !important;
 }
 
 .content-wrapper {
@@ -1097,6 +1108,19 @@ body {
 }
 
 .helpful-btn.active {
+  background-color: #e8ba38;
+  color: white;
+  border-color: #e8ba38;
+}
+
+.helpful-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f1f1f1;
+}
+
+.helpful-btn.active:disabled {
+  opacity: 1;
   background-color: #e8ba38;
   color: white;
   border-color: #e8ba38;

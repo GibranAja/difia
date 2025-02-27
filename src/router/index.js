@@ -33,8 +33,6 @@ import TermsConditionView from '@/views/TermsConditionView.vue'
 import LoginPage from '@/views/LoginPage.vue'
 import RegisterPage from '@/views/RegisterPage.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
-import VerifyCode from '@/views/auth/VerifyCode.vue'
-import ResetPassword from '@/views/auth/ResetPassword.vue'
 
 // Other
 import NotFoundView from '@/views/notfound/NotFound.vue'
@@ -124,16 +122,6 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: ForgotPassword,
-    },
-    {
-      path: '/verify-code',
-      name: 'VerifyCode',
-      component: VerifyCode,
-    },
-    {
-      path: '/reset-password',
-      name: 'ResetPassword',
-      component: ResetPassword,
     },
 
     // Admin Routes

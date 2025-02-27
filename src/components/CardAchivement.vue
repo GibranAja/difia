@@ -1,43 +1,122 @@
 <template>
   <div class="card">
     <div class="picture">
-      <img src="../assets/difia.jpg" alt="">
+      <img :src="achievement.image || defaultImage" :alt="achievement.title" />
     </div>
     <div class="text">
-      <h1>Nama Penghargaan</h1>
-      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quae, obcaecati!</p>
+      <h1>{{ achievement.title || 'Loading...' }}</h1>
+      <p>{{ achievement.description || 'Loading description...' }}</p>
     </div>
   </div>
 </template>
-<script>
-export default {
 
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import { collection, query, orderBy, getDocs } from 'firebase/firestore'
+import { db } from '@/config/firebase'
+import defaultImage from '@/assets/difia.jpg'
+
+const props = defineProps({
+  achievementId: {
+    type: String,
+    default: null,
+  },
+  cardIndex: {
+    // Add this prop
+    type: Number,
+    required: true,
+  },
+})
+
+const achievement = ref({
+  title: '',
+  description: '',
+  image: '',
+})
+
+const achievements = ref([])
+
+const fetchAchievements = async () => {
+  try {
+    const achievementsRef = collection(db, 'achievements')
+    const q = query(achievementsRef, orderBy('createdAt', 'desc'))
+    const querySnapshot = await getDocs(q)
+
+    if (!querySnapshot.empty) {
+      achievements.value = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      // Set initial achievement based on index
+      updateAchievement()
+    }
+  } catch (error) {
+    console.error('Error fetching achievements:', error)
+  }
 }
+
+const updateAchievement = () => {
+  if (achievements.value.length > 0) {
+    // Use modulo to cycle through achievements
+    const index = props.cardIndex % achievements.value.length
+    achievement.value = achievements.value[index]
+  }
+}
+
+// Watch for changes in cardIndex
+watch(() => props.cardIndex, updateAchievement)
+
+onMounted(() => {
+  fetchAchievements()
+})
 </script>
+
 <style scoped>
-.card{
+.card {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
   align-items: center;
-  justify-content: space-around;
+  justify-content: flex-start;
   width: 100%;
-  height: 50vh;
+  height: 140px;
   background-color: white;
-  padding: 10px;
+  padding: 15px;
   border-radius: 10px;
-  text-align: center;
-  /* box-shadow: 0 0 20px black; */
-  border: 1px solid black;
+  border: 1px solid #e0e0e0;
 }
-.card .picture img{
-  width: 100px;
-  border-radius: 10px;
+
+.card .picture {
+  width: 30%;
+  min-width: 80px;
+  padding-right: 15px;
 }
-.card .text{
+
+.card .picture img {
   width: 100%;
-  text-align: justify;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
 }
-.card .picture{
-  width: 100%;
+
+.card .text {
+  width: 70%;
+  text-align: left;
+}
+
+.card .text h1 {
+  font-size: 1rem;
+  margin: 0 0 8px 0;
+  color: #02163b;
+}
+
+.card .text p {
+  font-size: 0.85rem;
+  margin: 0;
+  color: #666;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

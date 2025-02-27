@@ -1,7 +1,7 @@
 <template>
   <div class="katalog-container" :class="{ 'sidebar-collapsed': !isSidebarOpen }">
     <LoadComponent v-if="katalogStore.loading" />
-    
+
     <template v-else>
       <h1>DAFTAR KATALOG</h1>
 
@@ -147,9 +147,13 @@
       </div>
 
       <div v-if="paginatedKatalog.length" class="pagination">
-        <button :disabled="currentPage === 1" @click="currentPage--">&lt;&lt;</button>
+        <button :disabled="currentPage === 1" @click="goToPrevPage">
+          <i class="fas fa-chevron-left"></i>
+        </button>
         <span>{{ currentPage }} of {{ totalPages }}</span>
-        <button :disabled="currentPage >= totalPages" @click="currentPage++">&gt;&gt;</button>
+        <button :disabled="currentPage >= totalPages" @click="goToNextPage">
+          <i class="fas fa-chevron-right"></i>
+        </button>
       </div>
 
       <!-- Image Gallery Modal -->
@@ -194,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useKatalogStore } from '@/stores/KatalogStore'
 import LoadComponent from '@/components/LoadComponent.vue'
 // import { useRouter } from 'vue-router'
@@ -226,28 +230,44 @@ const filteredKatalog = computed(() => {
 defineProps({
   isSidebarOpen: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
-const totalPages = computed(() => Math.ceil(filteredKatalog.value.length / entriesPerPage.value))
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredKatalog.value.length / parseInt(entriesPerPage.value)))
+})
 
-const startIndex = computed(() => (currentPage.value - 1) * entriesPerPage.value)
+const startIndex = computed(() => {
+  return (currentPage.value - 1) * parseInt(entriesPerPage.value)
+})
 
 const paginatedKatalog = computed(() => {
   const start = startIndex.value
-  const end = start + entriesPerPage.value
+  const end = start + parseInt(entriesPerPage.value)
   return filteredKatalog.value.slice(start, end)
 })
 
 onMounted(async () => {
-  await katalogStore.fetchKatalog()
+  await katalogStore.fetchKatalog(25) // Ubah menjadi 25 atau lebih
   window.addEventListener('keydown', handleKeyPress)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyPress)
 })
+
+const goToNextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const goToPrevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
+}
 
 const handleKeyPress = (e) => {
   if (!showGallery.value) return
@@ -308,6 +328,26 @@ const prevImage = () => {
     currentImageIndex.value--
   }
 }
+
+watch(entriesPerPage, (newValue) => {
+  // Reset to page 1 when changing entries per page
+  currentPage.value = 1
+
+  // Ensure we're using numeric values
+  entriesPerPage.value = parseInt(newValue)
+})
+
+// Add this watch to ensure currentPage stays valid when filteredKatalog changes
+watch(
+  filteredKatalog,
+  () => {
+    const maxPage = totalPages.value
+    if (currentPage.value > maxPage) {
+      currentPage.value = maxPage
+    }
+  },
+  { deep: true },
+)
 </script>
 
 <style scoped>
@@ -533,14 +573,17 @@ const prevImage = () => {
 
 .edit-btn,
 .delete-btn {
-  padding: 6px 12px;
+  width: 80px; /* Tetapkan lebar yang sama */
+  padding: 8px 12px;
   border: none;
   border-radius: 4px;
+  text-align: center;
   cursor: pointer;
-  white-space: nowrap;
-  min-width: 60px;
   font-size: 0.9em;
   transition: opacity 0.2s;
+  display: inline-block; /* Memastikan tampilan konsisten */
+  text-decoration: none; /* Menghilangkan garis bawah pada link */
+  margin: 0; /* Reset margin */
 }
 
 .edit-btn {
@@ -548,14 +591,14 @@ const prevImage = () => {
   color: white;
 }
 
-.edit-btn:hover,
-.delete-btn:hover {
-  opacity: 0.9;
-}
-
 .delete-btn {
   background-color: #f44336;
   color: white;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  opacity: 0.9;
 }
 
 .pagination {
@@ -567,17 +610,31 @@ const prevImage = () => {
 }
 
 .pagination button {
-  padding: 5px 10px;
-  border: 1px solid #ddd;
-  background-color: #b69b87;
+  padding: 8px 12px;
+  border: 1px solid #02163b;
+  background-color: #02163b;
   color: white;
   cursor: pointer;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #032661;
 }
 
 .pagination button:disabled {
-  background-color: #ddd;
+  background-color: #ccc;
+  border-color: #ccc;
   cursor: not-allowed;
+}
+
+.pagination span {
+  font-weight: 500;
+  color: #02163b;
 }
 
 .empty-state {
@@ -800,13 +857,17 @@ const prevImage = () => {
 
 .edit-btn,
 .delete-btn {
-  padding: 6px 12px;
+  width: 80px; /* Tetapkan lebar yang sama */
+  padding: 8px 12px;
   border: none;
   border-radius: 4px;
   text-align: center;
   cursor: pointer;
   font-size: 0.9em;
   transition: opacity 0.2s;
+  display: inline-block; /* Memastikan tampilan konsisten */
+  text-decoration: none; /* Menghilangkan garis bawah pada link */
+  margin: 0; /* Reset margin */
 }
 
 .edit-btn:hover,

@@ -71,10 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
           const userData = await getDocs(userQuery)
 
           // Check in staff collection
-          const staffQuery = query(
-            collection(db, 'staff'),
-            where('email', '==', user.email)
-          )
+          const staffQuery = query(collection(db, 'staff'), where('email', '==', user.email))
           const staffData = await getDocs(staffQuery)
 
           if (!userData.empty) {
@@ -86,10 +83,10 @@ export const useAuthStore = defineStore('auth', () => {
               name: adminData.name,
               isAdmin: adminData.isAdmin,
               profilePhoto: adminData.profilePhoto || '',
-              role: adminData.isAdmin ? 'admin' : 'user'
+              role: adminData.isAdmin ? 'admin' : 'user',
             }
             isLoggedIn.value = true
-            
+
             // Only redirect to admin if isAdmin is true
             if (adminData.isAdmin) {
               await redirectAfterAuth(true, router)
@@ -107,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
               isAdmin: false,
               isStaff: true,
               role: 'staff',
-              profilePhoto: staffDoc.profilePhoto || ''
+              profilePhoto: staffDoc.profilePhoto || '',
             }
             isLoggedIn.value = true
             await router.push('/admin')
@@ -132,9 +129,21 @@ export const useAuthStore = defineStore('auth', () => {
             profilePhoto: user.profilePhoto || '',
             isAdmin: false,
           })
-          toast.success('Registration successful! Please login.')
+
+          // Set current user after successful registration
+          currentUser.value = {
+            email: user.email,
+            id: userCredential.user.uid,
+            name: user.name,
+            isAdmin: false,
+            profilePhoto: user.profilePhoto || '',
+          }
+
+          isLoggedIn.value = true
+          toast.success('Registrasi berhasil!')
+
           if (router) {
-            await router.push('/login')
+            await router.push('/') // Redirect to home instead of login
           }
         }
       }
@@ -256,6 +265,7 @@ export const useAuthStore = defineStore('auth', () => {
         prompt: 'select_account',
       })
 
+      // Use the standard Firebase signInWithPopup without the custom detection
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
@@ -292,7 +302,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       isLoggedIn.value = true
 
-      // Redirect based on admin status
       if (isAdmin) {
         toast.success('Welcome back, Admin!')
         await router.push('/admin')
@@ -303,14 +312,22 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.error('Google sign-in error:', error)
 
+      isLoading.value = false
+
       if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Sign-in cancelled by user')
+        setTimeout(() => {
+          toast.error('Sign-in cancelled by user')
+        }, 0)
       } else if (error.code === 'auth/popup-blocked') {
         toast.error('Pop-up was blocked by the browser. Please enable pop-ups for this site.')
       } else {
         toast.error('Failed to sign in with Google. Please try again.')
       }
+
+      // Re-throw to ensure the component receives the error
+      throw error
     } finally {
+      // Ensure loading state is reset
       isLoading.value = false
     }
   }

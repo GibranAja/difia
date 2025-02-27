@@ -28,11 +28,11 @@
           </div>
         </form>
       </div>
-      
+
       <div class="image-section">
-        <img 
-          src="../../assets/Logo Difia Haki.png" 
-          alt="Reset Password Illustration" 
+        <img
+          src="../../assets/Logo Difia Haki.png"
+          alt="Reset Password Illustration"
           class="reset-image"
         />
       </div>
@@ -43,40 +43,41 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/AuthStore'
-import { collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '@/config/firebase'
+import { auth } from '@/config/firebase'
+import { sendPasswordResetEmail } from 'firebase/auth'
 import { useToast } from 'vue-toastification'
 
 const router = useRouter()
 const toast = useToast()
-const authStore = useAuthStore()
 const email = ref('')
 const loading = ref(false)
 
 const handleSubmit = async () => {
   try {
     loading.value = true
-    
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('email', '==', email.value))
-    const querySnapshot = await getDocs(q)
 
-    if (querySnapshot.empty) {
-      toast.error('Tidak ada akun yang terdaftar dengan email ini')
-      return
+    // Send password reset email using Firebase Auth
+    await sendPasswordResetEmail(auth, email.value)
+
+    toast.success('Email reset password telah dikirim. Silakan cek inbox email Anda.')
+    router.push('/login')
+  } catch (error) {
+    let errorMessage = 'Gagal mengirim email reset password'
+
+    // Handle specific Firebase Auth errors
+    switch (error.code) {
+      case 'auth/user-not-found':
+        errorMessage = 'Email tidak terdaftar'
+        break
+      case 'auth/invalid-email':
+        errorMessage = 'Format email tidak valid'
+        break
+      case 'auth/too-many-requests':
+        errorMessage = 'Terlalu banyak permintaan. Silakan coba lagi nanti'
+        break
     }
 
-    const verificationCode = Math.floor(100000 + Math.random() * 900000)
-    
-    authStore.setResetEmail(email.value)
-    authStore.setVerificationCode(verificationCode)
-    
-    await authStore.sendVerificationEmail(email.value, verificationCode)
-    
-    router.push('/verify-code')
-  } catch (error) {
-    toast.error('Gagal mengirim kode verifikasi')
+    toast.error(errorMessage)
     console.error('Reset password error:', error)
   } finally {
     loading.value = false
@@ -144,7 +145,7 @@ const handleSubmit = async () => {
 .form-input {
   width: 19.8rem;
   padding: 12px 16px;
-  border: 2px solid #FFB800;
+  border: 2px solid #ffb800;
   border-radius: 8px;
   font-size: 16px;
   outline: none;
@@ -157,7 +158,7 @@ const handleSubmit = async () => {
 .submit-btn {
   width: 100%;
   padding: 12px 16px;
-  background-color: #01174F;
+  background-color: #01174f;
   color: white;
   border: none;
   border-radius: 8px;

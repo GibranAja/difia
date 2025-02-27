@@ -62,11 +62,27 @@
             @change="handleImageUpload"
             accept="image/*"
             multiple
-            :required="!isEditing && (!formData.images || formData.images.length === 0)"
+            :required="!isEditing && !formData.images.length && !formData.existingImages.length"
           />
-          <div class="image-grid" v-if="formData.images && formData.images.length > 0">
-            <div v-for="(image, index) in previewImages" :key="index" class="image-preview">
-              <img :src="image" alt="Preview" />
+          <div class="image-grid">
+            <!-- Existing Images -->
+            <div
+              v-for="(image, index) in formData.existingImages"
+              :key="`existing-${index}`"
+              class="image-preview"
+            >
+              <img :src="image" alt="Existing Preview" />
+              <button type="button" @click="removeExistingImage(index)" class="remove-image">
+                ×
+              </button>
+            </div>
+            <!-- New Images -->
+            <div
+              v-for="(image, index) in previewImages"
+              :key="`new-${index}`"
+              class="image-preview"
+            >
+              <img :src="image" alt="New Preview" />
               <button type="button" @click="removeImage(index)" class="remove-image">×</button>
             </div>
           </div>
@@ -79,7 +95,7 @@
 
       <div class="form-group details-section">
         <h3>Detail Katalog</h3>
-        
+
         <div class="details-grid">
           <!-- Ukuran Section -->
           <div class="ukuran-section">
@@ -224,12 +240,7 @@
 
           <div class="waktu-item">
             <label for="express">Express</label>
-            <input
-              type="text"
-              value="Additional 5% dari totalan"
-              readonly
-              class="express-input"
-            />
+            <input type="text" value="Additional 5% dari totalan" readonly class="express-input" />
           </div>
         </div>
       </div>
@@ -262,7 +273,18 @@ const totalImageSize = ref(0)
 // Image validation constants
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB per image
 const MAX_TOTAL_IMAGES = 5
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image.heic',
+  'image.heif',
+]
+
+// Constants for image processing
+const MAX_DIMENSION = 600 // Reduced from 800
+const COMPRESSION_QUALITY = 0.4 // Reduced from 0.6
 
 const formData = ref({
   nama: '',
@@ -275,26 +297,27 @@ const formData = ref({
     ukuran: {
       panjang: 0,
       tinggi: 0,
-      lebar: 0
+      lebar: 0,
     },
     bahanLuar: '',
     bahanDalam: '',
     aksesoris: '',
-    warna: ''
+    warna: '',
   },
   waktuPengerjaan: {
     pcs50_100: '',
     pcs200: '',
     pcs300: '',
     pcsAbove300: '',
-    express: 'Additional 5% dari totalan'
+    express: 'Additional 5% dari totalan',
   },
   images: [],
+  existingImages: [],
 })
 
 // Add this function to load existing data
 const loadKatalogData = () => {
-  const katalog = katalogStore.katalogItems.find(item => item.id === route.params.id)
+  const katalog = katalogStore.katalogItems.find((item) => item.id === route.params.id)
   if (katalog) {
     formData.value = {
       nama: katalog.nama,
@@ -305,10 +328,9 @@ const loadKatalogData = () => {
       },
       detail: katalog.detail,
       waktuPengerjaan: katalog.waktuPengerjaan,
-      images: [] // We'll handle existing images separately
+      images: [], // New images to be uploaded
+      existingImages: katalog.images || [], // Store existing images
     }
-    // Load existing images into preview
-    previewImages.value = [...katalog.images]
   }
 }
 
@@ -316,10 +338,8 @@ const loadKatalogData = () => {
 onMounted(async () => {
   if (isEditing.value) {
     // First try to find in existing items
-    const existingKatalog = katalogStore.katalogItems.find(
-      item => item.id === route.params.id
-    )
-    
+    const existingKatalog = katalogStore.katalogItems.find((item) => item.id === route.params.id)
+
     if (existingKatalog) {
       loadKatalogData()
     } else {
@@ -348,14 +368,17 @@ const isFormValid = computed(() => {
     formData.value.detail.bahanDalam.trim() &&
     formData.value.detail.aksesoris.trim() &&
     formData.value.detail.warna.trim() &&
-    formData.value.waktuPengerjaan.pcs50_100.trim() && // Validasi waktu pengerjaan baru
+    formData.value.waktuPengerjaan.pcs50_100.trim() &&
     formData.value.waktuPengerjaan.pcs200.trim() &&
     formData.value.waktuPengerjaan.pcs300.trim() &&
     formData.value.waktuPengerjaan.pcsAbove300.trim() &&
-    (isEditing.value || (formData.value.images && formData.value.images.length > 0))
+    (isEditing.value ||
+      (formData.value.images && formData.value.images.length > 0) ||
+      (formData.value.existingImages && formData.value.existingImages.length > 0))
   )
 })
 
+// Enhanced image resizing function with stronger compression
 const resizeImage = async (file) => {
   return new Promise((resolve, reject) => {
     const image = new Image()
@@ -363,30 +386,52 @@ const resizeImage = async (file) => {
     const ctx = canvas.getContext('2d')
 
     image.onload = () => {
-      const maxWidth = 1200
-      const maxHeight = 1200
-
       let width = image.width
       let height = image.height
 
+      // Calculate new dimensions - more aggressive resizing
       if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width)
-          width = maxWidth
+        if (width > MAX_DIMENSION) {
+          height = Math.round((height * MAX_DIMENSION) / width)
+          width = MAX_DIMENSION
         }
       } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height)
-          height = maxHeight
+        if (height > MAX_DIMENSION) {
+          width = Math.round((width * MAX_DIMENSION) / height)
+          height = MAX_DIMENSION
         }
       }
 
       canvas.width = width
       canvas.height = height
 
+      // Use canvas to resize
       ctx.drawImage(image, 0, 0, width, height)
 
-      resolve(canvas.toDataURL('image/jpeg', 0.8))
+      // Convert to a more compressed JPEG
+      canvas.toBlob(
+        (blob) => {
+          // Convert the blob to a base64 string for preview
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            resolve(reader.result)
+          }
+          reader.readAsDataURL(blob)
+
+          // Store the compressed blob for upload
+          const fileName = file.name.split('.')[0] + '.jpg'
+          const compressedFile = new File([blob], fileName, { type: 'image/jpeg' })
+
+          // Replace the original file with the compressed one
+          const index = formData.value.images.findIndex((f) => f === file)
+          if (index !== -1) {
+            formData.value.images[index] = compressedFile
+            totalImageSize.value = totalImageSize.value - file.size + compressedFile.size
+          }
+        },
+        'image/jpeg',
+        COMPRESSION_QUALITY,
+      )
     }
 
     image.onerror = reject
@@ -394,33 +439,49 @@ const resizeImage = async (file) => {
   })
 }
 
+// Enhanced image upload handler with chunked processing
 const handleImageUpload = async (event) => {
   const files = Array.from(event.target.files)
   errors.value.images = ''
 
-  if (files.length + formData.value.images.length > MAX_TOTAL_IMAGES) {
+  if (
+    files.length + formData.value.images.length + formData.value.existingImages.length >
+    MAX_TOTAL_IMAGES
+  ) {
     errors.value.images = `Maksimal ${MAX_TOTAL_IMAGES} foto yang dapat diunggah`
     return
   }
 
-  for (const file of files) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      errors.value.images = 'Hanya file JPEG, PNG, GIF, dan WebP yang diperbolehkan'
-      return
-    }
-
-    if (file.size > MAX_IMAGE_SIZE) {
-      errors.value.images = 'Ukuran setiap foto tidak boleh melebihi 5MB'
-      return
-    }
-  }
-
   try {
     for (const file of files) {
-      const base64String = await resizeImage(file)
+      // Enhanced file type validation for HEIC/HEIF
+      const fileExtension = file.name.split('.').pop().toLowerCase()
+      const isHeicOrHeif = ['heic', 'heif'].includes(fileExtension)
+
+      if (!ALLOWED_TYPES.includes(file.type) && !isHeicOrHeif) {
+        errors.value.images = 'Hanya file JPEG, PNG, GIF, WebP, HEIC, dan HEIF yang diperbolehkan'
+        return
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        errors.value.images = 'Ukuran setiap foto tidak boleh melebihi 5MB'
+        return
+      }
+
       formData.value.images.push(file)
-      previewImages.value.push(base64String)
       totalImageSize.value += file.size
+
+      try {
+        if (isHeicOrHeif) {
+          previewImages.value.push(URL.createObjectURL(file))
+        } else {
+          const base64String = await resizeImage(file)
+          previewImages.value.push(base64String)
+        }
+      } catch (imgError) {
+        console.error('Error processing specific image:', imgError)
+        previewImages.value.push(URL.createObjectURL(file))
+      }
     }
   } catch (error) {
     console.error('Error processing images:', error)
@@ -434,6 +495,14 @@ const removeImage = (index) => {
   previewImages.value.splice(index, 1)
 }
 
+const removeExistingImage = (index) => {
+  formData.value.existingImages.splice(index, 1)
+  // If there are no images left at all, reset validation
+  if (formData.value.existingImages.length === 0 && formData.value.images.length === 0) {
+    errors.value.images = 'Minimal satu foto harus diunggah'
+  }
+}
+
 const validateForm = () => {
   errors.value = {}
 
@@ -445,12 +514,14 @@ const validateForm = () => {
     errors.value.harga = 'Harga standar dan premium harus diisi'
   }
 
-  // if (!formData.value.waktuPengerjaan || formData.value.waktuPengerjaan < 1) {
-  //   errors.value.waktuPengerjaan = 'Waktu pengerjaan minimal 1 hari'
-  // }
-
-  if (!isEditing.value && (!formData.value.images || formData.value.images.length === 0)) {
+  if (!isEditing.value && !formData.value.images.length && !formData.value.existingImages.length) {
     errors.value.images = 'Minimal satu foto harus diunggah'
+  }
+
+  // Check total size of all images
+  if (totalImageSize.value > 10 * 1024 * 1024) {
+    // 10MB total limit
+    errors.value.images = 'Total ukuran gambar tidak boleh melebihi 10MB'
   }
 
   return Object.keys(errors.value).length === 0
@@ -460,13 +531,63 @@ const goBack = () => {
   router.push('/admin/katalog')
 }
 
+// Improved submit function with chunked image processing
 const handleSubmit = async () => {
   if (!validateForm()) return
 
   try {
     isSubmitting.value = true
 
-    const katalogData = {
+    const totalSize = formData.value.images.reduce((sum, file) => sum + file.size, 0)
+    if (totalSize > 5 * 1024 * 1024) {
+      await Promise.all(
+        formData.value.images.map(async (file, index) => {
+          const fileExtension = file.name.split('.').pop().toLowerCase()
+          const isHeicOrHeif = ['heic', 'heif'].includes(fileExtension)
+
+          if (isHeicOrHeif) return
+
+          const newQuality = 0.2
+          const image = new Image()
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+
+          await new Promise((resolve) => {
+            image.onload = resolve
+            image.src = URL.createObjectURL(file)
+          })
+
+          const maxDimension = 400
+          let width = image.width
+          let height = image.height
+
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width)
+            width = maxDimension
+          } else {
+            width = Math.round((width * maxDimension) / height)
+            height = maxDimension
+          }
+
+          canvas.width = width
+          canvas.height = height
+          ctx.drawImage(image, 0, 0, width, height)
+
+          const blob = await new Promise((resolve) =>
+            canvas.toBlob(resolve, 'image/jpeg', newQuality),
+          )
+
+          const newFile = new File([blob], file.name.split('.')[0] + '_compressed.jpg', {
+            type: 'image/jpeg',
+          })
+          formData.value.images[index] = newFile
+        }),
+      )
+    }
+
+    const katalogFormData = new FormData()
+
+    const basicInfo = {
       nama: formData.value.nama.trim(),
       harga: {
         standar: formData.value.harga.standar,
@@ -477,22 +598,30 @@ const handleSubmit = async () => {
         ukuran: {
           panjang: formData.value.detail.ukuran.panjang,
           tinggi: formData.value.detail.ukuran.tinggi,
-          lebar: formData.value.detail.ukuran.lebar
+          lebar: formData.value.detail.ukuran.lebar,
         },
         bahanLuar: formData.value.detail.bahanLuar.trim(),
         bahanDalam: formData.value.detail.bahanDalam.trim(),
         aksesoris: formData.value.detail.aksesoris.trim(),
-        warna: formData.value.detail.warna.trim()
+        warna: formData.value.detail.warna.trim(),
       },
       waktuPengerjaan: formData.value.waktuPengerjaan,
-      images: formData.value.images,
+      existingImages: formData.value.existingImages,
     }
+
+    katalogFormData.append('data', JSON.stringify(basicInfo))
+
+    formData.value.images.forEach((file, index) => {
+      const fileExtension = file.name.split('.').pop().toLowerCase()
+      katalogFormData.append(`image_${index}`, file)
+      katalogFormData.append(`image_${index}_ext`, fileExtension)
+    })
 
     let result
     if (isEditing.value) {
-      result = await katalogStore.updateKatalog(route.params.id, katalogData)
+      result = await katalogStore.updateKatalogWithFormData(route.params.id, katalogFormData)
     } else {
-      result = await katalogStore.addKatalog(katalogData)
+      result = await katalogStore.addKatalogWithFormData(katalogFormData)
     }
 
     if (result.success) {
@@ -824,3 +953,4 @@ watch(
   }
 }
 </style>
+```

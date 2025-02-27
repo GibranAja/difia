@@ -89,21 +89,26 @@ const isLoggingOut = ref(false)
 const handleScroll = () => {
   const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop
 
-  // Update scroll state untuk backdrop styling
+  // Update scroll state for backdrop styling
   isScrolled.value = currentScrollPosition > 0
 
-  // Update state saat di paling atas
+  // Update state when at top
   isAtTop.value = currentScrollPosition < 50
 
-  // Selalu sembunyikan navbar saat di paling atas
-  if (currentScrollPosition < 50) {
+  // Only hide navbar when exactly at the top (position 0)
+  if (currentScrollPosition === 0) {
     isHidden.value = true
     return
   }
 
-  // Jika scroll lebih dari 50px dari posisi terakhir
-  if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 50) {
-    // Sembunyikan saat scroll ke bawah, tampilkan saat scroll ke atas
+  // Show navbar immediately when scrolling down from top
+  if (currentScrollPosition < 50) {
+    isHidden.value = false
+    return
+  }
+
+  // For other scroll positions, show/hide based on scroll direction
+  if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 10) {
     isHidden.value = currentScrollPosition > lastScrollPosition.value
   }
 
@@ -244,6 +249,12 @@ nav {
 nav.at-top {
   background: transparent;
   backdrop-filter: none;
+}
+
+/* Add smooth transition for background change */
+nav:not(.at-top) {
+  background: rgba(0, 0, 0, 0.43);
+  backdrop-filter: blur(10px);
 }
 
 .link {
