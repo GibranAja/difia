@@ -24,8 +24,23 @@ export const useOrderStore = defineStore('order', () => {
   const viewedOrders = ref(new Set()) // Track viewed order IDs
 
   // Set current order from CustomView
-  const setCurrentOrder = (orderData) => {
-    currentOrder.value = orderData
+  const setCurrentOrder = async (orderData) => {
+    try {
+      if (!orderData) {
+        currentOrder.value = null
+        return
+      }
+
+      // Validasi data yang diperlukan
+      if (!orderData.productId || !orderData.price || !orderData.quantity) {
+        throw new Error('Invalid order data')
+      }
+
+      currentOrder.value = orderData
+    } catch (error) {
+      console.error('Error setting current order:', error)
+      throw error
+    }
   }
 
   // Handle payment proof upload
