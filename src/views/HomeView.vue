@@ -107,7 +107,7 @@
     <section class="partner">
       <div class="b-log">
         <span class="line"></span>
-        <h1><b>Mitra Kami</b></h1>
+        <h1><b>Client</b></h1>
         <span class="line"></span>
       </div>
       <CardMitra></CardMitra>
