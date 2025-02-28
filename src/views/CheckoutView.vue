@@ -555,29 +555,60 @@ onBeforeMount(async () => {
     // Check reorder first
     const reorderData = localStorage.getItem('reorder_data')
     if (reorderData) {
-      // Handle reorder logic...
+      const parsedReorderData = JSON.parse(reorderData)
+      await orderStore.setCurrentOrder({
+        id: parsedReorderData.id,
+        productId: parsedReorderData.productId,
+        name: parsedReorderData.name,
+        price: parsedReorderData.price,
+        quantity: parsedReorderData.quantity,
+        image: parsedReorderData.image,
+        customOptions: parsedReorderData.customOptions,
+      })
+
+      // Pre-fill shipping details
+      if (parsedReorderData.shippingDetails) {
+        formData.value = {
+          name: parsedReorderData.shippingDetails.name,
+          email: parsedReorderData.shippingDetails.email,
+          phone: parsedReorderData.shippingDetails.phone,
+          address: parsedReorderData.shippingDetails.address,
+          zip: parsedReorderData.shippingDetails.zip,
+        }
+
+        selectedProvince.value = parsedReorderData.shippingDetails.province
+
+        // Load cities then set selected city
+        if (parsedReorderData.shippingDetails.province) {
+          await loadCities(parsedReorderData.shippingDetails.province)
+          selectedCity.value = parsedReorderData.shippingDetails.city
+          if (parsedReorderData.shippingDetails.city) {
+            await calculateShipping()
+          }
+        }
+      }
+
+      // Clear reorder data from localStorage
+      localStorage.removeItem('reorder_data')
       return
     }
 
+    // Rest of existing code...
     await loadCartItems()
 
-    // Check current order from store
     if (!orderStore.currentOrder) {
-      // Try to get from localStorage
       const savedOrder = localStorage.getItem('currentOrder')
       if (savedOrder) {
         const parsedOrder = JSON.parse(savedOrder)
-        // Validate timestamp (30 menit)
         if (Date.now() - parsedOrder.timestamp < 30 * 60 * 1000) {
           await orderStore.setCurrentOrder(parsedOrder)
           return
         }
       }
-      // If no valid order found, redirect to cart
-      return
     }
   } catch (error) {
     console.error('Error in onBeforeMount:', error)
+    toast.error('Gagal memuat data pesanan')
   }
 })
 
