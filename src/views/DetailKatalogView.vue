@@ -59,8 +59,7 @@
           </div>
         </div>
 
-        <button class="hub">Pesan Sekarang</button>
-
+        <button class="hub" @click="navigateToCustom">Pesan Sekarang</button>
       </div>
     </div>
 
@@ -292,6 +291,10 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
+import { useRouter } from 'vue-router' // Add this import
+
+// Add near the start of your script setup
+const router = useRouter()
 
 const route = useRoute()
 const toast = useToast()
@@ -632,6 +635,11 @@ const nextModalImage = () => {
 const goToModalImage = (index) => {
   currentModalImageIndex.value = index
 }
+
+// Add this navigation method
+const navigateToCustom = () => {
+  router.push(`/custom/${katalog.value.id}`)
+}
 </script>
 
 <style scoped>
@@ -702,6 +710,12 @@ const goToModalImage = (index) => {
   cursor: pointer;
   font-size: 0.9rem;
   margin: 0.5rem 0;
+  transition: all 0.3s ease; /* Add smooth transition */
+}
+
+.hub:hover {
+  background-color: #d5a832; /* Slightly darker shade on hover */
+  transform: translateY(-1px); /* Slight lift effect */
 }
 
 .toko-section {

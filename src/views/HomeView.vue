@@ -310,8 +310,8 @@ const hasMoreItems = computed(() => {
 
 <style scoped>
 header {
-  margin-top: 0; /* Remove negative margin since nav will be hidden initially */
-  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
+  margin-top: 0;
+  height: 120vh; /* Changed from 105vh to 120vh */
   position: relative;
 }
 
@@ -326,17 +326,17 @@ header {
   justify-content: space-around;
   position: relative;
   width: 100%;
-  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
+  height: 110vh; /* Changed from 105vh to 120vh */
 }
 
 header .mySwiper {
   width: 100%;
-  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
+  height: 110vh; /* Changed from 105vh to 120vh */
 }
 
 header .swiper-slide {
   width: 100%;
-  height: 105vh; /* Ubah dari 100vh menjadi 105vh */
+  height: 110vh; /* Changed from 105vh to 120vh */
   width: 100vh;
   text-align: center;
 }
