@@ -70,7 +70,7 @@
         </div>
 
         <!-- Show table only if there are orders -->
-        <div v-else class="table-responsive">
+        <div class="table-responsive">
           <table class="order-table">
             <thead>
               <tr>
@@ -104,7 +104,58 @@
                     <div class="postal-code">{{ order.shippingDetails.zip }}</div>
                   </div>
                 </td>
-                <td>{{ order.productName }}</td>
+                <td>
+                  <div class="product-name-wrapper">
+                    <span class="product-name">{{ order.productName }}</span>
+                    <div class="product-details-tooltip">
+                      <div class="tooltip-content">
+                        <!-- Main product info -->
+                        <div class="product-header">
+                          <h4>{{ order.productName }}</h4>
+                          <span
+                            class="price-type-badge"
+                            :class="order.customOptions.priceType.toLowerCase()"
+                          >
+                            {{ order.customOptions.priceType }}
+                          </span>
+                        </div>
+
+                        <!-- Materials section -->
+                        <div class="details-section">
+                          <h5>Material</h5>
+                          <div class="detail-row">
+                            <span class="detail-label">Luar:</span>
+                            <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Dalam:</span>
+                            <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Accessories section -->
+                        <div class="details-section">
+                          <h5>Aksesoris</h5>
+                          <div class="accessories-tags">
+                            <span
+                              v-for="(acc, index) in order.customOptions.aksesoris"
+                              :key="index"
+                              class="acc-tag"
+                            >
+                              {{ acc }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Notes if exists -->
+                        <div v-if="order.customOptions.note" class="details-section notes">
+                          <h5>Catatan</h5>
+                          <p class="note-text">{{ order.customOptions.note }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
                 <td>{{ order.quantity }}</td>
                 <td>{{ formatPrice(order.totalAmount) }}</td>
                 <td>
@@ -162,17 +213,18 @@
         </div>
 
         <!-- Show table only if there are orders -->
-        <div v-else class="table-responsive">
+        <div class="table-responsive">
           <table class="order-table">
             <thead>
               <tr>
                 <th>Order ID</th>
                 <th>Customer</th>
+                <th>Address</th>
+                <!-- Add this line -->
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Total Amount</th>
                 <th>Payment Proof</th>
-                <!-- Add this -->
                 <th>Emboss</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -188,7 +240,70 @@
                     <div class="customer-email">{{ order.shippingDetails.phone }}</div>
                   </div>
                 </td>
-                <td>{{ order.productName }}</td>
+                <!-- Add this cell -->
+                <td>
+                  <div class="address-info">
+                    <div class="full-address">{{ order.shippingDetails.address }}</div>
+                    <div class="location">
+                      {{ order.shippingDetails.city }}, {{ order.shippingDetails.province }}
+                    </div>
+                    <div class="postal-code">{{ order.shippingDetails.zip }}</div>
+                  </div>
+                </td>
+                <td>
+                  <div class="product-name-wrapper">
+                    <span class="product-name">
+                      {{ order.productName }}
+                    </span>
+                    <div class="product-details-tooltip">
+                      <div class="tooltip-content">
+                        <!-- Main product info -->
+                        <div class="product-header">
+                          <h4>{{ order.productName }}</h4>
+                          <span
+                            class="price-type-badge"
+                            :class="order.customOptions.priceType.toLowerCase()"
+                          >
+                            {{ order.customOptions.priceType }}
+                          </span>
+                        </div>
+
+                        <!-- Materials section -->
+                        <div class="details-section">
+                          <h5>Material</h5>
+                          <div class="detail-row">
+                            <span class="detail-label">Luar:</span>
+                            <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
+                          </div>
+                          <div class="detail-row">
+                            <span class="detail-label">Dalam:</span>
+                            <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
+                          </div>
+                        </div>
+
+                        <!-- Accessories section -->
+                        <div class="details-section">
+                          <h5>Aksesoris</h5>
+                          <div class="accessories-tags">
+                            <span
+                              v-for="(acc, index) in order.customOptions.aksesoris"
+                              :key="index"
+                              class="acc-tag"
+                            >
+                              {{ acc }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Notes if exists -->
+                        <div v-if="order.customOptions.note" class="details-section notes">
+                          <h5>Catatan</h5>
+                          <p class="note-text">{{ order.customOptions.note }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
                 <td>{{ order.quantity }}</td>
                 <td>{{ formatPrice(order.totalAmount) }}</td>
                 <td>
@@ -205,11 +320,13 @@
                 </td>
                 <td>
                   <div
+                    v-if="order.customOptions?.uploadedImage"
                     class="design-preview"
                     @click="openImagePreview(order.customOptions.uploadedImage)"
                   >
                     <img :src="order.customOptions.uploadedImage" alt="Design preview" />
                   </div>
+                  <div v-else class="no-design">Tidak ada emboss</div>
                 </td>
                 <td>
                   <span class="status-badge" :class="order.status">
@@ -527,6 +644,10 @@ onUnmounted(() => {
   font-family: 'Montserrat', sans-serif;
   padding: 20px;
   width: 100%;
+  height: calc(100vh - 64px); /* 64px adalah tinggi navbar, sesuaikan jika berbeda */
+  overflow-y: auto; /* Enables vertical scrolling for the whole page */
+  display: flex;
+  flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -593,9 +714,11 @@ button:not([class*='fas']) {
 }
 
 .table-responsive {
-  overflow-x: auto;
+  position: relative;
   margin-bottom: 20px;
   width: 100%;
+  overflow-x: auto; /* Horizontal scroll hanya untuk tabel */
+  overflow-y: hidden; /* Mencegah double scrollbar vertikal */
 }
 
 .order-table {
@@ -604,6 +727,30 @@ button:not([class*='fas']) {
   border-collapse: collapse;
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0; /* Reset margin */
+}
+
+/* Tambahkan sticky header */
+.order-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #02163b;
+  z-index: 10;
+}
+
+/* Pastikan dropdown filter tetap di atas tabel */
+.status-filter .dropdown-menu {
+  z-index: 20;
+}
+
+/* Pastikan tooltip produk tetap di atas tabel */
+.product-details-tooltip {
+  z-index: 30;
+}
+
+/* Pastikan modal tetap di atas semua */
+.modal-overlay {
+  z-index: 100;
 }
 
 .order-table th {
@@ -1456,5 +1603,274 @@ h1 {
 .dropdown-item input[type='checkbox'] {
   margin: 0;
   cursor: pointer;
+}
+
+/* Product details tooltip styling */
+.product-name-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.product-name {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: default;
+  transition: all 0.2s ease;
+  background-color: #f0f0f0;
+  color: #02163b;
+  font-weight: 500;
+  position: relative;
+}
+
+.product-name:hover {
+  background-color: #e0e0e0;
+}
+
+.product-details-tooltip {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  width: 280px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  margin-top: 5px;
+  border: 2px solid #02163b;
+}
+
+.product-name-wrapper:hover .product-name {
+  background: #e9ecef;
+}
+
+.product-name-wrapper:hover .info-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.product-name-wrapper:hover .product-details-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(5px);
+  animation: tooltipBounce 0.3s ease;
+}
+
+/* Tambahkan style khusus untuk baris terakhir */
+.order-table tr:last-child .product-details-tooltip {
+  bottom: 100%; /* Ubah dari top ke bottom */
+  top: auto; /* Reset top property */
+  margin-top: 0;
+  margin-bottom: 1px;
+}
+
+/* Ubah animasi untuk tooltip baris terakhir */
+.order-table tr:last-child .product-name-wrapper:hover .product-details-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-5px); /* Ubah arah translate */
+}
+
+.tooltip-content {
+  padding: 12px;
+}
+
+/* Product header */
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.product-header h4 {
+  margin: 0;
+  color: #02163b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.price-type-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.price-type-badge.standard {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.price-type-badge.premium {
+  background: #fdf4e3;
+  color: #f59e0b;
+}
+.price-type-badge.budget {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Sections styling */
+.details-section {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.details-section:not(:last-child) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.details-section h5 {
+  margin: 0 0 5px 0;
+  color: #666;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-row {
+  display: flex;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.detail-label {
+  color: #666;
+  width: 45px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Accessories tags */
+.accessories-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.acc-tag {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #333;
+}
+
+/* Notes section */
+.notes {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.note-text {
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Add info icon styling */
+.info-icon {
+  color: #02163b;
+  font-size: 0.9em;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+/* Add pulse animation to info icon */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Apply animation on first hover */
+.product-name-wrapper:hover .info-icon {
+  animation: pulse 0.5s ease;
+}
+
+/* Add a subtle bounce effect */
+@keyframes tooltipBounce {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Add tooltip arrow */
+.product-details-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 20px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-left: 2px solid #02163b;
+  border-top: 2px solid #02163b;
+  transform: rotate(45deg);
+}
+
+/* Tambahkan ini setelah style .product-details-tooltip::before */
+
+/* Override arrow position for last row tooltip */
+.order-table tr:last-child .product-details-tooltip::before {
+  top: auto; /* Reset top property */
+  bottom: -8px; /* Position at bottom */
+  border: none; /* Reset border */
+  border-right: 2px solid #02163b; /* Add new borders for downward arrow */
+  border-bottom: 2px solid #02163b;
+  transform: rotate(45deg); /* Rotate to point downward */
+}
+
+/* Adjust tooltip position and animation for last row */
+.order-table tr:last-child .product-details-tooltip {
+  bottom: 100%;
+  top: auto;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Update animation for last row tooltip */
+.order-table tr:last-child .product-name-wrapper:hover .product-details-tooltip {
+  transform: translateY(-5px);
+}
+
+@keyframes tooltipBounceReverse {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.order-table tr:last-child .product-name-wrapper:hover .product-details-tooltip {
+  animation: tooltipBounceReverse 0.3s ease;
 }
 </style>
