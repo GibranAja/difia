@@ -11,7 +11,7 @@
 
     <!-- Admin Label -->
     <div class="admin-label" :class="{ 'collapsed-label': !isOpen }">
-      <span :class="{ 'hide-text': !isOpen }">ADMIN</span>
+      <span :class="{ 'hide-text': !isOpen }">{{ roleLabel }}</span>
     </div>
 
     <!-- Navigation Items using ListSidebar -->
@@ -117,6 +117,11 @@ const items = computed(() => {
     { text: 'Voucher', icon: 'fas fa-tags', pathName: 'VoucherView' },
     { text: 'Banner', icon: 'fas fa-ad', pathName: 'SliderView' },
   ]
+})
+
+// Add this computed property for the role label
+const roleLabel = computed(() => {
+  return authStore.currentUser?.isStaff && !authStore.currentUser?.isAdmin ? 'STAFF' : 'ADMIN'
 })
 
 const handleLogout = async () => {
