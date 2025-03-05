@@ -47,6 +47,31 @@ const ordersChange = ref(0)
 const customersChange = ref(0)
 const revenueChange = ref(0)
 
+// Add these new refs
+const productColorMap = ref({})
+const colorPalette = [
+  '#1f77b4',
+  '#ff7f0e',
+  '#2ca02c',
+  '#d62728',
+  '#9467bd',
+  '#8c564b',
+  '#e377c2',
+  '#7f7f7f',
+  '#bcbd22',
+  '#17becf',
+  '#aec7e8',
+  '#ffbb78',
+  '#98df8a',
+  '#ff9896',
+  '#c5b0d5',
+  '#c49c94',
+  '#f7b6d2',
+  '#c7c7c7',
+  '#dbdb8d',
+  '#9edae5',
+]
+
 // Get start and end date for current month view
 const getMonthRange = (offset = 0) => {
   const date = new Date()
@@ -186,13 +211,25 @@ const fetchProductDistribution = async (monthOffset = 0) => {
     const sortedProducts = Array.from(productMap.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5) // Ambil 5 produk teratas
-      .map(([name, value]) => ({
-        name,
-        value,
-        itemStyle: {
-          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Generate random color
-        },
-      }))
+      .map(([name, value]) => {
+        // Use color from our map, or assign a new one if it doesn't exist
+        if (!productColorMap.value[name]) {
+          const hashValue = getStringHash(name)
+          const colorIndex = hashValue % colorPalette.length
+          productColorMap.value[name] = colorPalette[colorIndex]
+
+          // Save the updated map
+          localStorage.setItem('productColorMap', JSON.stringify(productColorMap.value))
+        }
+
+        return {
+          name,
+          value,
+          itemStyle: {
+            color: productColorMap.value[name],
+          },
+        }
+      })
 
     productDistribution.value = sortedProducts
   } catch (error) {
@@ -448,7 +485,49 @@ const setupOrdersListener = () => {
   })
 }
 
+// New function to generate hash code from string (for consistent color assignment)
+const getStringHash = (str) => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash)
+}
+
+// Function to initialize product color mapping
+const initializeProductColors = async () => {
+  try {
+    // First try to load from localStorage
+    const savedColorMap = localStorage.getItem('productColorMap')
+    if (savedColorMap) {
+      productColorMap.value = JSON.parse(savedColorMap)
+    }
+
+    // Fetch all products from katalog collection
+    const katalogRef = collection(db, 'katalog')
+    const snapshot = await getDocs(katalogRef)
+    const products = snapshot.docs.map((doc) => doc.data().nama)
+
+    // Assign colors to any new products
+    products.forEach((productName) => {
+      if (!productColorMap.value[productName]) {
+        const hashValue = getStringHash(productName)
+        const colorIndex = hashValue % colorPalette.length
+        productColorMap.value[productName] = colorPalette[colorIndex]
+      }
+    })
+
+    // Save updated map to localStorage
+    localStorage.setItem('productColorMap', JSON.stringify(productColorMap.value))
+  } catch (error) {
+    console.error('Error initializing product colors:', error)
+  }
+}
+
 onMounted(async () => {
+  await initializeProductColors()
   await updateDashboardData()
 
   // Set up real-time listener for orders within the current selected month
@@ -562,7 +641,6 @@ onMounted(async () => {
             <th>Tipe</th>
             <th>Status</th>
             <th>Tanggal</th>
-            <th>Aksi</th>
           </tr>
         </thead>
         <tbody>
@@ -577,11 +655,6 @@ onMounted(async () => {
               </span>
             </td>
             <td>{{ order.createdAt.toLocaleDateString('id-ID') }}</td>
-            <td>
-              <button class="view-btn" @click.stop="goToOrder(order.id)">
-                <i class="fas fa-eye"></i>
-              </button>
-            </td>
           </tr>
         </tbody>
       </table>

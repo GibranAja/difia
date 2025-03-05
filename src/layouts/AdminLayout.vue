@@ -81,7 +81,7 @@
             <!-- <button class="icon-btn notification-btn">
               <i class="fas fa-bell"></i>
             </button> -->
-            <button class="icon-btn backup-btn">
+            <button class="icon-btn backup-btn" @click="showBackupModal = true">
               <i class="fas fa-cloud-upload-alt"></i>
             </button>
             <button class="icon-btn profile-btn">
@@ -96,6 +96,11 @@
         <RouterView :isSidebarOpen="isSidebarOpen" />
       </main>
     </div>
+    <BackupDataModal
+      v-if="showBackupModal"
+      @close="showBackupModal = false"
+      @backup-complete="handleBackupComplete"
+    />
   </div>
 </template>
 
@@ -112,6 +117,10 @@ import { useOrderStore } from '@/stores/OrderStore'
 import { usePartnerStore } from '@/stores/PartnerStore'
 import { useStaffStore } from '@/stores/StaffStore'
 
+// Add these imports to your existing imports
+import BackupDataModal from '@/components/admin/BackupDataModal.vue'
+import { useToast } from 'vue-toastification'
+
 const route = useRoute()
 const isSidebarOpen = ref(true)
 const isMobile = ref(false)
@@ -120,6 +129,10 @@ const searchQuery = ref('')
 const showSearchOverlay = ref(false)
 const searchResults = ref([])
 const recentSearches = ref([])
+
+// Add these refs after your existing refs
+const showBackupModal = ref(false)
+const toast = useToast()
 
 // Initialize stores
 const katalogStore = useKatalogStore()
@@ -347,6 +360,11 @@ const handleSearchItemClick = (search) => {
   router.push(search.route)
   showSearchOverlay.value = false
   searchQuery.value = ''
+}
+
+// Add this function to handle backup completion
+const handleBackupComplete = () => {
+  toast.success('Data berhasil di-backup')
 }
 </script>
 
