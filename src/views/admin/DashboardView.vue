@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -10,7 +10,7 @@ import {
   LegendComponent,
   GridComponent,
 } from 'echarts/components'
-import { collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, getDocs, onSnapshot, where } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { useRouter } from 'vue-router'
 
@@ -34,6 +34,18 @@ const currentMonthIndex = ref(0)
 const loading = ref(true)
 const productDistribution = ref([])
 const monthsToShow = 5 // Jumlah bulan yang ditampilkan
+
+// Add these new refs for statistics
+const totalSales = ref(0)
+const totalOrders = ref(0)
+const totalCustomers = ref(0)
+const totalRevenue = ref(0)
+
+// Add refs for percentage changes
+const salesChange = ref(0)
+const ordersChange = ref(0)
+const customersChange = ref(0)
+const revenueChange = ref(0)
 
 // Get start and end date for current month view
 const getMonthRange = (offset = 0) => {
@@ -88,32 +100,38 @@ const fetchMonthlyOrders = async (startOffset = 0) => {
   }
 }
 
-// Update chart data when changing months
-const updateChartData = async () => {
-  loading.value = true
-  const monthsData = await fetchMonthlyOrders(currentMonthIndex.value)
-  salesData.value = monthsData
-  loading.value = false
-}
-
 // Navigation methods
 const previousMonth = () => {
   currentMonthIndex.value++
-  updateChartData()
+  updateDashboardData()
 }
 
 const nextMonth = () => {
   if (currentMonthIndex.value > 0) {
     currentMonthIndex.value--
-    updateChartData()
+    updateDashboardData()
   }
 }
 
 // Fetch recent orders
-const fetchRecentOrders = async () => {
+const fetchRecentOrders = async (monthOffset = 0) => {
   try {
+    // Get date range for the selected month
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() - monthOffset + 1, 0, 23, 59, 59)
+
+    // Query orders within date range
     const ordersRef = collection(db, 'orders')
-    const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(3))
+    const q = query(
+      ordersRef,
+      where('createdAt', '>=', startOfMonth),
+      where('createdAt', '<=', endOfMonth),
+      orderBy('createdAt', 'desc'),
+      limit(3),
+    )
+
+    // Rest of the function remains similar but uses filtered data
     const snapshot = await getDocs(q)
 
     recentOrders.value = snapshot.docs.map((doc) => ({
@@ -130,10 +148,23 @@ const fetchRecentOrders = async () => {
 }
 
 // Tambahkan fungsi baru untuk fetch data produk
-const fetchProductDistribution = async () => {
+const fetchProductDistribution = async (monthOffset = 0) => {
   try {
+    // Get date range for the selected month
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() - monthOffset + 1, 0, 23, 59, 59)
+
+    // Query orders within date range
     const ordersRef = collection(db, 'orders')
-    const q = query(ordersRef, orderBy('createdAt', 'desc'))
+    const q = query(
+      ordersRef,
+      where('createdAt', '>=', startOfMonth),
+      where('createdAt', '<=', endOfMonth),
+      orderBy('createdAt', 'desc'),
+    )
+
+    // Rest of the function remains similar but uses filtered data
     const snapshot = await getDocs(q)
 
     // Buat map untuk menghitung total pembelian per produk
@@ -167,6 +198,111 @@ const fetchProductDistribution = async () => {
   } catch (error) {
     console.error('Error fetching product distribution:', error)
   }
+}
+
+// Function to calculate statistics
+const calculateStatistics = async (monthOffset = 0) => {
+  try {
+    // Define time ranges based on the monthOffset
+    const now = new Date()
+
+    // Current selected month range
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1)
+    const currentMonthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() - monthOffset + 1,
+      0,
+      23,
+      59,
+      59,
+    )
+
+    // Previous month range
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - monthOffset - 1, 1)
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth() - monthOffset, 0, 23, 59, 59)
+
+    // Query orders for current month
+    const currentMonthQuery = query(
+      collection(db, 'orders'),
+      where('createdAt', '>=', currentMonthStart),
+      where('createdAt', '<=', currentMonthEnd),
+    )
+
+    // Query orders for previous month
+    const prevMonthQuery = query(
+      collection(db, 'orders'),
+      where('createdAt', '>=', prevMonthStart),
+      where('createdAt', '<=', prevMonthEnd),
+    )
+
+    const [currentSnapshot, prevSnapshot] = await Promise.all([
+      getDocs(currentMonthQuery),
+      getDocs(prevMonthQuery),
+    ])
+
+    // Process current month data
+    const currentMonthOrders = currentSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+
+    // Process previous month data
+    const prevMonthOrders = prevSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+
+    // Calculate total sales and revenue
+    let currentSales = 0
+    let currentRevenue = 0
+    const currentCustomers = new Set()
+
+    currentMonthOrders.forEach((order) => {
+      currentSales += order.totalAmount || 0
+      currentRevenue += order.totalAmount || 0
+      if (order.userId) currentCustomers.add(order.userId)
+    })
+
+    let prevSales = 0
+    let prevRevenue = 0
+    const prevCustomers = new Set()
+
+    prevMonthOrders.forEach((order) => {
+      prevSales += order.totalAmount || 0
+      prevRevenue += order.totalAmount || 0
+      if (order.userId) prevCustomers.add(order.userId)
+    })
+
+    // Set the totals
+    totalSales.value = currentSales
+    totalOrders.value = currentMonthOrders.length
+    totalCustomers.value = currentCustomers.size
+    totalRevenue.value = currentRevenue
+
+    // Calculate percentage changes
+    salesChange.value = prevSales ? ((currentSales - prevSales) / prevSales) * 100 : 100
+    ordersChange.value = prevMonthOrders.length
+      ? ((currentMonthOrders.length - prevMonthOrders.length) / prevMonthOrders.length) * 100
+      : 100
+    customersChange.value = prevCustomers.size
+      ? ((currentCustomers.size - prevCustomers.size) / prevCustomers.size) * 100
+      : 100
+    revenueChange.value = prevRevenue ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 100
+  } catch (error) {
+    console.error('Error calculating statistics:', error)
+  }
+}
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+    .format(amount)
+    .replace('IDR', 'Rp')
 }
 
 // Chart options
@@ -251,19 +387,97 @@ const pieChartOption = computed(() => ({
   ],
 }))
 
-onMounted(async () => {
-  await Promise.all([fetchRecentOrders(), updateChartData(), fetchProductDistribution()])
+// New function to update all dashboard data
+const updateDashboardData = async () => {
+  loading.value = true
+  try {
+    // Update chart data
+    const monthsData = await fetchMonthlyOrders(currentMonthIndex.value)
+    salesData.value = monthsData
 
-  // Set up real-time listener untuk orders
+    // Update statistics for the selected month
+    await calculateStatistics(currentMonthIndex.value)
+
+    // Update product distribution for the selected month
+    await fetchProductDistribution(currentMonthIndex.value)
+
+    // Update recent orders for the selected month
+    await fetchRecentOrders(currentMonthIndex.value)
+  } catch (error) {
+    console.error('Error updating dashboard data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Add a ref for the unsubscribe function
+const unsubscribe = ref(null)
+
+// Update when month changes to reset the listener
+watch(currentMonthIndex, () => {
+  setupOrdersListener()
+})
+
+// Function to setup Firestore listeners based on selected month
+const setupOrdersListener = () => {
+  // Clear previous listener if exists
+  if (unsubscribe.value) {
+    unsubscribe.value()
+  }
+
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth() - currentMonthIndex.value, 1)
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() - currentMonthIndex.value + 1,
+    0,
+    23,
+    59,
+    59,
+  )
+
   const ordersRef = collection(db, 'orders')
-  onSnapshot(ordersRef, () => {
-    fetchProductDistribution()
+  const q = query(
+    ordersRef,
+    where('createdAt', '>=', startOfMonth),
+    where('createdAt', '<=', endOfMonth),
+  )
+
+  unsubscribe.value = onSnapshot(q, () => {
+    updateDashboardData() // Re-fetch all data when changes occur
   })
+}
+
+onMounted(async () => {
+  await updateDashboardData()
+
+  // Set up real-time listener for orders within the current selected month
+  setupOrdersListener()
 })
 </script>
 
 <template>
   <div class="dashboard">
+    <!-- Global Month Navigation -->
+    <div class="global-controls">
+      <h1>Dashboard</h1>
+      <div class="month-navigation">
+        <button @click="previousMonth" class="nav-btn">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span class="current-month">
+          {{
+            new Date(
+              new Date().setMonth(new Date().getMonth() - currentMonthIndex),
+            ).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+          }}
+        </span>
+        <button @click="nextMonth" class="nav-btn" :disabled="currentMonthIndex === 0">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- Top Stats -->
     <div class="stats-container">
       <div class="stat-card">
@@ -272,8 +486,11 @@ onMounted(async () => {
         </div>
         <div class="stat-content">
           <p class="stat-label">Total Penjualan</p>
-          <h3 class="stat-value">Rp 12.5M</h3>
-          <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 12% dari bulan lalu</p>
+          <h3 class="stat-value">{{ formatCurrency(totalSales) }}</h3>
+          <p :class="['stat-change', salesChange >= 0 ? 'positive' : 'negative']">
+            <i :class="['fas', salesChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
+            {{ salesChange.toFixed(1) }}% dari bulan lalu
+          </p>
         </div>
       </div>
 
@@ -283,8 +500,11 @@ onMounted(async () => {
         </div>
         <div class="stat-content">
           <p class="stat-label">Total Pesanan</p>
-          <h3 class="stat-value">342</h3>
-          <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 8% dari bulan lalu</p>
+          <h3 class="stat-value">{{ totalOrders }}</h3>
+          <p :class="['stat-change', ordersChange >= 0 ? 'positive' : 'negative']">
+            <i :class="['fas', ordersChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
+            {{ ordersChange.toFixed(1) }}% dari bulan lalu
+          </p>
         </div>
       </div>
 
@@ -294,8 +514,11 @@ onMounted(async () => {
         </div>
         <div class="stat-content">
           <p class="stat-label">Total Pelanggan</p>
-          <h3 class="stat-value">1,234</h3>
-          <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 15% dari bulan lalu</p>
+          <h3 class="stat-value">{{ totalCustomers }}</h3>
+          <p :class="['stat-change', customersChange >= 0 ? 'positive' : 'negative']">
+            <i :class="['fas', customersChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
+            {{ customersChange.toFixed(1) }}% dari bulan lalu
+          </p>
         </div>
       </div>
 
@@ -305,8 +528,11 @@ onMounted(async () => {
         </div>
         <div class="stat-content">
           <p class="stat-label">Pendapatan</p>
-          <h3 class="stat-value">Rp 8.2M</h3>
-          <p class="stat-change negative"><i class="fas fa-arrow-down"></i> 3% dari bulan lalu</p>
+          <h3 class="stat-value">{{ formatCurrency(totalRevenue) }}</h3>
+          <p :class="['stat-change', revenueChange >= 0 ? 'positive' : 'negative']">
+            <i :class="['fas', revenueChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down']"></i>
+            {{ revenueChange.toFixed(1) }}% dari bulan lalu
+          </p>
         </div>
       </div>
     </div>
@@ -314,24 +540,7 @@ onMounted(async () => {
     <!-- Charts Section -->
     <div class="charts-container">
       <div class="chart-card">
-        <div class="chart-header">
-          <h3 class="chart-title">Perbandingan Penjualan Satuan vs Souvenir</h3>
-          <div class="chart-controls">
-            <button @click="previousMonth" class="nav-btn">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <span class="current-month">
-              {{
-                new Date(
-                  new Date().setMonth(new Date().getMonth() - currentMonthIndex),
-                ).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
-              }}
-            </span>
-            <button @click="nextMonth" class="nav-btn" :disabled="currentMonthIndex === 0">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
+        <h3 class="chart-title">Perbandingan Penjualan Satuan vs Souvenir</h3>
         <v-chart :option="lineChartOption" class="chart" />
       </div>
 
@@ -614,5 +823,54 @@ onMounted(async () => {
 .status-badge.cancelled {
   background-color: rgba(220, 53, 69, 0.1);
   color: #dc3545;
+}
+
+.global-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-navigation {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.current-month {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #02163b;
+  min-width: 180px;
+  text-align: center;
+}
+
+.nav-btn {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #02163b;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background-color: #02163b;
+  color: white;
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
