@@ -81,6 +81,9 @@
             <!-- <button class="icon-btn notification-btn">
               <i class="fas fa-bell"></i>
             </button> -->
+            <button class="icon-btn backup-btn">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </button>
             <button class="icon-btn profile-btn">
               <i class="fas fa-user"></i>
             </button>
