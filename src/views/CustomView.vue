@@ -47,9 +47,27 @@ const budgetInput = ref(null)
 // Add after other refs
 const quantity = ref(1) // Default to 1 for 'Satuan'
 
+// Add these new refs after other refs
+// const showSouvenirSuggestion = ref(false)
+const dismissedSuggestion = ref(false)
+
+// Add this computed property
+const shouldShowSouvenirSuggestion = computed(() => {
+  return purchaseType.value === 'Satuan' && quantity.value >= 20 && !dismissedSuggestion.value
+})
+
+// Add this method to dismiss the suggestion
+const dismissSuggestion = () => {
+  dismissedSuggestion.value = true
+}
+
 // Add this computed property in the script section
 const isMinusDisabled = computed(() => {
-  return quantity.value <= 1
+  if (purchaseType.value === 'Souvenir') {
+    return quantity.value <= 20 // Disable minus when quantity is 20 for Souvenir
+  } else {
+    return quantity.value <= 1 // Disable minus when quantity is 1 for Satuan
+  }
 })
 
 onMounted(async () => {
@@ -254,23 +272,23 @@ const validateBudgetInput = () => {
   }
 }
 
-// Add this watch for quantity
+// Replace the existing watch for quantity
 watch(quantity, (newQuantity) => {
-  // Automatically switch to Souvenir if quantity reaches or exceeds 20
-  if (newQuantity >= 20) {
-    purchaseType.value = 'Souvenir'
-  } else {
-    purchaseType.value = 'Satuan'
+  // No longer automatically switch to Souvenir when >= 20
+  // Just enforce minimum quantity based on current type
+  if (purchaseType.value === 'Souvenir' && newQuantity < 20) {
+    quantity.value = 20
   }
 })
 
 // Modify handleQuantityChange function
 const handleQuantityChange = (newQuantity) => {
-  // Always allow decreasing quantity
-  if (newQuantity >= 1) {
+  const minQuantity = purchaseType.value === 'Souvenir' ? 20 : 1
+
+  if (newQuantity >= minQuantity) {
     quantity.value = newQuantity
   } else {
-    quantity.value = 1
+    quantity.value = minQuantity
   }
 }
 
@@ -287,6 +305,13 @@ watch(purchaseType, (newType) => {
 // watch(purchaseType, (newType) => {
 //   quantity.value = newType === 'Satuan' ? 1 : 20
 // })
+
+watch(purchaseType, (newType) => {
+  if (newType === 'Souvenir' && quantity.value < 20) {
+    quantity.value = 20 // Enforce minimum quantity for Souvenir
+  }
+  // No need to reset Satuan quantities, as they can be any value ≥ 1
+})
 </script>
 
 <template>
@@ -425,6 +450,36 @@ watch(purchaseType, (newType) => {
               <i class="fas fa-plus"></i>
             </button>
           </div>
+
+          <!-- Add this notification after the quantity-control div -->
+          <transition name="fade">
+            <div v-if="shouldShowSouvenirSuggestion" class="souvenir-suggestion">
+              <div class="suggestion-content">
+                <div class="suggestion-icon">
+                  <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="suggestion-text">
+                  <h4>Pembelian Banyak!</h4>
+                  <p>
+                    Bagus! Anda memesan <strong>{{ quantity }}</strong> produk. Ingin pengalaman
+                    belanja lebih baik? Coba <strong>Tipe Souvenir</strong> untuk akses fitur
+                    khusus:
+                  </p>
+                  <ul>
+                    <li><i class="fas fa-check"></i> Upload logo/design kustom Anda</li>
+                    <li><i class="fas fa-check"></i> Harga khusus untuk pembelian massal</li>
+                    <li><i class="fas fa-check"></i> Layanan prioritas</li>
+                  </ul>
+                  <button class="switch-mode-btn" @click="purchaseType = 'Souvenir'">
+                    Beralih ke Tipe Souvenir
+                  </button>
+                </div>
+                <button class="close-suggestion" @click="dismissSuggestion">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </transition>
 
           <!-- Add after the quantity-control div -->
           <div class="purchase-info">
@@ -1392,5 +1447,151 @@ watch(purchaseType, (newType) => {
 .note-input::placeholder {
   color: #6c757d;
   font-family: 'Montserrat', sans-serif;
+}
+
+/* Add to the <style> section of your component */
+.souvenir-suggestion {
+  margin: 0 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--border-radius);
+  background: linear-gradient(to right, #fff9e6, #fff);
+  border: 1px solid #f8e3a3;
+  box-shadow: 0 2px 8px rgba(232, 186, 56, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.souvenir-suggestion::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: var(--accent-color);
+}
+
+.suggestion-content {
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.suggestion-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-icon i {
+  color: white;
+  font-size: 1.25rem;
+}
+
+.suggestion-text {
+  flex: 1;
+}
+
+.suggestion-text h4 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.suggestion-text p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+}
+
+.suggestion-text ul {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+  list-style-type: none;
+}
+
+.suggestion-text li {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+  position: relative;
+}
+
+.suggestion-text li i {
+  color: var(--accent-color);
+  margin-right: 0.5rem;
+}
+
+.close-suggestion {
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.close-suggestion:hover {
+  color: var(--primary-color);
+}
+
+.switch-mode-btn {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.switch-mode-btn:hover {
+  background-color: #d6ab33;
+}
+
+/* Animation for the notification */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+  .suggestion-content {
+    flex-direction: column;
+  }
+
+  .suggestion-icon {
+    margin: 0 auto 0.75rem auto;
+  }
+
+  .close-suggestion {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .switch-mode-btn {
+    width: 100%;
+    padding: 0.75rem;
+  }
 }
 </style>
