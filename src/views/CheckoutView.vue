@@ -838,8 +838,9 @@ const validatePhone = (event) => {
 
 // Add route navigation guard
 onBeforeRouteLeave((to, from, next) => {
-  // Skip confirmation if order is already processed
-  if (isProcessing.value) {
+  // Skip confirmation if order is already processed or if going to notification page
+  // (notification page is where users are redirected after successful checkout)
+  if (isProcessing.value || to.path === '/notification') {
     next()
     return
   }
@@ -862,7 +863,8 @@ onBeforeRouteLeave((to, from, next) => {
 const handleBeforeUnload = (e) => {
   // Skip confirmation if order is already processed
   if (isProcessing.value) return
-
+  
+  // This will only run if the user tries to close/refresh the browser
   e.preventDefault()
   e.returnValue = 'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.'
 }
