@@ -1,5 +1,8 @@
 <template>
-  <div class="voucher-notification-container" v-if="hasActiveVouchers">
+  <div
+    class="voucher-notification-container"
+    v-if="!voucherStore.isLoading && activeVouchers.length > 0"
+  >
     <div class="voucher-notification" @click="toggleVoucherModal">
       <div class="notification-content">
         <i class="fas fa-ticket-alt"></i>
@@ -18,12 +21,14 @@
         </div>
         <div class="modal-body">
           <div v-if="activeVouchers.length > 0">
+            <!-- Rest of your voucher content remains the same -->
             <div class="voucher-info-banner">
               <i class="fas fa-info-circle"></i>
               <p>Gunakan voucher untuk mendapatkan potongan harga spesial!</p>
             </div>
 
             <div class="voucher-card" v-for="voucher in activeVouchers" :key="voucher.id">
+              <!-- Existing voucher card content -->
               <div class="voucher-details">
                 <h3 class="voucher-code">{{ voucher.code }}</h3>
                 <p class="voucher-discount">
@@ -38,7 +43,7 @@
               </div>
             </div>
 
-            <!-- Add Terms and Conditions Section -->
+            <!-- Terms and Conditions Section remains the same -->
             <div class="terms-section">
               <div class="terms-header" @click="toggleTerms">
                 <h3>Syarat & Ketentuan</h3>
@@ -80,31 +85,91 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useVoucherStore } from '@/stores/VoucherStore'
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 
 const voucherStore = useVoucherStore()
 const showVoucherModal = ref(false)
 const copiedCode = ref('')
+const unsubscribeListener = ref(null)
+const isInitialLoad = ref(true)
 
-// Fetch vouchers when component is mounted
-onMounted(async () => {
-  await voucherStore.fetchVouchers()
+// Set up real-time listener for vouchers
+const setupVoucherListener = () => {
+  console.log('Setting up real-time voucher listener')
+
+  // Create a query for all vouchers ordered by creation date
+  const vouchersRef = collection(db, 'vouchers')
+  const vouchersQuery = query(vouchersRef, orderBy('createdAt', 'desc'))
+
+  // Set up the real-time listener
+  unsubscribeListener.value = onSnapshot(
+    vouchersQuery,
+    (snapshot) => {
+      console.log('Voucher snapshot received:', snapshot.size)
+
+      // Handle loading state
+      voucherStore.isLoading = false
+
+      // Process each document and update the store's voucher items
+      const vouchers = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      // Update the voucher store directly
+      voucherStore.voucherItems = vouchers
+
+      // Log information
+      console.log('Vouchers updated at:', new Date().toLocaleTimeString())
+      console.log('Total vouchers:', voucherStore.voucherItems.length)
+      console.log('Active vouchers:', activeVouchers.value.length)
+
+      isInitialLoad.value = false
+    },
+    (error) => {
+      console.error('Error listening to vouchers:', error)
+      voucherStore.isLoading = false
+    },
+  )
+}
+
+// Set up real-time listener when component is mounted
+onMounted(() => {
+  console.log('VoucherNotification component mounted')
+  voucherStore.isLoading = true
+  setupVoucherListener()
+})
+
+// Clean up when component is unmounted
+onUnmounted(() => {
+  if (unsubscribeListener.value) {
+    console.log('Unsubscribing from voucher updates')
+    unsubscribeListener.value()
+  }
 })
 
 // Filter active vouchers
 const activeVouchers = computed(() => {
   return voucherStore.voucherItems.filter((voucher) => {
-    const isNotExpired = new Date(voucher.validUntil) > new Date()
+    const now = new Date()
+    const isNotExpired = new Date(voucher.validUntil) > now
     const hasRemainingUses = voucher.currentUses < voucher.maxUses
     return voucher.isActive && isNotExpired && hasRemainingUses
   })
 })
 
-// Check if there are any active vouchers
-const hasActiveVouchers = computed(() => {
-  return activeVouchers.value.length > 0
-})
+// Add watch to debug when voucher items change
+watch(
+  () => voucherStore.voucherItems,
+  (newItems) => {
+    console.log('Voucher items updated:', newItems.length)
+    console.log('Active vouchers after update:', activeVouchers.value.length)
+  },
+  { deep: true },
+)
 
 // Toggle voucher modal
 const toggleVoucherModal = () => {
