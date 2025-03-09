@@ -7,6 +7,7 @@ import {
   serverTimestamp,
   getDocs,
   query,
+  limit,
   where,
   orderBy,
 } from 'firebase/firestore'
@@ -141,6 +142,55 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
+  const fetchOrders = async (limit = 500) => {
+    try {
+      loading.value = true
+      error.value = null
+
+      const ordersRef = collection(db, 'orders')
+      const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(limit))
+
+      const snapshot = await getDocs(q)
+      const orders = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      return orders
+    } catch (err) {
+      error.value = err.message
+      toast.error('Failed to fetch orders')
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Add this function to your OrderStore
+  const fetchAllOrders = async (limitCount = 500) => {
+    try {
+      loading.value = true
+      error.value = null
+
+      const ordersRef = collection(db, 'orders')
+      const q = query(ordersRef, orderBy('createdAt', 'desc'), limit(limitCount))
+
+      const snapshot = await getDocs(q)
+      const orders = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+
+      return orders
+    } catch (err) {
+      error.value = err.message
+      console.error('Failed to fetch orders:', err)
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
   const setNewOrdersCount = (orders) => {
     // Only count orders that haven't been viewed
     const newCount = orders.filter((order) => !viewedOrders.value.has(order.id)).length
@@ -164,6 +214,8 @@ export const useOrderStore = defineStore('order', () => {
     setPaymentProof,
     createOrder,
     getUserOrders,
+    fetchOrders, // Add this line
+    fetchAllOrders,
     newOrdersCount,
     setNewOrdersCount,
     markOrderAsViewed,
