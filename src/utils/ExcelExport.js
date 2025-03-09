@@ -131,6 +131,29 @@ export const exportToExcel = async (data, filename) => {
       addWorksheetWithStyles(workbook, 'Voucher', vouchersForExcel)
     }
 
+    if (data.customers && Array.isArray(data.customers) && data.customers.length > 0) {
+      const customersForExcel = data.customers.map((customer) => {
+        // Format full address
+        const fullAddress = [
+          customer.address || '',
+          customer.city || '',
+          customer.province || '',
+          customer.zip || '',
+        ]
+          .filter((part) => part)
+          .join(', ')
+
+        return {
+          Nama: String(customer.name || '-'),
+          Email: String(customer.email || '-'),
+          'No. Telepon': String(customer.phone || '-'),
+          'Alamat Lengkap': fullAddress || '-',
+        }
+      })
+
+      addWorksheetWithStyles(workbook, 'Customers', customersForExcel)
+    }
+
     // Check if any worksheets were added - otherwise add a default one
     if (workbook.worksheets.length === 0) {
       const ws = workbook.addWorksheet('Info')

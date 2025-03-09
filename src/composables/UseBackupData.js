@@ -81,6 +81,46 @@ export function useBackupData() {
         backupData.vouchers = voucherStore.voucherItems
       }
 
+      // Add new customer backup functionality
+      if (selectedDataTypes.includes('customers')) {
+        try {
+          // Get orders if not already loaded
+          let orders = backupData.orders
+          if (!orders) {
+            orders = await orderStore.fetchAllOrders(1000)
+          }
+
+          // Create a map to deduplicate customers by email
+          const customerMap = new Map()
+
+          orders.forEach((order) => {
+            const shipping = order.shippingDetails
+            if (shipping && shipping.email) {
+              // Use email as unique identifier
+              const key = shipping.email.toLowerCase()
+
+              if (!customerMap.has(key)) {
+                customerMap.set(key, {
+                  name: shipping.name || '',
+                  email: shipping.email || '',
+                  phone: shipping.phone || '',
+                  address: shipping.address || '',
+                  city: shipping.city || '',
+                  province: shipping.province || '',
+                  zip: shipping.zip || '',
+                })
+              }
+            }
+          })
+
+          // Convert map to array
+          backupData.customers = Array.from(customerMap.values())
+        } catch (err) {
+          console.error('Error processing customer data:', err)
+          backupData.customers = []
+        }
+      }
+
       // Generate Excel file with order type in filename for clarity
       const orderTypeText = orderType.value !== 'all' ? `_${orderType.value}` : ''
       await exportToExcel(

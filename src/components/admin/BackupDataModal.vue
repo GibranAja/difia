@@ -146,6 +146,12 @@ const backupOptions = [
     icon: 'fas fa-tags',
     description: 'Data voucher dan diskon',
   },
+  {
+    title: 'Customer',
+    value: 'customers',
+    icon: 'fas fa-user-friends',
+    description: 'Data pelanggan dari pesanan',
+  },
 ]
 
 // Start the backup process with potential order type selection
