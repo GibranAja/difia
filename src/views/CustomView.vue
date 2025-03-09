@@ -70,6 +70,31 @@ const isMinusDisabled = computed(() => {
   }
 })
 
+// Add this flag
+const isQuantityEditing = ref(false)
+
+// New method for handling input
+const handleQuantityInput = (event) => {
+  // Allow any value during typing
+  isQuantityEditing.value = true
+
+  // Clear null values (empty input) to avoid Vue warnings
+  if (event.target.value === '') {
+    quantity.value = null
+  }
+}
+
+// Validate after user finishes typing
+const validateQuantity = () => {
+  isQuantityEditing.value = false
+  const minQuantity = purchaseType.value === 'Souvenir' ? 20 : 1
+
+  // Apply minimum value only if the quantity is below minimum or null
+  if (!quantity.value || quantity.value < minQuantity) {
+    quantity.value = minQuantity
+  }
+}
+
 onMounted(async () => {
   if (katalogItems.value.length === 0) {
     await store.fetchKatalog()
@@ -276,7 +301,7 @@ const validateBudgetInput = () => {
 watch(quantity, (newQuantity) => {
   // No longer automatically switch to Souvenir when >= 20
   // Just enforce minimum quantity based on current type
-  if (purchaseType.value === 'Souvenir' && newQuantity < 20) {
+  if (!isQuantityEditing.value && purchaseType.value === 'Souvenir' && newQuantity < 20) {
     quantity.value = 20
   }
 })
@@ -443,7 +468,8 @@ watch(purchaseType, (newType) => {
               type="number"
               v-model.number="quantity"
               min="1"
-              @change="handleQuantityChange(quantity)"
+              @input="handleQuantityInput"
+              @blur="validateQuantity"
             />
 
             <button class="quantity-btn" @click="handleQuantityChange(quantity + 1)">
