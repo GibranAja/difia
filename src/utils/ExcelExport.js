@@ -234,8 +234,22 @@ function addWorksheetWithStyles(workbook, sheetName, data) {
     for (let i = 2; i <= worksheet.rowCount; i++) {
       const row = worksheet.getRow(i)
 
-      // Calculate row height
-      row.height = 20 // Set a default height instead of calculating dynamically
+      // Perkirakan tinggi baris berdasarkan konten dengan formula yang lebih akurat
+      let maxLines = 1
+
+      // Periksa setiap sel untuk memperkirakan jumlah baris
+      row.eachCell((cell, colNumber) => {
+        if (cell.value) {
+          const columnWidth = worksheet.getColumn(colNumber).width || 10
+          const textLength = String(cell.value).length
+          // Gunakan faktor yang lebih akurat untuk estimasi baris teks
+          const estimatedLines = Math.ceil(textLength / (columnWidth * 1.2))
+          maxLines = Math.max(maxLines, estimatedLines)
+        }
+      })
+
+      // Atur tinggi baris dengan nilai yang lebih sesuai (14 piksel per baris)
+      row.height = Math.max(16, maxLines * 14)
 
       row.eachCell((cell) => {
         // Add borders
