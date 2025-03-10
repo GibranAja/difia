@@ -65,7 +65,7 @@
                   </li>
                   <li>
                     <i class="fas fa-check-circle"></i>
-                    Minimum pembelian dan ketentuan lain mungkin berlaku
+                    Diperuntukan hanya untuk tipe pembelian Souvenir
                   </li>
                   <li>
                     <i class="fas fa-check-circle"></i>

@@ -39,6 +39,18 @@
         <!-- Expanded Order Details -->
         <Transition name="slide">
           <div v-if="expandedOrders[order.id]" class="order-expanded">
+            <!-- Move cancellation reason to appear first when status is cancelled -->
+            <div
+              v-if="order.status === 'cancelled' && order.cancelReason"
+              class="cancellation-reason"
+            >
+              <div class="reason-header">
+                <i class="fas fa-exclamation-circle"></i>
+                <h3>Alasan Pembatalan</h3>
+              </div>
+              <p>{{ order.cancelReason }}</p>
+            </div>
+
             <div class="order-grid">
               <!-- Product Details -->
               <div class="detail-section">
@@ -825,5 +837,43 @@ input:focus {
 
 .invoice-btn:disabled:hover {
   background-color: #cccccc;
+}
+
+/* Cancellation reason styling */
+.cancellation-reason {
+  margin-left: 1.2rem;
+  width: fit-content;
+  padding: 1rem;
+  background-color: #fff8f8;
+  border-left: 4px solid #f44336;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.reason-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.reason-header i {
+  color: #f44336;
+  font-size: 1.1rem;
+}
+
+.reason-header h3 {
+  font-size: 1rem;
+  color: #842029;
+  margin: 0;
+  font-weight: 600;
+}
+
+.cancellation-reason p {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  white-space: pre-line;
 }
 </style>

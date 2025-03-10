@@ -178,8 +178,15 @@ export const useVoucherStore = defineStore('voucher', () => {
   }
 
   // Validate and apply voucher
-  const validateVoucher = async (code) => {
+  const validateVoucher = async (code, purchaseType, userId) => {
     try {
+      console.log('Validating voucher for purchase type:', purchaseType) // Debug log
+
+      // Check if purchase type is Souvenir
+      if (purchaseType !== 'Souvenir') {
+        throw new Error('Voucher hanya berlaku untuk pembelian tipe Souvenir')
+      }
+
       const q = query(
         collection(db, 'vouchers'),
         where('code', '==', code.toUpperCase()),
@@ -205,8 +212,21 @@ export const useVoucherStore = defineStore('voucher', () => {
         throw new Error('Voucher sudah mencapai batas penggunaan')
       }
 
+      // Check if user has used this voucher before
+      const usageQuery = query(
+        collection(db, 'voucher_usage'),
+        where('userId', '==', userId),
+        where('voucherId', '==', voucher.id),
+      )
+
+      const usageSnapshot = await getDocs(usageQuery)
+      if (!usageSnapshot.empty) {
+        throw new Error('Anda sudah pernah menggunakan voucher ini')
+      }
+
       return { success: true, voucher }
     } catch (err) {
+      console.error('Voucher validation failed:', err.message) // Debug log
       return { success: false, error: err.message }
     }
   }
@@ -251,7 +271,7 @@ export const useVoucherStore = defineStore('voucher', () => {
   }
 
   // Update voucher usage
-  const updateVoucherUsage = async (voucherId) => {
+  const updateVoucherUsage = async (voucherId, userId) => {
     try {
       const voucherRef = doc(db, 'vouchers', voucherId)
       const voucherDoc = await getDoc(voucherRef)
@@ -267,6 +287,13 @@ export const useVoucherStore = defineStore('voucher', () => {
       if (newUsage > voucherData.maxUses) {
         throw new Error('Voucher sudah mencapai batas penggunaan')
       }
+
+      // Add record to voucher_usage collection
+      await addDoc(collection(db, 'voucher_usage'), {
+        userId: userId,
+        voucherId: voucherId,
+        usedAt: serverTimestamp(),
+      })
 
       // Update penggunaan voucher
       await updateDoc(voucherRef, {

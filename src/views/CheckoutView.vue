@@ -655,21 +655,34 @@ const applyVoucher = async () => {
 
   try {
     isApplyingVoucher.value = true
-    const result = await voucherStore.validateVoucher(voucherCode.value)
 
-    if (result.success) {
-      // Real-time check saat apply voucher
-      if (result.voucher.currentUses >= result.voucher.maxUses) {
-        toast.error('Voucher sudah mencapai batas penggunaan')
-        return
-      }
+    // Get purchase type from current order
+    const purchaseType = orderStore.currentOrder.customOptions.purchaseType
+    const userId = authStore.currentUser?.id
 
-      appliedVoucher.value = result.voucher
-      voucherCode.value = ''
-      toast.success('Voucher berhasil diterapkan')
-    } else {
-      toast.error(result.error || 'Voucher tidak valid')
+    console.log('Applying voucher for purchase type:', purchaseType) // Debug log
+
+    if (!userId) {
+      toast.error('Anda harus login untuk menggunakan voucher')
+      return
     }
+
+    const result = await voucherStore.validateVoucher(voucherCode.value, purchaseType, userId)
+
+    if (!result.success) {
+      toast.error(result.error || 'Voucher tidak valid')
+      return
+    }
+
+    // Check real-time usage limits
+    if (result.voucher.currentUses >= result.voucher.maxUses) {
+      toast.error('Voucher sudah mencapai batas penggunaan')
+      return
+    }
+
+    appliedVoucher.value = result.voucher
+    voucherCode.value = ''
+    toast.success('Voucher berhasil diterapkan')
   } catch (error) {
     console.error('Error applying voucher:', error)
     toast.error('Gagal menerapkan voucher')
@@ -708,7 +721,11 @@ const handlePaymentProofUpload = async (event) => {
 
 const processVoucherUsage = async () => {
   if (appliedVoucher.value) {
-    const result = await voucherStore.updateVoucherUsage(appliedVoucher.value.id)
+    const result = await voucherStore.updateVoucherUsage(
+      appliedVoucher.value.id,
+      authStore.currentUser?.id,
+    )
+
     if (!result.success) {
       toast.error('Gagal menggunakan voucher: ' + result.error)
       return false
@@ -863,7 +880,7 @@ onBeforeRouteLeave((to, from, next) => {
 const handleBeforeUnload = (e) => {
   // Skip confirmation if order is already processed
   if (isProcessing.value) return
-  
+
   // This will only run if the user tries to close/refresh the browser
   e.preventDefault()
   e.returnValue = 'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.'
