@@ -1,41 +1,7 @@
 <template>
   <VoucherNotification />
   <header id="home">
-    <Swiper
-      :spaceBetween="30"
-      :centeredSlides="true"
-      :autoplay="{
-        delay: 2500,
-        disableOnInteraction: false,
-      }"
-      :pagination="{
-        clickable: true,
-      }"
-      :navigation="false"
-      :modules="modules"
-      :allowTouchMove="false"
-      :speed="800"
-      :loop="sliderStore.sliderItems.length > 1"
-      :loopedSlides="2"
-      class="mySwiper"
-    >
-      <SwiperSlide v-for="slide in sliderStore.sliderItems" :key="slide.id" class="swiper-slide">
-        <div class="slide-wrapper">
-          <div class="slide-overlay"></div>
-          <img :src="slide.image" :alt="`Slider ${slide.id}`" class="slide-image" />
-        </div>
-      </SwiperSlide>
-      <!-- Tambahkan fallback slide jika tidak ada slider -->
-      <SwiperSlide v-if="!sliderStore.sliderItems.length">
-        <div class="slide-wrapper">
-          <div class="slide-overlay"></div>
-          <img src="@/assets/Logo Difia Haki.png" alt="Default Slider" class="slide-image" />
-        </div>
-      </SwiperSlide>
-    </Swiper>
-    <div class="scroll-indicator">
-      <i class="fas fa-chevron-down"></i>
-    </div>
+    <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
@@ -61,24 +27,7 @@
           </p>
         </div>
       </div>
-      <div class="swipper">
-        <p><b>PENGHARGAAN</b></p>
-        <span class="ring"></span>
-        <span class="bg-scroll"></span>
-        <span class="side-color"> </span>
-        <div class="carousel-container">
-          <div class="carousel-track" ref="carouselTrack">
-            <!-- Use cardIndex prop to manage achievement cycling -->
-            <div
-              v-for="(item, index) in achievementItems"
-              :key="`achievement-${index}`"
-              class="carousel-item"
-            >
-              <CardAchivement :card-index="index" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <AchievementSection />
     </section>
     <section class="katalog" id="catalog">
       <span class="dot"></span>
@@ -121,102 +70,26 @@
       <CardUlasan></CardUlasan>
     </section>
   </main>
-  <footer>
-    <h1><b>Thank You</b></h1>
-    <ul>
-      <li>
-        <h1><b>Sosial Media</b></h1>
-      </li>
-      <li>
-        <a href="https://www.instagram.com/difiasouvenir"
-          ><i class="fas fa-brands fa-instagram"></i>difiasouvenir</a
-        >
-      </li>
-      <br />
-      <li>
-        <a href="https://www.facebook.com/"><i class="fas fa-brands fa-facebook"></i>lorem</a>
-      </li>
-    </ul>
-    <ul>
-      <li>
-        <h1><b>Online Shop</b></h1>
-      </li>
-      <li>
-        <a href="https://shopee.co.id/tokonama"
-          ><svg
-            xmlns="http://www.w3.org/2000/svg"
-            x="0px"
-            y="0px"
-            width="20"
-            height="20"
-            viewBox="0,0,256,256"
-          >
-            <g
-              fill="#c1c1c1"
-              fill-rule="nonzero"
-              stroke="none"
-              stroke-width="1"
-              stroke-linecap="butt"
-              stroke-linejoin="miter"
-              stroke-miterlimit="10"
-              stroke-dasharray=""
-              stroke-dashoffset="0"
-              font-family="none"
-              font-weight="none"
-              font-size="none"
-              text-anchor="none"
-              style="mix-blend-mode: normal"
-            >
-              <g transform="scale(5.12,.12)">
-                <path
-                  d="M25,1c-5.32713,0 -9.39588,4.95314 -9.83398,11h-10.10742c-1.135,0 -2.05922,0.981 -1.99609,2.11328l1.72461,30.17188c0.14947,2.63699 2.34979,4.71484 4.99023,4.71484h30.44531c2.64119,0 4.84078,-2.07817 4.99023,-4.71484l1.72461,-30.16992c0.06514,-1.13309 -0.86109,-2.11523 -1.99609,-2.11523h-10.10742c-0.43811,-6.04686 -4.50685,-11 -9.83398,-11zM25,3c4.03694,0 7.40892,3.88679 7.83594,9h-15.67188c0.42701,-5.11321 3.799,-9 7.83594,-9zM5.05859,14h10.77344c0.10799,0.01785 0.21818,0.01785 0.32617,0h17.67383c0.10799,0.01785 0.21818,0.01785 0.32617,0h10.7832l-1.72461,30.17188c-0.09054,1.59732 -1.39334,2.82813 -2.99414,2.82813h-30.44531c-1.59956,0 -2.90362,-1.23111 -2.99414,-2.82812l-1.72461,-30.16992zM25.07422,18.00195c-4.314,0 -7.56641,2.68795 -7.56641,6.25195c0,4.03 3.74769,5.39942 7.05469,6.60742c4.004,1.463 6.43555,2.58019 6.43555,5.74219c0,2.442 -2.73089,4.42969 -6.08789,4.42969c-3.755,0 -6.93675,-2.74153 -6.96875,-2.76953l-1.11523,1.64258c0.812,0.658 4.09498,3.10156 8.08398,3.10156c4.52,0 8.06255,-2.8133 8.06055,-6.4043c0,-4.77 -4.10647,-6.2727 -7.73047,-7.5957c-3.583,-1.311 -5.75977,-2.28291 -5.75977,-4.75391c0,-2.478 2.35275,-4.27734 5.59375,-4.27734c2.161,0 4.0415,0.81814 5.0625,1.36914c0.172,0.092 0.62495,0.3642 0.87695,0.5332l1.02148,-1.66211c-0.234,-0.152 -3.11394,-2.21484 -6.96094,-2.21484z"
-                ></path>
-              </g>
-            </g></svg
-          >lorem</a
-        >
-      </li>
-    </ul>
-    <ul>
-      <li>
-        <h1><b>Maps</b></h1>
-      </li>
-      <li>
-        <iframe
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d495.4244784058984!2d106.784147023424!3d-6.597629657338529!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69c56b57e2cf67%3A0xc22cc0c46697779c!2sKonveksi%20Tas%20Souvenir%20Kantor%20Souvenir%20Acara%20Kota%20Bogor%20Tengah!5e0!3m2!1sid!2sid!4v1740230873607!5m2!1sid!2sid"
-          width="300"
-          height="250"
-          style="border: 0"
-          allowfullscreen=""
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
-      </li>
-    </ul>
-    <p>Copyright &copy;2025</p>
-  </footer>
+  <FooterComponent />
 </template>
 
 <script setup>
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import 'swiper/css'
-import 'swiper/css/pagination'
-import 'swiper/css/navigation'
-import { Autoplay, Pagination, Navigation } from 'swiper/modules'
+import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { useKatalogStore } from '@/stores/KatalogStore'
+import { usePartnerStore } from '@/stores/PartnerStore'
+import { useSliderStore } from '@/stores/SliderStore'
+import { useAuthStore } from '@/stores/AuthStore'
 
 import CardCatalog from '@/components/CardCatalog.vue'
 import CardBlog from '@/components/CardBlog.vue'
 import NavigationBar from '@/components/NavigationBar.vue'
 import VoucherNotification from '@/components/VoucherNotification.vue'
-import { useAuthStore } from '@/stores/AuthStore'
-import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import { useKatalogStore } from '@/stores/KatalogStore'
+import FooterComponent from '@/components/FooterComponent.vue'
 import CardUlasan from '@/components/CardUlasan.vue'
-import { usePartnerStore } from '@/stores/PartnerStore'
 import CardMitra from '@/components/CardMitra.vue'
-import CardAchivement from '@/components/CardAchivement.vue'
-import { useSliderStore } from '@/stores/SliderStore'
+import HeroSwiper from '@/components/HeroSwiper.vue' // Import the new component
+import AchievementSection from '@/components/AchievementSection.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -290,8 +163,6 @@ onBeforeUnmount(() => {
   }
 })
 
-const modules = [Autoplay, Pagination, Navigation]
-
 const ITEMS_PER_PAGE = 6
 const displayCount = ref(ITEMS_PER_PAGE)
 
@@ -311,44 +182,14 @@ const hasMoreItems = computed(() => {
 <style scoped>
 header {
   margin-top: 0;
-  height: 120vh; /* Changed from 105vh to 120vh */
+  height: 120vh;
   position: relative;
-}
-
-/* Add margin-top to account for navbar height */
-header {
-  margin-top: -64px; /* Adjust this value based on your navbar height */
-}
-
-header {
+  margin-top: -64px; /* Adjust based on your navbar height */
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
   position: relative;
   width: 100%;
-  height: 110vh; /* Changed from 105vh to 120vh */
-}
-
-header .mySwiper {
-  width: 100%;
-  height: 110vh; /* Changed from 105vh to 120vh */
-}
-
-header .swiper-slide {
-  width: 100%;
-  height: 110vh; /* Changed from 105vh to 120vh */
-  width: 100vh;
-  text-align: center;
-}
-
-header .text {
-  position: absolute;
-  bottom: 0px;
-  left: 0px;
-  width: 100%;
-  height: 10%;
-  padding: 50px;
-  z-index: 10;
 }
 
 .tentang-kami {
@@ -398,7 +239,7 @@ header .text {
 .tentang-kami .swipper p {
   color: white;
   text-align: center;
-  rotate: -90deg;
+  transform: rotate(-90deg);
   position: absolute;
   left: -30px;
   font-size: 1.5rem;
@@ -610,116 +451,6 @@ header .text {
   color: #02163b;
 }
 
-.slide-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.slide-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Add dark overlay */
-.slide-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  /* Adjust opacity as needed */
-  z-index: 1;
-}
-
-/* Style for scroll indicator */
-.scroll-indicator {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
-  z-index: 10;
-}
-
-.scroll-indicator i {
-  font-size: 2rem;
-  animation: bounce 2s infinite;
-}
-
-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  /* align-items: center; */
-  background: linear-gradient(180deg, #d9d9d9 0%, #02163b 100%);
-  padding: 10px;
-}
-
-footer h1 {
-  font-size: 4rem;
-  width: 100%;
-  text-align: center;
-  color: black;
-}
-
-footer li {
-  list-style: none;
-  text-align: center;
-}
-
-footer a {
-  color: #c1c1c1;
-  text-decoration: none;
-  transition: 700ms;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-footer i {
-  font-size: 1.5rem;
-}
-
-footer li h1 {
-  font-size: 2rem;
-  color: #c1c1c1;
-  text-align: justify;
-}
-
-footer a:hover {
-  color: #ffffff;
-}
-
-footer p {
-  color: #c1c1c1;
-  text-align: center;
-  width: 100%;
-  font-size: small;
-}
-
-@keyframes bounce {
-  0%,
-  20%,
-  50%,
-  80%,
-  100% {
-    transform: translateY(0);
-  }
-
-  40% {
-    transform: translateY(-30px);
-  }
-
-  60% {
-    transform: translateY(-15px);
-  }
-}
-
 /* Add these new styles */
 .load-more-container {
   width: 100%;
@@ -755,5 +486,178 @@ footer p {
   left: 0;
   width: 100%;
   z-index: 100;
+}
+
+/* Add these responsive styles to your <style> section */
+
+/* General responsive adjustments */
+@media (max-width: 1200px) {
+  .about {
+    padding: 80px 50px;
+  }
+
+  .katalog h1,
+  .blog h1,
+  .partner h1,
+  .ulasan h1 {
+    font-size: 3rem;
+  }
+
+  .katalog,
+  .blog,
+  .partner,
+  .ulasan {
+    padding: 60px 40px;
+  }
+}
+
+@media (max-width: 992px) {
+  .tentang-kami .gambar,
+  .tentang-kami .text {
+    width: 80%;
+  }
+
+  .catalog-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about {
+    padding: 60px 30px;
+  }
+
+  .katalog h1,
+  .blog h1,
+  .partner h1,
+  .ulasan h1 {
+    font-size: 2.5rem;
+    width: 100%;
+  }
+
+  header {
+    height: 90vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .katalog,
+  .blog,
+  .partner,
+  .ulasan {
+    padding: 40px 20px;
+  }
+
+  .tentang-kami h1 {
+    font-size: 2rem;
+  }
+
+  .tentang-kami .swipper p {
+    position: static;
+    transform: rotate(0); /* Reset rotation */
+    margin-bottom: 1.5rem;
+    color: #02163b;
+    /* Add these new properties for proper centering */
+    text-align: center;
+    width: 100%;
+    left: auto;
+    font-weight: bold;
+    font-size: 1.8rem;
+    display: block;
+  }
+
+  /* This fixes the container layout to support centered text */
+  .swipper {
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 15px;
+  }
+
+  .catalog-grid {
+    gap: 2rem;
+  }
+
+  .line {
+    width: 30%;
+  }
+
+  .tentang-kami .gambar .kotak,
+  .tentang-kami .gambar .bulet {
+    display: none;
+  }
+
+  .carousel-container {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .catalog-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .about {
+    padding: 40px 20px;
+  }
+
+  .katalog h1,
+  .blog h1,
+  .partner h1,
+  .ulasan h1 {
+    font-size: 2rem;
+  }
+
+  .load-more-btn {
+    padding: 10px 24px;
+    font-size: 0.9rem;
+  }
+
+  header {
+    height: 70vh;
+  }
+
+  .tentang-kami .swipper .bg-scroll,
+  .tentang-kami .swipper .side-color,
+  .tentang-kami .swipper .ring {
+    display: none;
+  }
+}
+
+/* Fix specific responsive issues */
+/* .tentang-kami {
+} */
+
+.tentang-kami .text {
+  padding: 20px;
+}
+
+/* Make heights relative instead of fixed */
+header {
+  height: 100vh;
+}
+
+/* Make font sizes more responsive */
+.tentang-kami h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.2;
+}
+
+.katalog h1,
+.blog h1,
+.partner h1,
+.ulasan h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+/* Improve carousel responsiveness */
+.carousel-container {
+  overflow-x: hidden;
+}
+
+/* More flexible grid for wider screens */
+@media (min-width: 1400px) {
+  .catalog-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 1400px;
+  }
 }
 </style>

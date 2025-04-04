@@ -24,6 +24,17 @@
           </button>
         </div>
 
+        <!-- Add search input -->
+        <div class="search-container">
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search orders by ID, customer, product..."
+            class="search-input"
+          />
+          <i class="fas fa-search search-icon"></i>
+        </div>
+
         <!-- Add this new filter dropdown -->
         <div class="status-filter">
           <div class="dropdown-select" @click="toggleDropdown" ref="dropdownRef">
@@ -69,124 +80,175 @@
           </div>
         </div>
 
-        <!-- Show table only if there are orders -->
-        <div class="table-responsive">
-          <table class="order-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Address</th>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Total Amount</th>
-                <th>Payment Proof</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="order in regularOrders" :key="order.id">
-                <td>{{ order.id }}</td>
-                <td>
-                  <div class="customer-info">
-                    <div>{{ order.shippingDetails.name }}</div>
-                    <div class="customer-email">{{ order.shippingDetails.email }}</div>
-                    <div class="customer-email">{{ order.shippingDetails.phone }}</div>
-                  </div>
-                </td>
-                <td>
-                  <div class="address-info">
-                    <div class="full-address">{{ order.shippingDetails.address }}</div>
-                    <div class="location">
-                      {{ order.shippingDetails.city }}, {{ order.shippingDetails.province }}
+        <!-- Table container -->
+        <div class="table-container" v-if="regularOrders.length">
+          <!-- Scrollable table wrapper -->
+          <div class="table-responsive">
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Address</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Total Amount</th>
+                  <th>Payment Proof</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="order in paginatedRegularOrders" :key="order.id">
+                  <td v-html="highlightMatch(order.id, searchQuery)"></td>
+                  <td>
+                    <div class="customer-info">
+                      <div v-html="highlightMatch(order.shippingDetails.name, searchQuery)"></div>
+                      <div
+                        class="customer-email"
+                        v-html="highlightMatch(order.shippingDetails.email, searchQuery)"
+                      ></div>
+                      <div
+                        class="customer-email"
+                        v-html="highlightMatch(order.shippingDetails.phone, searchQuery)"
+                      ></div>
                     </div>
-                    <div class="postal-code">{{ order.shippingDetails.zip }}</div>
-                  </div>
-                </td>
-                <td>
-                  <div class="product-name-wrapper">
-                    <span class="product-name">{{ order.productName }}</span>
-                    <div class="product-details-tooltip">
-                      <div class="tooltip-content">
-                        <!-- Main product info -->
-                        <div class="product-header">
-                          <h4>{{ order.productName }}</h4>
-                          <span
-                            class="price-type-badge"
-                            :class="order.customOptions.priceType.toLowerCase()"
-                          >
-                            {{ order.customOptions.priceType }}
-                          </span>
-                        </div>
-
-                        <!-- Materials section -->
-                        <div class="details-section">
-                          <h5>Material</h5>
-                          <div class="detail-row">
-                            <span class="detail-label">Luar:</span>
-                            <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
-                          </div>
-                          <div class="detail-row">
-                            <span class="detail-label">Dalam:</span>
-                            <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
-                          </div>
-                        </div>
-
-                        <!-- Accessories section -->
-                        <div class="details-section">
-                          <h5>Aksesoris</h5>
-                          <div class="accessories-tags">
+                  </td>
+                  <td>
+                    <div class="address-info">
+                      <div
+                        class="full-address"
+                        v-html="highlightMatch(order.shippingDetails.address, searchQuery)"
+                      ></div>
+                      <div class="location">
+                        <span
+                          v-html="highlightMatch(order.shippingDetails.city, searchQuery)"
+                        ></span
+                        >,
+                        <span
+                          v-html="highlightMatch(order.shippingDetails.province, searchQuery)"
+                        ></span>
+                      </div>
+                      <div
+                        class="postal-code"
+                        v-html="highlightMatch(order.shippingDetails.zip, searchQuery)"
+                      ></div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="product-name-wrapper">
+                      <span
+                        class="product-name"
+                        v-html="highlightMatch(order.productName, searchQuery)"
+                      ></span>
+                      <div class="product-details-tooltip">
+                        <div class="tooltip-content">
+                          <!-- Main product info -->
+                          <div class="product-header">
+                            <h4>{{ order.productName }}</h4>
                             <span
-                              v-for="(acc, index) in order.customOptions.aksesoris"
-                              :key="index"
-                              class="acc-tag"
+                              class="price-type-badge"
+                              :class="order.customOptions.priceType.toLowerCase()"
                             >
-                              {{ acc }}
+                              {{ order.customOptions.priceType }}
                             </span>
                           </div>
-                        </div>
 
-                        <!-- Notes if exists -->
-                        <div v-if="order.customOptions.note" class="details-section notes">
-                          <h5>Catatan</h5>
-                          <p class="note-text">{{ order.customOptions.note }}</p>
+                          <!-- Materials section -->
+                          <div class="details-section">
+                            <h5>Material</h5>
+                            <div class="detail-row">
+                              <span class="detail-label">Luar:</span>
+                              <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Dalam:</span>
+                              <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
+                            </div>
+                          </div>
+
+                          <!-- Accessories section -->
+                          <div class="details-section">
+                            <h5>Aksesoris</h5>
+                            <div class="accessories-tags">
+                              <span
+                                v-for="(acc, index) in order.customOptions.aksesoris"
+                                :key="index"
+                                class="acc-tag"
+                              >
+                                {{ acc }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <!-- Notes if exists -->
+                          <div v-if="order.customOptions.note" class="details-section notes">
+                            <h5>Catatan</h5>
+                            <p class="note-text">{{ order.customOptions.note }}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td>{{ order.quantity }}</td>
-                <td>{{ formatPrice(order.totalAmount) }}</td>
-                <td>
-                  <div class="payment-proof">
+                  </td>
+                  <td>{{ order.quantity }}</td>
+                  <td>{{ formatPrice(order.totalAmount) }}</td>
+                  <td>
+                    <div class="payment-proof">
+                      <button
+                        class="view-proof-btn"
+                        @click="openPaymentProof(order.paymentProof)"
+                        title="View Payment Proof"
+                      >
+                        <i class="fas fa-receipt"></i>
+                        View Proof
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status-badge" :class="order.status">
+                      {{ order.status }}
+                    </span>
+                  </td>
+                  <td>
                     <button
-                      class="view-proof-btn"
-                      @click="openPaymentProof(order.paymentProof)"
-                      title="View Payment Proof"
+                      class="action-btn"
+                      @click="openStatusModal(order)"
+                      :disabled="order.status === 'complete' || order.status === 'cancelled'"
                     >
-                      <i class="fas fa-receipt"></i>
-                      View Proof
+                      Update Status
                     </button>
-                  </div>
-                </td>
-                <td>
-                  <span class="status-badge" :class="order.status">
-                    {{ order.status }}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    class="action-btn"
-                    @click="openStatusModal(order)"
-                    :disabled="order.status === 'complete' || order.status === 'cancelled'"
-                  >
-                    Update Status
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination outside scrollable area -->
+          <div class="pagination-wrapper">
+            <div class="entries-dropdown">
+              <span>Show</span>
+              <select v-model="entriesPerPage">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>entries</span>
+            </div>
+
+            <div class="pagination">
+              <button :disabled="currentRegularPage === 1" @click="goToPrevRegularPage">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span>{{ currentRegularPage }} of {{ totalRegularPages }}</span>
+              <button
+                :disabled="currentRegularPage >= totalRegularPages"
+                @click="goToNextRegularPage"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -212,139 +274,169 @@
           </div>
         </div>
 
-        <!-- Show table only if there are orders -->
-        <div class="table-responsive">
-          <table class="order-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Customer</th>
-                <th>Address</th>
-                <!-- Add this line -->
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Total Amount</th>
-                <th>Payment Proof</th>
-                <th>Emboss</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="order in souvenirOrders" :key="order.id">
-                <td>{{ order.id }}</td>
-                <td>
-                  <div class="customer-info">
-                    <div>{{ order.shippingDetails.name }}</div>
-                    <div class="customer-email">{{ order.shippingDetails.email }}</div>
-                    <div class="customer-email">{{ order.shippingDetails.phone }}</div>
-                  </div>
-                </td>
-                <!-- Add this cell -->
-                <td>
-                  <div class="address-info">
-                    <div class="full-address">{{ order.shippingDetails.address }}</div>
-                    <div class="location">
-                      {{ order.shippingDetails.city }}, {{ order.shippingDetails.province }}
+        <!-- Table container -->
+        <div class="table-container" v-if="souvenirOrders.length">
+          <!-- Scrollable table wrapper -->
+          <div class="table-responsive">
+            <table class="order-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Address</th>
+                  <!-- Add this line -->
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Total Amount</th>
+                  <th>Payment Proof</th>
+                  <th>Emboss</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="order in paginatedSouvenirOrders" :key="order.id">
+                  <td>{{ order.id }}</td>
+                  <td>
+                    <div class="customer-info">
+                      <div>{{ order.shippingDetails.name }}</div>
+                      <div class="customer-email">{{ order.shippingDetails.email }}</div>
+                      <div class="customer-email">{{ order.shippingDetails.phone }}</div>
                     </div>
-                    <div class="postal-code">{{ order.shippingDetails.zip }}</div>
-                  </div>
-                </td>
-                <td>
-                  <div class="product-name-wrapper">
-                    <span class="product-name">
-                      {{ order.productName }}
-                    </span>
-                    <div class="product-details-tooltip">
-                      <div class="tooltip-content">
-                        <!-- Main product info -->
-                        <div class="product-header">
-                          <h4>{{ order.productName }}</h4>
-                          <span
-                            class="price-type-badge"
-                            :class="order.customOptions.priceType.toLowerCase()"
-                          >
-                            {{ order.customOptions.priceType }}
-                          </span>
-                        </div>
-
-                        <!-- Materials section -->
-                        <div class="details-section">
-                          <h5>Material</h5>
-                          <div class="detail-row">
-                            <span class="detail-label">Luar:</span>
-                            <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
-                          </div>
-                          <div class="detail-row">
-                            <span class="detail-label">Dalam:</span>
-                            <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
-                          </div>
-                        </div>
-
-                        <!-- Accessories section -->
-                        <div class="details-section">
-                          <h5>Aksesoris</h5>
-                          <div class="accessories-tags">
+                  </td>
+                  <!-- Add this cell -->
+                  <td>
+                    <div class="address-info">
+                      <div class="full-address">{{ order.shippingDetails.address }}</div>
+                      <div class="location">
+                        {{ order.shippingDetails.city }}, {{ order.shippingDetails.province }}
+                      </div>
+                      <div class="postal-code">{{ order.shippingDetails.zip }}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="product-name-wrapper">
+                      <span class="product-name">
+                        {{ order.productName }}
+                      </span>
+                      <div class="product-details-tooltip">
+                        <div class="tooltip-content">
+                          <!-- Main product info -->
+                          <div class="product-header">
+                            <h4>{{ order.productName }}</h4>
                             <span
-                              v-for="(acc, index) in order.customOptions.aksesoris"
-                              :key="index"
-                              class="acc-tag"
+                              class="price-type-badge"
+                              :class="order.customOptions.priceType.toLowerCase()"
                             >
-                              {{ acc }}
+                              {{ order.customOptions.priceType }}
                             </span>
                           </div>
-                        </div>
 
-                        <!-- Notes if exists -->
-                        <div v-if="order.customOptions.note" class="details-section notes">
-                          <h5>Catatan</h5>
-                          <p class="note-text">{{ order.customOptions.note }}</p>
+                          <!-- Materials section -->
+                          <div class="details-section">
+                            <h5>Material</h5>
+                            <div class="detail-row">
+                              <span class="detail-label">Luar:</span>
+                              <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Dalam:</span>
+                              <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
+                            </div>
+                          </div>
+
+                          <!-- Accessories section -->
+                          <div class="details-section">
+                            <h5>Aksesoris</h5>
+                            <div class="accessories-tags">
+                              <span
+                                v-for="(acc, index) in order.customOptions.aksesoris"
+                                :key="index"
+                                class="acc-tag"
+                              >
+                                {{ acc }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <!-- Notes if exists -->
+                          <div v-if="order.customOptions.note" class="details-section notes">
+                            <h5>Catatan</h5>
+                            <p class="note-text">{{ order.customOptions.note }}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td>{{ order.quantity }}</td>
-                <td>{{ formatPrice(order.totalAmount) }}</td>
-                <td>
-                  <div class="payment-proof">
-                    <button
-                      class="view-proof-btn"
-                      @click="openPaymentProof(order.paymentProof)"
-                      title="View Payment Proof"
+                  </td>
+                  <td>{{ order.quantity }}</td>
+                  <td>{{ formatPrice(order.totalAmount) }}</td>
+                  <td>
+                    <div class="payment-proof">
+                      <button
+                        class="view-proof-btn"
+                        @click="openPaymentProof(order.paymentProof)"
+                        title="View Payment Proof"
+                      >
+                        <i class="fas fa-receipt"></i>
+                        View Proof
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <div
+                      v-if="order.customOptions?.uploadedImage"
+                      class="design-preview"
+                      @click="openImagePreview(order.customOptions.uploadedImage)"
                     >
-                      <i class="fas fa-receipt"></i>
-                      View Proof
+                      <img :src="order.customOptions.uploadedImage" alt="Design preview" />
+                    </div>
+                    <div v-else class="no-design">Tidak ada emboss</div>
+                  </td>
+                  <td>
+                    <span class="status-badge" :class="order.status">
+                      {{ order.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      class="action-btn"
+                      @click="openStatusModal(order)"
+                      :disabled="order.status === 'complete' || order.status === 'cancelled'"
+                    >
+                      Update Status
                     </button>
-                  </div>
-                </td>
-                <td>
-                  <div
-                    v-if="order.customOptions?.uploadedImage"
-                    class="design-preview"
-                    @click="openImagePreview(order.customOptions.uploadedImage)"
-                  >
-                    <img :src="order.customOptions.uploadedImage" alt="Design preview" />
-                  </div>
-                  <div v-else class="no-design">Tidak ada emboss</div>
-                </td>
-                <td>
-                  <span class="status-badge" :class="order.status">
-                    {{ order.status }}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    class="action-btn"
-                    @click="openStatusModal(order)"
-                    :disabled="order.status === 'complete' || order.status === 'cancelled'"
-                  >
-                    Update Status
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination outside scrollable area -->
+          <div class="pagination-wrapper">
+            <div class="entries-dropdown">
+              <span>Show</span>
+              <select v-model="entriesPerPage">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>entries</span>
+            </div>
+
+            <div class="pagination">
+              <button :disabled="currentSouvenirPage === 1" @click="goToPrevSouvenirPage">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span>{{ currentSouvenirPage }} of {{ totalSouvenirPages }}</span>
+              <button
+                :disabled="currentSouvenirPage >= totalSouvenirPages"
+                @click="goToNextSouvenirPage"
+              >
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -434,7 +526,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { db } from '@/config/firebase'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
 import LoadComponent from '@/components/LoadComponent.vue'
@@ -455,14 +547,15 @@ const activeOrderType = ref('regular')
 const selectedStatuses = ref([])
 const isDropdownOpen = ref(false)
 const dropdownRef = ref(null)
+const searchQuery = ref('')
 
-const statusFlow = {
-  pending: ['process', 'cancelled'],
-  process: ['delivery', 'cancelled'],
-  delivery: ['cancelled'], // complete hanya bisa dari user
-  complete: [], // tidak bisa diubah
-  cancelled: [], // tidak bisa diubah
-}
+// const statusFlow = {
+//   pending: ['process', 'cancelled'],
+//   process: ['delivery', 'cancelled'],
+//   delivery: ['cancelled'], // complete hanya bisa dari user
+//   complete: [], // tidak bisa diubah
+//   cancelled: [], // tidak bisa diubah
+// }
 
 defineProps({
   isSidebarOpen: {
@@ -474,25 +567,63 @@ defineProps({
 // Computed properties for filtered orders
 const regularOrders = computed(() => {
   let filtered = orders.value.filter((order) => !order.isBulkOrder)
+
+  // Apply status filter
   if (selectedStatuses.value.length > 0) {
     filtered = filtered.filter((order) => selectedStatuses.value.includes(order.status))
   }
+
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter((order) => {
+      return (
+        order.id.toLowerCase().includes(query) ||
+        order.shippingDetails.name.toLowerCase().includes(query) ||
+        order.shippingDetails.email.toLowerCase().includes(query) ||
+        order.shippingDetails.phone.toLowerCase().includes(query) ||
+        order.productName.toLowerCase().includes(query) ||
+        order.status.toLowerCase().includes(query)
+      )
+    })
+  }
+
   return filtered
 })
 
 const souvenirOrders = computed(() => {
   let filtered = orders.value.filter((order) => order.isBulkOrder)
+
+  // Apply status filter
   if (selectedStatuses.value.length > 0) {
     filtered = filtered.filter((order) => selectedStatuses.value.includes(order.status))
   }
+
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter((order) => {
+      return (
+        order.id.toLowerCase().includes(query) ||
+        order.shippingDetails.name.toLowerCase().includes(query) ||
+        order.shippingDetails.email.toLowerCase().includes(query) ||
+        order.shippingDetails.phone.toLowerCase().includes(query) ||
+        order.productName.toLowerCase().includes(query) ||
+        order.status.toLowerCase().includes(query)
+      )
+    })
+  }
+
   return filtered
 })
 
-const availableStatuses = computed(() => {
-  if (!selectedOrder.value) return []
+// Add this method to highlight matched text
+const highlightMatch = (text, query) => {
+  if (!query.trim() || !text) return text
 
-  return statusFlow[selectedOrder.value.status] || []
-})
+  const regex = new RegExp(`(${query.trim()})`, 'gi')
+  return text.toString().replace(regex, '<span class="highlight">$1</span>')
+}
 
 // Fetch orders
 const fetchOrders = async () => {
@@ -594,6 +725,64 @@ const closePaymentProofModal = () => {
   showPaymentProofModal.value = false
   paymentProofImage.value = ''
 }
+
+// Add pagination state
+const currentRegularPage = ref(1)
+const currentSouvenirPage = ref(1)
+const entriesPerPage = ref(10)
+
+// Computed properties for pagination
+const totalRegularPages = computed(() => {
+  return Math.max(1, Math.ceil(regularOrders.value.length / entriesPerPage.value))
+})
+
+const totalSouvenirPages = computed(() => {
+  return Math.max(1, Math.ceil(souvenirOrders.value.length / entriesPerPage.value))
+})
+
+const paginatedRegularOrders = computed(() => {
+  const startIndex = (currentRegularPage.value - 1) * entriesPerPage.value
+  const endIndex = startIndex + entriesPerPage.value
+  return regularOrders.value.slice(startIndex, endIndex)
+})
+
+const paginatedSouvenirOrders = computed(() => {
+  const startIndex = (currentSouvenirPage.value - 1) * entriesPerPage.value
+  const endIndex = startIndex + entriesPerPage.value
+  return souvenirOrders.value.slice(startIndex, endIndex)
+})
+
+// Navigation functions
+const goToNextRegularPage = () => {
+  if (currentRegularPage.value < totalRegularPages.value) {
+    currentRegularPage.value++
+  }
+}
+
+const goToPrevRegularPage = () => {
+  if (currentRegularPage.value > 1) {
+    currentRegularPage.value--
+  }
+}
+
+const goToNextSouvenirPage = () => {
+  if (currentSouvenirPage.value < totalSouvenirPages.value) {
+    currentSouvenirPage.value++
+  }
+}
+
+const goToPrevSouvenirPage = () => {
+  if (currentSouvenirPage.value > 1) {
+    currentSouvenirPage.value--
+  }
+}
+
+// Add a watcher for when entriesPerPage changes
+watch(entriesPerPage, () => {
+  // Reset page numbers when entries per page changes to avoid being on a now non-existent page
+  currentRegularPage.value = 1
+  currentSouvenirPage.value = 1
+})
 
 // Lifecycle hooks
 onMounted(fetchOrders)
@@ -1519,12 +1708,10 @@ h1 {
 .full-address {
   font-size: 0.9em;
   line-height: 1.4;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: block;
+  word-break: break-word; /* Allow breaking long words if needed */
+  white-space: normal; /* Ensure text wraps */
+  max-width: 250px; /* Keep this for width control */
 }
 
 .location {
@@ -1872,5 +2059,172 @@ h1 {
 
 .order-table tr:last-child .product-name-wrapper:hover .product-details-tooltip {
   animation: tooltipBounceReverse 0.3s ease;
+}
+
+/* Add pagination controls styles */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-controls button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-controls button:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.pagination-controls span {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Add these new styles to your CSS */
+.table-container {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.table-responsive {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 0; /* Remove bottom margin as it's now in table-container */
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  padding: 0 10px;
+}
+
+.entries-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.entries-dropdown select {
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  border: 1px solid #02163b;
+  background-color: #02163b;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #032661;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-weight: 500;
+  color: #02163b;
+}
+
+/* Remove the old pagination-controls styles or update them accordingly */
+.pagination-controls {
+  display: none; /* Hide the old controls */
+}
+
+/* Search styles */
+.search-container {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 15px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 35px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #02163b;
+  box-shadow: 0 0 0 2px rgba(2, 22, 59, 0.1);
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Highlight style */
+.highlight {
+  background-color: #ffee9c;
+  font-weight: 500;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* Update order-controls for better layout */
+.order-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .order-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-container {
+    max-width: 100%;
+    margin: 10px 0;
+  }
 }
 </style>
