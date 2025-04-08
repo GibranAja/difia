@@ -1,127 +1,233 @@
 <template>
-  <nav
-    :class="{
-      'nav-hidden': isHidden || (!isScrolled && isAtTop),
-      'at-top': !isScrolled,
-    }"
-    :style="{
-      // background: isScrolled ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.43)',
-      // backdropFilter: isScrolled ? 'blur(10px)' : 'blur(0px)'
-    }"
-  >
-    <div class="link">
-      <a @click.prevent="navigateTo('/', 'home')" href="#home"><b>Beranda</b></a>
-      <a @click.prevent="navigateTo('/', 'about')" href="#about"><b>Tentang Kami</b></a>
-      <a @click.prevent="navigateTo('/', 'catalog')" href="#catalog"><b>Katalog</b></a>
-      <a @click.prevent="navigateTo('/', 'articel')" href="#articel"><b>Artikel</b></a>
-      <router-link v-if="authStore.currentUser?.isAdmin" to="/admin"><b>Dashboard</b></router-link>
-    </div>
-
-    <a href="/notification" class="notification-icon-container" @click="handleNotificationClick">
-      <i class="fas fa-bell"></i>
-      <span v-if="notificationStore.notificationCount > 0" class="notification-counter">
-        {{ notificationStore.notificationCount }}
-      </span>
-    </a>
-
-    <a href="/cart" class="cart-icon-container">
-      <i class="fas fa-cart-shopping"></i>
-      <span v-if="cartItemCount > 0" class="cart-counter">{{ cartItemCount }}</span>
-    </a>
-
-    <template v-if="!authStore.isLoggedIn">
-      <a href="/login" class="masuk">Login</a>
-    </template>
-
-    <template v-if="authStore.isLoggedIn">
-      <div class="login">
-        <div class="profile-photo-container" @click="showProfileModal = true">
-          <img
-            :src="userProfilePhoto"
-            :alt="authStore.currentUser?.name || 'User'"
-            class="profile-photo"
-            @error="handleImageError"
-          />
+  <div class="navbar-wrapper" :class="{ 'navbar-hidden': shouldHideNav }">
+    <nav :class="{ 'nav-scrolled': isScrolled, 'nav-expanded': isMobileMenuOpen }">
+      <!-- Main navigation container -->
+      <div class="nav-container">
+        <!-- Left side - Navigation links with unique animation -->
+        <div class="nav-links-container">
+          <div class="nav-links-backdrop" :class="{ active: isMobileMenuOpen }"></div>
+          <ul class="nav-links" :class="{ 'menu-active': isMobileMenuOpen }">
+            <li v-for="(item, index) in navItems" :key="index" class="nav-item">
+              <a
+                @click.prevent="navigateTo(item.path, item.section)"
+                :href="item.href"
+                class="nav-link"
+              >
+                <span class="nav-link-text">{{ item.text }}</span>
+                <span class="nav-link-indicator"></span>
+              </a>
+            </li>
+            <li v-if="authStore.currentUser?.isAdmin" class="nav-item admin-item">
+              <router-link to="/admin" class="nav-link admin-link">
+                <i class="fas fa-chart-line admin-icon"></i>
+                <span class="nav-link-text">Dashboard</span>
+              </router-link>
+            </li>
+          </ul>
         </div>
-        <a href="" class="keluar" @click.prevent="showLogoutModal = true">Log out</a>
+
+        <!-- Right side - user actions -->
+        <div class="user-actions">
+          <!-- Notification bell with animation -->
+          <button class="action-button notification-button" @click="handleNotificationClick">
+            <div class="button-content">
+              <i class="fas fa-bell"></i>
+              <div v-if="notificationStore.notificationCount > 0" class="notification-badge pulse">
+                {{
+                  notificationStore.notificationCount > 99
+                    ? '99+'
+                    : notificationStore.notificationCount
+                }}
+              </div>
+            </div>
+          </button>
+
+          <!-- Shopping cart with animated indicator -->
+          <button class="action-button cart-button" @click="navigateToCart">
+            <div class="button-content">
+              <i class="fas fa-shopping-bag"></i>
+              <div v-if="cartItemCount > 0" class="cart-badge">
+                {{ cartItemCount > 99 ? '99+' : cartItemCount }}
+              </div>
+            </div>
+          </button>
+
+          <!-- User account section -->
+          <div class="user-section">
+            <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
+              <span class="login-text">Login</span>
+              <i class="fas fa-arrow-right login-arrow"></i>
+            </button>
+
+            <div v-else class="user-profile">
+              <div
+                class="profile-container"
+                @click="showProfileModal = true"
+                :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+              >
+                <div class="profile-accent"></div>
+              </div>
+
+              <button class="logout-button" @click="showLogoutModal = true">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mobile menu toggle -->
+          <button class="menu-toggle" @click="toggleMobileMenu">
+            <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </button>
+        </div>
       </div>
-    </template>
+    </nav>
+  </div>
 
-    <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
+  <!-- Modals -->
+  <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
 
-    <NegativeModal
-      v-if="showLogoutModal"
-      title="Konfirmasi Logout"
-      message="Apakah Anda yakin ingin keluar?"
-      :loading="isLoggingOut"
-      @close="showLogoutModal = false"
-      @confirm="handleLogout"
-    />
-  </nav>
+  <NegativeModal
+    v-if="showLogoutModal"
+    title="Konfirmasi Logout"
+    message="Apakah Anda yakin ingin keluar?"
+    :loading="isLoggingOut"
+    @close="showLogoutModal = false"
+    @confirm="handleLogout"
+  />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useAuthStore } from '../stores/AuthStore'
-import { useCartStore } from '@/stores/CartStore' // Add this import
-import { useRouter, useRoute } from 'vue-router' // Add useRoute
+import { useCartStore } from '@/stores/CartStore'
+import { useRouter, useRoute } from 'vue-router'
 import ModalProfile from './ModalProfile.vue'
-import NegativeModal from './NegativeModal.vue' // Add this import
-import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png' // Import the image directly
-import { useNotificationStore } from '@/stores/NotificationStore' // Add this import
+import NegativeModal from './NegativeModal.vue'
+import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
+import { useNotificationStore } from '@/stores/NotificationStore'
 
+// Stores and routing
 const router = useRouter()
-const route = useRoute() // Add this
+const route = useRoute()
 const authStore = useAuthStore()
-const cartStore = useCartStore() // Add this
-const notificationStore = useNotificationStore() // Add this
-const showProfileModal = ref(false)
-const isScrolled = ref(false)
-const isHidden = ref(false)
-const lastScrollPosition = ref(0)
-const isAtTop = ref(true) // Add this new ref
+const cartStore = useCartStore()
+const notificationStore = useNotificationStore()
 
-// Add these refs
+// Reactive state
+const isScrolled = ref(false)
+const shouldHideNav = ref(false)
+const lastScrollPosition = ref(0)
+const isMobileMenuOpen = ref(false)
+const showProfileModal = ref(false)
 const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
 
-// Handle scroll event
+// Navigation items
+const navItems = [
+  { text: 'Beranda', path: '/', section: 'home', href: '#home' },
+  { text: 'Tentang Kami', path: '/', section: 'about', href: '#about' },
+  { text: 'Katalog', path: '/', section: 'catalog', href: '#catalog' },
+  { text: 'Artikel', path: '/', section: 'articel', href: '#articel' },
+]
+
+// Close mobile menu on route change
+watch(
+  () => route.path,
+  () => {
+    isMobileMenuOpen.value = false
+  },
+)
+
+// Computed properties
+const userProfilePhoto = computed(() => {
+  return authStore.currentUser?.profilePhoto || defaultAvatarImage
+})
+
+const cartItemCount = computed(() => {
+  if (!authStore.isLoggedIn) return 0
+  return cartStore.cartItems.length
+})
+
+// Event handlers
 const handleScroll = () => {
   const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop
 
-  // Update scroll state for backdrop styling
-  isScrolled.value = currentScrollPosition > 0
+  // Update scroll state
+  isScrolled.value = currentScrollPosition > 20
 
-  // Update state when at top
-  isAtTop.value = currentScrollPosition < 50
+  // Navigation hide logic - don't hide when menu is open
+  if (isMobileMenuOpen.value || currentScrollPosition < 100) {
+    shouldHideNav.value = false
+  } else {
+    const isScrollingDown = currentScrollPosition > lastScrollPosition.value
 
-  // Only hide navbar when exactly at the top (position 0)
-  if (currentScrollPosition === 0) {
-    isHidden.value = true
-    return
-  }
-
-  // Show navbar immediately when scrolling down from top
-  if (currentScrollPosition < 50) {
-    isHidden.value = false
-    return
-  }
-
-  // For other scroll positions, show/hide based on scroll direction
-  if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 10) {
-    isHidden.value = currentScrollPosition > lastScrollPosition.value
+    // Add hysteresis - only hide/show after passing threshold
+    if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 10) {
+      shouldHideNav.value = isScrollingDown
+    }
   }
 
   lastScrollPosition.value = currentScrollPosition
 }
 
-// Your existing code...
-const userProfilePhoto = computed(() => {
-  return authStore.currentUser?.profilePhoto || defaultAvatarImage
-})
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
 
-const handleImageError = (e) => {
-  e.target.src = defaultAvatarImage
+  // Prevent body scroll when menu is open
+  if (isMobileMenuOpen.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+const navigateTo = async (path, section = null) => {
+  // Close mobile menu
+  isMobileMenuOpen.value = false
+  document.body.style.overflow = ''
+
+  // Handle same-page navigation
+  if (route.path === path && section) {
+    const element = document.getElementById(section)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+    return
+  }
+
+  // Handle different page navigation
+  if (route.path !== path) {
+    await router.push(path)
+    await nextTick()
+
+    if (section) {
+      setTimeout(() => {
+        const element = document.getElementById(section)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 150)
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+}
+
+const navigateToLogin = () => {
+  router.push('/login')
+}
+
+const navigateToCart = () => {
+  router.push('/cart')
+}
+
+const handleNotificationClick = () => {
+  notificationStore.resetCount()
+  router.push('/notification')
 }
 
 const handleLogout = async () => {
@@ -136,286 +242,601 @@ const handleLogout = async () => {
   }
 }
 
-// Add navigation function
-const navigateTo = async (path, section = null) => {
-  // If we're already on the home page
-  if (route.path === '/' && section) {
-    // Just scroll to section
-    const element = document.getElementById(section)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-    return
-  }
-
-  // If we're on a different page
-  if (route.path !== '/') {
-    // First navigate to home page
-    await router.push('/')
-
-    // Wait for navigation to complete
-    await nextTick()
-
-    // Then scroll to section if specified
-    if (section) {
-      setTimeout(() => {
-        const element = document.getElementById(section)
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' })
-        }
-      }, 100) // Small delay to ensure DOM is updated
-    } else {
-      // If no section specified, scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+// Close menu when clicking outside
+const handleClickOutside = (event) => {
+  if (isMobileMenuOpen.value) {
+    const navElement = document.querySelector('nav')
+    if (navElement && !navElement.contains(event.target)) {
+      isMobileMenuOpen.value = false
+      document.body.style.overflow = ''
     }
   }
 }
 
-// Add cart counter computed property
-const cartItemCount = computed(() => {
-  if (!authStore.isLoggedIn) return 0
-  return cartStore.cartItems.length
-})
-
-// Modify onMounted to fetch cart items
-onMounted(async () => {
-  window.addEventListener('scroll', handleScroll)
-  if (authStore.isLoggedIn) {
-    await cartStore.fetchCartItems()
-  }
-
-  // Setup notification tracking if user is logged in
-  if (authStore.isLoggedIn && authStore.currentUser?.id) {
-    const unsubscribe = notificationStore.trackStatusUpdates(authStore.currentUser.id)
-
-    // Cleanup on unmount
-    onUnmounted(() => {
-      unsubscribe && unsubscribe()
-    })
-  }
-})
-
-// Add event listeners
+// Lifecycle hooks
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
-  // Set initial state
-  isHidden.value = true
+  // Initialize scroll handler with throttle
+  let ticking = false
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        handleScroll()
+        ticking = false
+      })
+      ticking = true
+    }
+  })
+
+  // Initialize scroll state
   handleScroll()
+
+  // Fetch data if user is logged in
+  if (authStore.isLoggedIn) {
+    cartStore.fetchCartItems()
+
+    if (authStore.currentUser?.id) {
+      const unsubscribe = notificationStore.trackStatusUpdates(authStore.currentUser.id)
+      onUnmounted(() => unsubscribe && unsubscribe())
+    }
+  }
+
+  // Add event listener for clicks outside
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('click', handleClickOutside)
+  document.body.style.overflow = ''
 })
-
-const handleNotificationClick = () => {
-  notificationStore.resetCount()
-}
 </script>
 
 <style scoped>
-.nav-hidden {
+/* Base styles with white dominant theme */
+.navbar-wrapper {
+  position: fixed;
+  top: 40px; /* Add this - adjust height based on your VoucherNotification height */
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.navbar-hidden {
   transform: translateY(-100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: all 0.3s ease;
 }
 
 nav {
+  background-color: #ffffff;
+  height: 70px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.nav-scrolled {
+  height: 60px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.nav-container {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  height: 100%;
   display: flex;
-  flex-wrap: wrap;
-  position: fixed;
-  top: 0;
-  width: 100%;
-  padding: 10px;
-  gap: 5px;
-  z-index: 10;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  font-family: 'Montserrat', sans-serif;
-  transition: all 0.3s ease;
-  transform: translateY(0);
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.43);
-  backdrop-filter: blur(10px);
 }
 
-.nav-hidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
+/* Innovative navigation links */
+.nav-links-container {
+  position: relative;
+  margin-right: 2rem;
 }
 
-/* Style untuk navbar saat di paling atas */
-nav.at-top {
-  background: transparent;
-  backdrop-filter: none;
-}
-
-/* Add smooth transition for background change */
-nav:not(.at-top) {
-  background: rgba(0, 0, 0, 0.43);
-  backdrop-filter: blur(10px);
-}
-
-.link {
+.nav-links {
   display: flex;
-  gap: 50px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  gap: 0.2rem;
+  position: relative;
+  z-index: 2;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 100px;
-  background-color: #02163b;
-  padding: 5px;
-  width: 60%;
-}
-
-.link a {
-  font-size: 1.3rem;
-}
-
-a {
+  padding: 0.5rem 1.25rem;
+  color: #222222;
   text-decoration: none;
-  color: white;
-  padding: 10px;
-  transition: all 700ms;
-}
-
-a.masuk {
-  background-color: #e8ba38;
-  padding: 10px;
+  font-weight: 600;
   border-radius: 10px;
-  width: 10%;
-  text-align: center;
+  position: relative;
+  font-family: 'Montserrat', sans-serif;
+  transition: color 0.3s ease;
 }
 
-.login {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  width: 25%;
-  gap: 20px;
-  padding: 10px;
-  border-radius: 100px;
-}
-
-i {
-  color: #e8ba38;
-  transition: all 700ms;
-  font-size: 1.7rem;
-}
-
-i:hover {
-  color: #02163b;
-}
-
-a.keluar:hover {
-  color: #e8ba38;
-  background-color: white;
-  border: solid 1px #e8ba38;
-}
-
-a.masuk:hover {
-  color: #e8ba38;
-  background-color: white;
-  border: solid 1px #e8ba38;
-}
-
-.link a:hover {
-  background-color: #e8ba38;
-  border-radius: 100px;
-  padding: 10px;
-}
-
-a.keluar {
-  color: white;
-  background-color: #e8ba38;
-  text-align: center;
-  padding: 10px;
-  width: 120px;
-  height: 20px;
-  border-radius: 50px;
-  justify-content: center;
-  align-items: center;
-  display: flex;
-}
-
-/* Add style for the dashboard link to match other navigation items */
-.link router-link {
-  text-decoration: none;
-  color: white;
-  padding: 10px;
-  transition: all 700ms;
-}
-
-.link router-link:hover {
-  background-color: #e8ba38;
-  border-radius: 100px;
-  padding: 10px;
-}
-
-.profile-photo-container {
-  cursor: pointer;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid #e8ba38;
+.nav-link-text {
+  position: relative;
+  z-index: 2;
   transition: transform 0.3s ease;
 }
 
-.profile-photo-container:hover {
-  transform: scale(1.1);
+.nav-link:hover .nav-link-text {
+  transform: translateY(-2px);
+  color: #02163b;
 }
 
-.profile-photo {
+.nav-link-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background-color: #e8ba38;
+  transition:
+    width 0.3s ease,
+    left 0.3s ease;
+  border-radius: 2px;
+}
+
+.nav-link:hover .nav-link-indicator {
+  width: 40%;
+  left: 30%;
+}
+
+.admin-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #02163b;
+  background-color: rgba(232, 186, 56, 0.1);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  margin-left: 0.5rem;
+}
+
+.admin-icon {
+  color: #e8ba38;
+  font-size: 0.9rem;
+}
+
+/* User actions section - right side */
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+/* Action buttons with unique design */
+.action-button {
+  position: relative;
+  background: transparent;
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-}
-
-.cart-icon-container {
-  position: relative;
-  display: inline-block;
-}
-
-.cart-counter {
-  position: absolute;
-  top: -2px;
-  right: -1px;
-  background-color: #e83838;
-  color: #ffffff;
+  background-color: rgba(232, 186, 56, 0.1);
   border-radius: 50%;
-  padding: 1px px;
-  font-size: 12px;
+  transform: scale(0);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-button:hover::before {
+  transform: scale(1);
+}
+
+.button-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.action-button i {
+  color: #02163b;
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.action-button:hover i {
+  transform: scale(1.1);
+  color: #e8ba38;
+}
+
+/* Badges with pulse animation */
+.notification-badge,
+.cart-badge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  background-color: #e8ba38;
+  color: #02163b;
+  border-radius: 10px;
+  font-size: 0.55rem;
   font-weight: bold;
-  min-width: 16px;
-  height: 16px;
+  padding: 1px 4px;
+  min-width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* border: 2px solid #fff; */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ffffff;
 }
 
-/* Add these styles to your existing CSS */
-.notification-icon-container {
+/* Pulse animation for notification badge */
+.pulse {
+  animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 186, 56, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(232, 186, 56, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 186, 56, 0);
+  }
+}
+
+/* User section with profile and login */
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Redesigned login button */
+.login-button {
+  background: linear-gradient(135deg, #02163b, #02265e);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
   position: relative;
-  display: inline-block;
+  overflow: hidden;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  box-shadow: 0 4px 12px rgba(2, 22, 59, 0.2);
 }
 
-.notification-counter {
+.login-button::before {
+  content: '';
   position: absolute;
-  top: -2px;
-  right: -1px;
-  background-color: #e83838;
-  color: #ffffff;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e8ba38, #f8d575);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(2, 22, 59, 0.3);
+}
+
+.login-button:hover::before {
+  opacity: 1;
+}
+
+.login-text,
+.login-arrow {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.login-button:hover .login-text {
+  color: #02163b;
+}
+
+.login-button:hover .login-arrow {
+  transform: translateX(4px);
+  color: #02163b;
+}
+
+/* Profile section with accent */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-container {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  padding: 1px;
-  font-size: 12px;
-  font-weight: bold;
-  min-width: 16px;
-  height: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid #fff;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.profile-container:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.profile-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30%;
+  background: linear-gradient(to top, rgba(232, 186, 56, 0.7), transparent);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.profile-container:hover .profile-accent {
+  transform: translateY(0);
+}
+
+.logout-button {
+  background-color: transparent;
+  border: 1px solid #e1e1e1;
+  color: #555;
+  width: 36px;
+  height: 36px;
+  border-radius: u;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.logout-button:hover {
+  background-color: #f6f6f6;
+  border-color: #e8ba38;
+}
+
+.logout-button i {
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.logout-button:hover i {
+  color: #e8ba38;
+}
+
+/* Mobile menu toggle button */
+.menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.menu-icon {
+  width: 24px;
+  height: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.menu-icon span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #02163b;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.menu-icon.open span:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+  background-color: #e8ba38;
+}
+
+.menu-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-icon.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+  background-color: #e8ba38;
+}
+
+/* Responsive adaptations */
+@media (max-width: 1024px) {
+  .nav-link {
+    padding: 0.5rem 1rem;
+  }
+
+  .nav-container {
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  .nav-links-container {
+    position: static;
+    margin-right: 0;
+  }
+
+  .nav-links-backdrop {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 1;
+  }
+
+  .nav-links-backdrop.active {
+    height: calc(100vh - 60px);
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem 0;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s ease;
+    z-index: 2;
+  }
+
+  .nav-links.menu-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .nav-link {
+    padding: 1rem 0;
+    width: 80%;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .nav-link-indicator {
+    display: none;
+  }
+
+  .admin-link {
+    margin: 1rem 0 0 0;
+    justify-content: center;
+    width: 80%;
+  }
+
+  .user-actions {
+    justify-content: flex-end;
+    flex-grow: 1;
+  }
+
+  .login-button {
+    padding: 0.5rem 1rem;
+  }
+
+  .login-text {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 0 0.8rem;
+  }
+
+  .action-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-actions {
+    gap: 0.8rem;
+  }
+
+  .login-button {
+    padding: 0.5rem 0.8rem;
+  }
+
+  .profile-container {
+    width: 36px;
+    height: 36px;
+  }
+
+  .logout-button {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Unique animation for mobile menu transition */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-links.menu-active .nav-item {
+  animation: fadeSlideIn 0.4s forwards;
+}
+
+.nav-links.menu-active .nav-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.nav-links.menu-active .nav-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.nav-links.menu-active .nav-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.nav-links.menu-active .nav-item:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.nav-links.menu-active .nav-item:nth-child(5) {
+  animation-delay: 0.5s;
 }
 </style>

@@ -229,12 +229,15 @@ const toggleTerms = () => {
 }
 
 .voucher-notification-container {
-  position: relative;
+  position: fixed; /* Change from relative to fixed */
+  top: 0;
+  left: 0;
   width: 100%;
-  z-index: 1000;
+  z-index: 1001; /* Higher than navbar's z-index of 100 */
 }
 
 .voucher-notification {
+  /* Keep existing styles */
   background-color: #02163b;
   color: #e8ba38;
   padding: 10px 20px;

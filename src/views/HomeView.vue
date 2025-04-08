@@ -1,9 +1,9 @@
 <template>
   <VoucherNotification />
-  <header id="home">
+  <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout" class="navbar"></NavigationBar>
+  <header id="home" :class="{ 'header-at-top': isAtTop }">
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
-  <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout"></NavigationBar>
   <main>
     <section class="tentang-kami" id="about">
       <div class="about">
@@ -139,10 +139,28 @@ const handleLogout = async () => {
   }
 }
 
+const isAtTop = ref(true)
+
+const checkScrollPosition = () => {
+  isAtTop.value = window.scrollY === 0
+}
+
 onMounted(async () => {
   await katalogStore.fetchKatalog()
   await partnerStore.fetchPartners()
   await sliderStore.fetchSliders()
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        checkScrollPosition()
+        ticking = false
+      })
+      ticking = true
+    }
+  })
+
+  checkScrollPosition()
 
   // Membuat array achievements untuk endless carousel
   // Duplikasi item agar endless bahkan dengan sedikit data
@@ -156,11 +174,15 @@ onMounted(async () => {
   }, 500)
 })
 
+let ticking = false
+
 // Bersihkan animation frame saat komponen diunmount
 onBeforeUnmount(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
+
+  window.removeEventListener('scroll', checkScrollPosition)
 })
 
 const ITEMS_PER_PAGE = 6
@@ -182,14 +204,31 @@ const hasMoreItems = computed(() => {
 <style scoped>
 header {
   margin-top: 0;
-  height: 120vh;
+  height: 100vh;
   position: relative;
-  margin-top: -64px; /* Adjust based on your navbar height */
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  position: relative;
   width: 100%;
+  transition: transform 0.3s ease;
+}
+
+.header-at-top {
+  transform: translateY(100px); /* Adjust this value to match your navbar height */
+}
+
+.navbar {
+  position: fixed;
+  top: 40px; /* Account for VoucherNotification */
+  left: 0;
+  width: 100%;
+  z-index: 100;
+}
+
+@media (max-width: 768px) {
+  .header-at-top {
+    transform: translateY(60px); /* Smaller offset for mobile */
+  }
 }
 
 .tentang-kami {
@@ -477,15 +516,6 @@ header {
   background-color: #e8ba38;
   color: white;
   border-color: #e8ba38;
-}
-
-/* Add this to ensure the navbar appears over other content */
-.navigation-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 100;
 }
 
 /* Add these responsive styles to your <style> section */
