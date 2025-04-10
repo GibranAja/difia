@@ -36,6 +36,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 10px;
+  height: 12rem;
   border-radius: 8px;
   transition: transform 0.3s ease;
 }
@@ -62,7 +63,7 @@ onMounted(async () => {
   transition:
     filter 0.6s ease,
     transform 0.6s ease;
-  will-change: filter, transform;
+  /* will-change: filter, transform; */
 }
 
 .card:hover img {
@@ -78,7 +79,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
+  /* background: rgba(0, 0, 0, 0.1); */
   opacity: 1;
   transition: opacity 0.6s ease;
 }

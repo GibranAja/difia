@@ -3,7 +3,11 @@
     <div class="card-content">
       <div class="image-wrapper">
         <router-link :to="`/detail/${item.id}`" class="image-container">
-          <img :src="item.images[0]" alt="foto-produk" v-if="item.images && item.images.length > 0" />
+          <img
+            :src="item.images[0]"
+            alt="foto-produk"
+            v-if="item.images && item.images.length > 0"
+          />
           <div class="overlay">
             <div class="overlay-content">
               <span class="view-details">Lihat Detail</span>
@@ -12,10 +16,22 @@
           </div>
         </router-link>
       </div>
-      
+
       <div class="product-info">
         <h1 class="product-name">{{ item.nama }}</h1>
-        
+
+        <!-- Product Stats: Sold count and Rating -->
+        <div class="product-stats">
+          <div class="sold-count">
+            <span>Terjual {{ soldCount }}</span>
+          </div>
+          <div class="rating">
+            <i class="fas fa-star"></i>
+            <span>{{ averageRating.toFixed(1) }}</span>
+            <span class="review-count">({{ reviewsCount }})</span>
+          </div>
+        </div>
+
         <div class="price-section">
           <span class="price-label">Harga Mulai Dari</span>
           <p class="price">Rp {{ formatPrice(item.harga.standar) }}</p>
@@ -31,10 +47,12 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
+import { db } from '@/config/firebase'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -44,6 +62,55 @@ const props = defineProps({
   item: {
     type: Object,
     required: true,
+  },
+})
+
+// Reactive state for product stats
+const soldCount = ref(0)
+const reviews = ref([])
+const reviewsCount = ref(0)
+const unsubscribeOrders = ref(null)
+const unsubscribeReviews = ref(null)
+
+// Calculate average rating
+const averageRating = computed(() => {
+  if (reviews.value.length === 0) return 0
+  const sum = reviews.value.reduce((acc, review) => acc + review.rating, 0)
+  return sum / reviews.value.length
+})
+
+// Set up real-time listeners
+onMounted(() => {
+  // Listen for orders to count sold items
+  const ordersQuery = query(collection(db, 'orders'), where('productId', '==', props.item.id))
+
+  unsubscribeOrders.value = onSnapshot(ordersQuery, (snapshot) => {
+    // Calculate total quantity sold from all orders
+    soldCount.value = snapshot.docs.reduce((total, doc) => {
+      const order = doc.data()
+      return total + (order.quantity || 1)
+    }, 0)
+  })
+
+  // Listen for reviews
+  const reviewsQuery = query(collection(db, 'reviews'), where('productId', '==', props.item.id))
+
+  unsubscribeReviews.value = onSnapshot(reviewsQuery, (snapshot) => {
+    reviews.value = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    reviewsCount.value = snapshot.docs.length
+  })
+})
+
+// Clean up listeners when component unmounts
+onUnmounted(() => {
+  if (unsubscribeOrders.value) {
+    unsubscribeOrders.value()
+  }
+  if (unsubscribeReviews.value) {
+    unsubscribeReviews.value()
   }
 })
 
@@ -67,7 +134,9 @@ const formatPrice = (price) => {
   background-color: #fafafa;
   border-radius: 16px;
   padding: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -111,11 +180,7 @@ const formatPrice = (price) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    to bottom,
-    rgba(2, 22, 59, 0.7),
-    rgba(232, 186, 56, 0.7)
-  );
+  background: linear-gradient(to bottom, rgba(2, 22, 59, 0.7), rgba(232, 186, 56, 0.7));
   display: flex;
   justify-content: center;
   align-items: center;
@@ -167,6 +232,36 @@ const formatPrice = (price) => {
   font-weight: 600;
   line-height: 1.4;
   margin: 0;
+}
+
+/* New styles for product stats */
+.product-stats {
+  display: flex;
+  justify-content: flex-start; /* Changed from space-between to flex-start */
+  align-items: center;
+  font-size: 0.85rem;
+  color: #666;
+  gap: 8px; /* Add a small controlled gap */
+}
+
+.sold-count {
+  background-color: rgba(2, 22, 59, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating i {
+  color: #e8ba38; /* This makes the star icon yellow/gold */
+}
+
+.review-count {
+  color: #888;
 }
 
 .price-section {

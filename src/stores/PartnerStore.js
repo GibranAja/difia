@@ -87,7 +87,7 @@ export const usePartnerStore = defineStore('partner', () => {
 
       await updateDoc(doc(db, 'partners', id), updatePayload)
       await fetchPartners()
-      toast.success('Partner updated successfully')
+      // toast.success('Partner updated successfully')
       return { success: true }
     } catch (err) {
       error.value = err.message

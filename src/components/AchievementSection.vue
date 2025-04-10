@@ -6,33 +6,63 @@
     <span class="side-color"> </span>
     <div class="carousel-container">
       <div class="carousel-track" ref="carouselTrack">
-        <!-- Use cardIndex prop to manage achievement cycling -->
+        <!-- Add hover events to each carousel item and track position -->
         <div
-          v-for="(item, index) in achievementItems"
+          v-for="(item, index) in achievements"
           :key="`achievement-${index}`"
           class="carousel-item"
+          @mouseenter="pauseCarousel($event, item.id)"
+          @mouseleave="resumeCarousel"
         >
-          <CardAchivement :card-index="index" />
+          <CardAchivement :card-index="index" :achievement="item" />
         </div>
       </div>
+    </div>
+
+    <!-- Move tooltip to the root level so it can float freely -->
+    <div class="floating-tooltip-container">
+      <AchievementTooltip
+        v-if="activeTooltipId"
+        :achievement="getActiveAchievement()"
+        :style="tooltipStyle"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import CardAchivement from '@/components/CardAchivement.vue'
+import AchievementTooltip from '@/components/AchievementTooltip.vue'
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 
-// Array untuk endless carousel penghargaan (minimal 8 item)
-const achievementItems = ref([])
+// Add data refs
+const achievements = ref([])
 const carouselTrack = ref(null)
 let animationId = null
 let position = 0
 const speed = 0.5 // Kecepatan scroll
+const isPaused = ref(false)
+const activeTooltipId = ref(null)
+let unsubscribe = null
+
+// Add tooltip positioning
+const tooltipPosition = ref({ top: 0, left: 0 })
+
+// Tooltip style computed property
+const tooltipStyle = computed(() => {
+  return {
+    position: 'absolute', // Change from 'fixed' to 'absolute'
+    top: `${tooltipPosition.value.top}px`,
+    left: `${tooltipPosition.value.left}px`,
+    zIndex: 1000,
+  }
+})
 
 // Modifikasi bagian script untuk carousel
 const animateCarousel = () => {
-  if (!carouselTrack.value) return
+  if (!carouselTrack.value || isPaused.value) return // Check if paused
 
   position -= speed
 
@@ -56,12 +86,89 @@ const animateCarousel = () => {
   animationId = requestAnimationFrame(animateCarousel)
 }
 
+// Update pause function to track mouse position and decide tooltip position
+const pauseCarousel = (event, id) => {
+  isPaused.value = true
+  activeTooltipId.value = id // Show tooltip for this item
+
+  // Calculate tooltip position
+  const cardElement = event.currentTarget
+  const rect = cardElement.getBoundingClientRect()
+  const tooltipContainer = document.querySelector('.floating-tooltip-container')
+
+  if (tooltipContainer) {
+    // Get the container's position relative to the page
+    const containerRect = tooltipContainer.getBoundingClientRect()
+
+    // Check if the card is in the top half of the viewport
+    const viewportHeight = window.innerHeight
+    const isInTopHalf = rect.top < viewportHeight / 2
+
+    // Calculate tooltip position based on viewport position
+    tooltipPosition.value = {
+      // If in top half, show below the card but closer to it (reduced from 20px to 10px)
+      top: isInTopHalf
+        ? rect.top - containerRect.top + rect.height + -90 // Reduced gap to 10px (was 20px)
+        : rect.top - containerRect.top - 345, // Above card (unchanged)
+      // Center horizontally
+      left: rect.left - containerRect.left + rect.width / 2,
+      // Add a position flag to tell the tooltip which arrow to show
+      position: isInTopHalf ? 'below' : 'above',
+    }
+  }
+}
+
+// Helper function to get active achievement
+const getActiveAchievement = () => {
+  const achievement = achievements.value.find((item) => item.id === activeTooltipId.value) || {}
+  // Add position information to the achievement object
+  return {
+    ...achievement,
+    tooltipPosition: tooltipPosition.value.position,
+  }
+}
+
+// Update the resumeCarousel function to always restart animation
+const resumeCarousel = () => {
+  isPaused.value = false
+  activeTooltipId.value = null // Hide tooltip
+
+  // Cancel any existing animation frame
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+  }
+
+  // Always request a new animation frame to ensure it restarts
+  animationId = requestAnimationFrame(animateCarousel)
+}
+
+// Fetch real achievements data from Firestore
+const fetchAchievements = () => {
+  const achievementsRef = collection(db, 'achievements')
+  const achievementsQuery = query(achievementsRef, orderBy('createdAt', 'desc'))
+
+  unsubscribe = onSnapshot(achievementsQuery, (snapshot) => {
+    const achievementsData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+
+    // If not enough achievements, duplicate to ensure smooth carousel
+    if (achievementsData.length < 8) {
+      let duplicated = [...achievementsData]
+      while (duplicated.length < 12) {
+        duplicated = [...duplicated, ...achievementsData]
+      }
+      achievements.value = duplicated.slice(0, 12)
+    } else {
+      achievements.value = achievementsData
+    }
+  })
+}
+
 onMounted(() => {
-  // Membuat array achievements untuk endless carousel
-  // Duplikasi item agar endless bahkan dengan sedikit data
-  achievementItems.value = Array(12)
-    .fill(null)
-    .map((_, index) => ({ id: index }))
+  // Fetch real achievements data
+  fetchAchievements()
 
   // Mulai animasi carousel setelah DOM dirender sepenuhnya
   setTimeout(() => {
@@ -69,10 +176,13 @@ onMounted(() => {
   }, 500)
 })
 
-// Bersihkan animation frame saat komponen diunmount
+// Bersihkan animation frame dan Firestore listener saat komponen diunmount
 onBeforeUnmount(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
+  }
+  if (unsubscribe) {
+    unsubscribe()
   }
 })
 </script>
@@ -116,6 +226,7 @@ onBeforeUnmount(() => {
   padding: 0 25px; /* Increased padding from 15px to 25px */
   box-sizing: border-box;
   opacity: 1;
+  position: relative; /* Added for tooltip positioning */
 }
 
 /* Optional: Add margin for extra separation */
@@ -206,5 +317,16 @@ onBeforeUnmount(() => {
   .swipper .ring {
     display: none;
   }
+}
+
+/* Add floating tooltip container */
+.floating-tooltip-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none; /* Makes sure mouse events pass through */
+  z-index: 1000;
+  width: 100%;
+  height: 100%; /* Change from 0 to 100% to span the entire height */
 }
 </style>

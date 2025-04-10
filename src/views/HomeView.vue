@@ -5,30 +5,7 @@
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
   <main>
-    <section class="tentang-kami" id="about">
-      <div class="about">
-        <div class="gambar">
-          <span class="kotak"></span>
-          <span class="bulet"></span>
-          <img
-            src="../assets/Logo Difia Haki.PNG"
-            alt="foto-tentang-kami"
-            class="foto-tentang-kami"
-          />
-        </div>
-        <div class="text">
-          <h1><b>TENTANG KAMI</b></h1>
-          <br />
-          <p>
-            Difia sebuah brand lokal yang berdiri sejak 20 Agustus 2020.Pada saat Puncak pandemi
-            covid-19,Perusahaan ini berbasis perorangan tergolong UMKM Home Industry di bidang
-            fashion berbahan baku kulit sintetis diolah menjadi sendal dan tas terletak di kota
-            Bogor
-          </p>
-        </div>
-      </div>
-      <AchievementSection />
-    </section>
+    <TentangKamiSection />
     <section class="katalog" id="catalog">
       <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
@@ -51,12 +28,17 @@
         <h1><b>ARTIKEL</b></h1>
         <span class="line"></span>
       </div>
-      <CardBlog></CardBlog>
+      <div class="blog-grid">
+        <CardBlog v-for="blog in visibleBlogItems" :key="blog.id" :blog="blog" />
+      </div>
+      <div class="load-more-container" v-if="hasMoreBlogItems">
+        <button @click="loadMoreBlogs" class="load-more-btn">See More</button>
+      </div>
     </section>
     <section class="partner">
       <div class="b-log">
         <span class="line"></span>
-        <h1><b>Client</b></h1>
+        <h1><b>CLIENT</b></h1>
         <span class="line"></span>
       </div>
       <CardMitra></CardMitra>
@@ -80,6 +62,8 @@ import { useKatalogStore } from '@/stores/KatalogStore'
 import { usePartnerStore } from '@/stores/PartnerStore'
 import { useSliderStore } from '@/stores/SliderStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useVoucherStore } from '@/stores/VoucherStore'
+import { useBlogStore } from '@/stores/BlogStore' // Add this import
 
 import CardCatalog from '@/components/CardCatalog.vue'
 import CardBlog from '@/components/CardBlog.vue'
@@ -88,8 +72,8 @@ import VoucherNotification from '@/components/VoucherNotification.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
 import CardUlasan from '@/components/CardUlasan.vue'
 import CardMitra from '@/components/CardMitra.vue'
-import HeroSwiper from '@/components/HeroSwiper.vue' // Import the new component
-import AchievementSection from '@/components/AchievementSection.vue'
+import HeroSwiper from '@/components/HeroSwiper.vue'
+import TentangKamiSection from '@/components/TentangKamiSection.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -97,6 +81,8 @@ const isLoggedIn = computed(() => authStore.isLoggedIn)
 const katalogStore = useKatalogStore()
 const partnerStore = usePartnerStore()
 const sliderStore = useSliderStore()
+const voucherStore = useVoucherStore()
+const blogStore = useBlogStore() // Add this line
 
 // Array untuk endless carousel penghargaan (minimal 8 item)
 const achievementItems = ref([])
@@ -139,16 +125,34 @@ const handleLogout = async () => {
   }
 }
 
-const isAtTop = ref(true)
+const hasActiveVouchers = computed(() => {
+  // Filter active, non-expired vouchers with remaining uses
+  const activeVouchers = voucherStore.voucherItems.filter((voucher) => {
+    const now = new Date()
+    const isNotExpired = new Date(voucher.validUntil) > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
+
+  return activeVouchers.length > 0
+})
+
+const isAtTop = computed(() => {
+  return window.scrollY === 0 && hasActiveVouchers.value
+})
 
 const checkScrollPosition = () => {
-  isAtTop.value = window.scrollY === 0
+  // We don't need to set isAtTop directly as it's now a computed property
+  // Just trigger a reactivity update
+  window.scrollY // reference to trigger computed property update
 }
 
 onMounted(async () => {
   await katalogStore.fetchKatalog()
   await partnerStore.fetchPartners()
   await sliderStore.fetchSliders()
+  await voucherStore.fetchVouchers()
+  await blogStore.fetchBlogs() // Add this line to fetch blog data
 
   window.addEventListener('scroll', () => {
     if (!ticking) {
@@ -185,9 +189,13 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', checkScrollPosition)
 })
 
+// Constants for pagination
 const ITEMS_PER_PAGE = 6
+const BLOG_ITEMS_PER_PAGE = 4 // Show 4 blog items initially
 const displayCount = ref(ITEMS_PER_PAGE)
+const blogDisplayCount = ref(BLOG_ITEMS_PER_PAGE) // New ref for blog pagination
 
+// For catalog items
 const visibleKatalog = computed(() => {
   return katalogStore.katalogItems.slice(0, displayCount.value)
 })
@@ -198,6 +206,19 @@ const loadMore = () => {
 
 const hasMoreItems = computed(() => {
   return displayCount.value < katalogStore.katalogItems.length
+})
+
+// For blog items - add these new functions
+const visibleBlogItems = computed(() => {
+  return blogStore.blogItems.slice(0, blogDisplayCount.value)
+})
+
+const loadMoreBlogs = () => {
+  blogDisplayCount.value += BLOG_ITEMS_PER_PAGE
+}
+
+const hasMoreBlogItems = computed(() => {
+  return blogDisplayCount.value < blogStore.blogItems.length
 })
 </script>
 
@@ -229,86 +250,6 @@ header {
   .header-at-top {
     transform: translateY(60px); /* Smaller offset for mobile */
   }
-}
-
-.tentang-kami {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  row-gap: 50px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.about {
-  padding: 150px;
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  row-gap: 50px;
-  align-items: center;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.tentang-kami .gambar {
-  width: 30%;
-  height: auto;
-  background-color: #d3d3d3;
-  padding: 19px;
-  text-align: center;
-  position: relative;
-}
-
-.tentang-kami .text {
-  width: 50%;
-  text-align: justify;
-}
-
-.tentang-kami .gambar .kotak {
-  position: absolute;
-  width: 5px;
-  left: -100px;
-  top: -100px;
-  background-color: black;
-  border: 100px solid #e8ba38;
-  z-index: -10;
-}
-
-.tentang-kami .swipper p {
-  color: white;
-  text-align: center;
-  transform: rotate(-90deg);
-  position: absolute;
-  left: -30px;
-  font-size: 1.5rem;
-}
-
-.tentang-kami .gambar .bulet {
-  position: absolute;
-  width: 5px;
-  right: -100px;
-  bottom: -100px;
-  background-color: black;
-  border: 100px solid #02163b;
-  z-index: -10;
-  border-radius: 100px;
-}
-
-.tentang-kami h1 {
-  font-size: 3rem;
-  line-height: 1rem;
-  color: #02163b;
-  text-align: center;
-}
-
-.swipper {
-  width: 100%;
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: right;
-  align-items: center;
 }
 
 /* STYLE UNTUK CAROUSEL PENGHARGAAN */
@@ -358,37 +299,6 @@ header {
 }
 /* END OF CAROUSEL STYLES */
 
-.tentang-kami .swipper .bg-scroll {
-  position: absolute;
-  width: 92%;
-  height: 200px;
-  background-color: #ffffff;
-  z-index: -9;
-  right: 0;
-  border-radius: 10px 0 0 10px;
-}
-
-.tentang-kami .swipper .side-color {
-  position: absolute;
-  width: 200px;
-  height: 300px;
-  left: 0;
-  background-color: #000000;
-  box-shadow: 10px 0 150px black;
-  border-radius: 0 20px 20px 0;
-  z-index: -10;
-}
-
-.tentang-kami .swipper .ring {
-  position: absolute;
-  width: 450px;
-  height: 450px;
-  border: 1px solid #000000;
-  border-radius: 50%;
-  z-index: -10;
-  left: -190px;
-}
-
 .foto-tentang-kami {
   width: 100%;
   height: 100%;
@@ -431,13 +341,14 @@ header {
   grid-column: 2;
 }
 
+/* Adjust the blog section spacing */
 .blog {
   display: flex;
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 100px;
-  /* font-family: 'Times New Roman', Times, serif; */
+  padding: 70px 100px 100px; /* Reduced top padding from 100px to 70px */
+  margin-top: -150px; /* Add negative margin to bring it closer to the catalog section */
 }
 
 .blog h1 {
@@ -464,6 +375,7 @@ header {
   flex-wrap: wrap;
   justify-content: space-around;
   align-items: center;
+  margin-top: -150px;
   padding: 100px;
 }
 
@@ -480,6 +392,7 @@ header {
   justify-content: space-around;
   align-items: center;
   padding: 100px;
+  margin-top: -150px;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 
@@ -522,10 +435,6 @@ header {
 
 /* General responsive adjustments */
 @media (max-width: 1200px) {
-  .about {
-    padding: 80px 50px;
-  }
-
   .katalog h1,
   .blog h1,
   .partner h1,
@@ -542,17 +451,8 @@ header {
 }
 
 @media (max-width: 992px) {
-  .tentang-kami .gambar,
-  .tentang-kami .text {
-    width: 80%;
-  }
-
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .about {
-    padding: 60px 30px;
   }
 
   .katalog h1,
@@ -576,42 +476,12 @@ header {
     padding: 40px 20px;
   }
 
-  .tentang-kami h1 {
-    font-size: 2rem;
-  }
-
-  .tentang-kami .swipper p {
-    position: static;
-    transform: rotate(0); /* Reset rotation */
-    margin-bottom: 1.5rem;
-    color: #02163b;
-    /* Add these new properties for proper centering */
-    text-align: center;
-    width: 100%;
-    left: auto;
-    font-weight: bold;
-    font-size: 1.8rem;
-    display: block;
-  }
-
-  /* This fixes the container layout to support centered text */
-  .swipper {
-    justify-content: center;
-    flex-direction: column;
-    padding: 0 15px;
-  }
-
   .catalog-grid {
     gap: 2rem;
   }
 
   .line {
     width: 30%;
-  }
-
-  .tentang-kami .gambar .kotak,
-  .tentang-kami .gambar .bulet {
-    display: none;
   }
 
   .carousel-container {
@@ -623,10 +493,6 @@ header {
   .catalog-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-  }
-
-  .about {
-    padding: 40px 20px;
   }
 
   .katalog h1,
@@ -644,20 +510,6 @@ header {
   header {
     height: 70vh;
   }
-
-  .tentang-kami .swipper .bg-scroll,
-  .tentang-kami .swipper .side-color,
-  .tentang-kami .swipper .ring {
-    display: none;
-  }
-}
-
-/* Fix specific responsive issues */
-/* .tentang-kami {
-} */
-
-.tentang-kami .text {
-  padding: 20px;
 }
 
 /* Make heights relative instead of fixed */
@@ -666,11 +518,6 @@ header {
 }
 
 /* Make font sizes more responsive */
-.tentang-kami h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.2;
-}
-
 .katalog h1,
 .blog h1,
 .partner h1,
@@ -688,6 +535,30 @@ header {
   .catalog-grid {
     grid-template-columns: repeat(4, 1fr);
     max-width: 1400px;
+  }
+}
+
+/* Blog grid layout */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Make sure all cards maintain consistent height */
+.blog-grid > * {
+  min-height: 150px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .blog-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 </style>

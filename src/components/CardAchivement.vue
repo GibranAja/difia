@@ -5,13 +5,13 @@
     </div>
     <div class="text">
       <h1>{{ achievement.title || 'Loading...' }}</h1>
-      <p>{{ achievement.description || 'Loading description...' }}</p>
+      <p>{{ truncateDescription(achievement.description) || 'Loading description...' }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, defineProps } from 'vue'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import defaultImage from '@/assets/difia.jpg'
@@ -22,7 +22,6 @@ const props = defineProps({
     default: null,
   },
   cardIndex: {
-    // Add this prop
     type: Number,
     required: true,
   },
@@ -70,6 +69,12 @@ watch(() => props.cardIndex, updateAchievement)
 onMounted(() => {
   fetchAchievements()
 })
+
+// Helper to truncate description for card display
+const truncateDescription = (text) => {
+  if (!text) return ''
+  return text.length > 60 ? text.substring(0, 60) + '...' : text
+}
 </script>
 
 <style scoped>

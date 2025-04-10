@@ -1,5 +1,11 @@
 <template>
-  <div class="navbar-wrapper" :class="{ 'navbar-hidden': shouldHideNav }">
+  <div
+    class="navbar-wrapper"
+    :class="{
+      'navbar-hidden': shouldHideNav,
+      'no-voucher-offset': !hasActiveVouchers,
+    }"
+  >
     <nav :class="{ 'nav-scrolled': isScrolled, 'nav-expanded': isMobileMenuOpen }">
       <!-- Main navigation container -->
       <div class="nav-container">
@@ -109,6 +115,7 @@ import ModalProfile from './ModalProfile.vue'
 import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
+import { useVoucherStore } from '@/stores/VoucherStore' // Add this import
 
 // Stores and routing
 const router = useRouter()
@@ -116,6 +123,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const notificationStore = useNotificationStore()
+const voucherStore = useVoucherStore() // Add voucher store
 
 // Reactive state
 const isScrolled = ref(false)
@@ -150,6 +158,19 @@ const userProfilePhoto = computed(() => {
 const cartItemCount = computed(() => {
   if (!authStore.isLoggedIn) return 0
   return cartStore.cartItems.length
+})
+
+// Add a computed property to check for active vouchers
+const hasActiveVouchers = computed(() => {
+  // Filter active, non-expired vouchers with remaining uses
+  const activeVouchers = voucherStore.voucherItems.filter((voucher) => {
+    const now = new Date()
+    const isNotExpired = new Date(voucher.validUntil) > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
+
+  return activeVouchers.length > 0
 })
 
 // Event handlers
@@ -280,6 +301,9 @@ onMounted(() => {
     }
   }
 
+  // Add this to fetch vouchers
+  voucherStore.fetchVouchers()
+
   // Add event listener for clicks outside
   document.addEventListener('click', handleClickOutside)
 })
@@ -295,11 +319,18 @@ onUnmounted(() => {
 /* Base styles with white dominant theme */
 .navbar-wrapper {
   position: fixed;
-  top: 40px; /* Add this - adjust height based on your VoucherNotification height */
+  top: 40px; /* Default position with voucher notification */
   left: 0;
   width: 100%;
   z-index: 100;
-  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition:
+    transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    top 0.3s ease;
+}
+
+/* Add this new class */
+.no-voucher-offset {
+  top: 0; /* Position at the top when no active vouchers */
 }
 
 .navbar-hidden {
