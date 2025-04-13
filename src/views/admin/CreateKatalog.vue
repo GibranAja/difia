@@ -148,7 +148,33 @@
                 required
                 placeholder="Masukkan bahan luar"
               />
+              <textarea
+                id="bahanLuarDesc"
+                v-model="formData.detail.bahanLuarDesc"
+                placeholder="Penjelasan tentang bahan luar"
+                rows="2"
+                class="material-description"
+              ></textarea>
+
+              <div class="material-image-section">
+                <label>Contoh Bahan Luar</label>
+                <div class="material-image-upload">
+                  <input
+                    type="file"
+                    @change="(e) => handleMaterialImageUpload(e, 'luar')"
+                    accept="image/*"
+                  />
+
+                  <div v-if="formData.detail.bahanLuarImage" class="material-preview">
+                    <img :src="formData.detail.bahanLuarImage" alt="Contoh Bahan Luar" />
+                    <button type="button" @click="removeMaterialImage('luar')" class="remove-image">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
+
             <div class="form-group">
               <label for="bahanDalam">Bahan Dalam</label>
               <input
@@ -158,6 +184,35 @@
                 required
                 placeholder="Masukkan bahan dalam"
               />
+              <textarea
+                id="bahanDalamDesc"
+                v-model="formData.detail.bahanDalamDesc"
+                placeholder="Penjelasan tentang bahan dalam"
+                rows="2"
+                class="material-description"
+              ></textarea>
+
+              <div class="material-image-section">
+                <label>Contoh Bahan Dalam</label>
+                <div class="material-image-upload">
+                  <input
+                    type="file"
+                    @change="(e) => handleMaterialImageUpload(e, 'dalam')"
+                    accept="image/*"
+                  />
+
+                  <div v-if="formData.detail.bahanDalamImage" class="material-preview">
+                    <img :src="formData.detail.bahanDalamImage" alt="Contoh Bahan Dalam" />
+                    <button
+                      type="button"
+                      @click="removeMaterialImage('dalam')"
+                      class="remove-image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -300,7 +355,11 @@ const formData = ref({
       lebar: 0,
     },
     bahanLuar: '',
+    bahanLuarDesc: '', // New field for outer material description
+    bahanLuarImage: null, // New field for outer material image
     bahanDalam: '',
+    bahanDalamDesc: '', // New field for inner material description
+    bahanDalamImage: null, // New field for inner material image
     aksesoris: '',
     warna: '',
   },
@@ -315,7 +374,7 @@ const formData = ref({
   existingImages: [],
 })
 
-// Add this function to load existing data
+// Update loadKatalogData function to handle the new fields
 const loadKatalogData = () => {
   const katalog = katalogStore.katalogItems.find((item) => item.id === route.params.id)
   if (katalog) {
@@ -326,7 +385,17 @@ const loadKatalogData = () => {
         premium: katalog.harga.premium,
         budgetting: 'By Request',
       },
-      detail: katalog.detail,
+      detail: {
+        ukuran: katalog.detail.ukuran,
+        bahanLuar: katalog.detail.bahanLuar || '',
+        bahanLuarDesc: katalog.detail.bahanLuarDesc || '',
+        bahanLuarImage: katalog.detail.bahanLuarImage || null,
+        bahanDalam: katalog.detail.bahanDalam || '',
+        bahanDalamDesc: katalog.detail.bahanDalamDesc || '',
+        bahanDalamImage: katalog.detail.bahanDalamImage || null,
+        aksesoris: katalog.detail.aksesoris || '',
+        warna: katalog.detail.warna || '',
+      },
       waktuPengerjaan: katalog.waktuPengerjaan,
       images: [], // New images to be uploaded
       existingImages: katalog.images || [], // Store existing images
@@ -503,6 +572,54 @@ const removeExistingImage = (index) => {
   }
 }
 
+// Function to handle material image uploads
+const handleMaterialImageUpload = async (event, type) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  errors.value.materialImages = ''
+
+  // Validate image type
+  const fileExtension = file.name.split('.').pop().toLowerCase()
+  const isHeicOrHeif = ['heic', 'heif'].includes(fileExtension)
+
+  if (!ALLOWED_TYPES.includes(file.type) && !isHeicOrHeif) {
+    errors.value.materialImages =
+      'Hanya file JPEG, PNG, GIF, WebP, HEIC, dan HEIF yang diperbolehkan'
+    return
+  }
+
+  // Validate image size
+  if (file.size > MAX_IMAGE_SIZE) {
+    errors.value.materialImages = 'Ukuran foto tidak boleh melebihi 5MB'
+    return
+  }
+
+  try {
+    // Process image the same way as catalog images
+    const base64String = await resizeImage(file)
+
+    // Store image in the appropriate field
+    if (type === 'luar') {
+      formData.value.detail.bahanLuarImage = base64String
+    } else if (type === 'dalam') {
+      formData.value.detail.bahanDalamImage = base64String
+    }
+  } catch (error) {
+    console.error('Error processing material image:', error)
+    errors.value.materialImages = 'Error saat memproses foto. Silakan coba lagi.'
+  }
+}
+
+// Function to remove material images
+const removeMaterialImage = (type) => {
+  if (type === 'luar') {
+    formData.value.detail.bahanLuarImage = null
+  } else if (type === 'dalam') {
+    formData.value.detail.bahanDalamImage = null
+  }
+}
+
 const validateForm = () => {
   errors.value = {}
 
@@ -601,7 +718,11 @@ const handleSubmit = async () => {
           lebar: formData.value.detail.ukuran.lebar,
         },
         bahanLuar: formData.value.detail.bahanLuar.trim(),
+        bahanLuarDesc: formData.value.detail.bahanLuarDesc.trim(),
+        bahanLuarImage: formData.value.detail.bahanLuarImage,
         bahanDalam: formData.value.detail.bahanDalam.trim(),
+        bahanDalamDesc: formData.value.detail.bahanDalamDesc.trim(),
+        bahanDalamImage: formData.value.detail.bahanDalamImage,
         aksesoris: formData.value.detail.aksesoris.trim(),
         warna: formData.value.detail.warna.trim(),
       },
@@ -916,6 +1037,53 @@ watch(
   margin-left: 5px;
 }
 
+.material-description {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+  resize: vertical;
+  font-size: 14px;
+}
+
+.material-image-section {
+  margin-top: 12px;
+}
+
+.material-image-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.material-image-upload {
+  border: 1px dashed #ddd;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.material-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-top: 12px;
+}
+
+.material-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-message.material-error {
+  margin-top: 8px;
+}
+
 @media (max-width: 768px) {
   .create-katalog-container {
     padding: 15px;
@@ -951,6 +1119,10 @@ watch(
   .bahan-section {
     grid-template-columns: 1fr;
   }
+
+  .material-preview {
+    width: 100px;
+    height: 100px;
+  }
 }
 </style>
-```

@@ -1,139 +1,258 @@
 <template>
-  <div class="detail-view">
-    <div class="gambar-detail">
-      <router-link to="/" class="back">
-        <i class="fas fa-arrow-left"></i>
-      </router-link>
+  <div class="detail-container">
+    <!-- Include your existing navbar component here -->
+    <Navbar />
 
-      <h1>
-        <b>{{ katalog?.nama || 'Produk Kami' }}</b>
-      </h1>
-
-      <div v-if="katalog" class="content-wrapper">
-        <!-- Replace single image with carousel -->
-        <div
-          class="carousel-container"
-          @mousemove="handleMouseMove"
-          @mouseenter="stopAutoplay"
-          @mouseleave="startAutoplay"
-        >
-          <div class="carousel-wrapper" :style="carouselStyle">
-            <!-- Duplicate first and last images for smooth transition -->
-            <img
-              v-if="katalog.images.length > 0"
-              :src="katalog.images[katalog.images.length - 1]"
-              :alt="katalog.nama"
-              class="carousel-image"
-            />
-            <img
-              v-for="(image, index) in katalog.images"
-              :key="index"
-              :src="image"
-              :alt="katalog.nama"
-              class="carousel-image"
-            />
-            <img
-              v-if="katalog.images.length > 0"
-              :src="katalog.images[0]"
-              :alt="katalog.nama"
-              class="carousel-image"
-            />
-          </div>
-
-          <!-- Navigation buttons -->
-          <button class="carousel-btn prev" @click="prevSlide">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="carousel-btn next" @click="nextSlide">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-
-          <!-- Indicators -->
-          <div class="carousel-indicators">
-            <span
-              v-for="(_, index) in katalog.images"
-              :key="index"
-              :class="['indicator', { active: currentIndex === index }]"
-              @click="goToSlide(index)"
-            ></span>
-          </div>
-        </div>
-
-        <button class="hub" @click="navigateToCustom">Pesan Sekarang</button>
+    <div class="content-wrapper">
+      <!-- Breadcrumbs -->
+      <div class="breadcrumbs">
+        <router-link to="/">Beranda</router-link> &gt; <router-link to="/">Produk</router-link> &gt;
+        <span>{{ katalog?.nama || 'Detail Produk' }}</span>
       </div>
-    </div>
 
-    <div class="detail-keterangan" v-if="katalog">
-      <section>
-        <h2><b>HARGA / PCS</b></h2>
-        <div class="info-content">
-          <p>Standard : {{ katalog.harga.standar.toLocaleString() }}</p>
-          <p>Premium : {{ katalog.harga.premium.toLocaleString() }}</p>
-          <p>Budgeting : {{ katalog.harga.budgetting }}</p>
+      <!-- Product Title and Rating -->
+      <div class="product-header">
+        <h1>{{ katalog?.nama || 'Detail Produk' }}</h1>
+        <div class="rating-display">
+          <div class="stars">
+            <i v-for="i in 5" :key="i" class="fas fa-star" :style="{ color: '#e8ba38' }"></i>
+          </div>
+          <span class="review-count">({{ reviews.length }} ulasan)</span>
         </div>
-      </section>
-
-      <section>
-        <h2><b>DETAIL</b></h2>
-        <div class="info-content">
-          <p>
-            Ukuran : P {{ katalog.detail.ukuran.panjang }} x L {{ katalog.detail.ukuran.lebar }} x T
-            {{ katalog.detail.ukuran.tinggi }} cm
-          </p>
-          <p>Bahan Luar : {{ katalog.detail.bahanLuar }}</p>
-          <p>Bahan Dalam : {{ katalog.detail.bahanDalam }}</p>
-          <p>Aksesoris : {{ katalog.detail.aksesoris }}</p>
-          <p>Warna : {{ katalog.detail.warna }}</p>
+        <div class="badges">
+          <span class="bestseller-badge">BESTSELLER</span>
         </div>
-      </section>
+      </div>
 
-      <section>
-        <h2><b>WAKTU PENGERJAAN</b></h2>
-        <div class="info-content">
-          <p>50-100 pcs : {{ katalog.waktuPengerjaan.pcs50_100 }} hari</p>
-          <p>200 pcs : {{ katalog.waktuPengerjaan.pcs200 }} hari</p>
-          <p>300 pcs : {{ katalog.waktuPengerjaan.pcs300 }} hari</p>
-          <p>>300 pcs : {{ katalog.waktuPengerjaan.pcsAbove300 }} hari</p>
-          <p>Express : {{ katalog.waktuPengerjaan.express }} hari</p>
+      <div class="product-main">
+        <!-- Left Side: Product Images -->
+        <div class="product-images">
+          <ProductCarousel
+            :images="katalog?.images || []"
+            :alt-text="katalog?.nama || 'Produk Kami'"
+            :autoplay="true"
+          />
+          <!-- Removed View 360° button as requested -->
         </div>
-      </section>
 
-      <!-- Reviews section -->
-      <section class="review-section">
-        <h2><b>ULASAN PEMBELI</b></h2>
+        <!-- Right Side: Product Details -->
+        <div class="product-details">
+          <div class="price-section">
+            <h2>HARGA / PCS</h2>
+            <div class="price-info">
+              <div class="price-tier">
+                <h3>Standard: Rp {{ formatPrice(katalog?.harga?.standar) }}</h3>
+                <ul class="price-features">
+                  <li>Bahan standar, hasil cetakan baik</li>
+                  <li>Gratis kemasan basic</li>
+                </ul>
+              </div>
 
-        <!-- Summary section with star rating -->
-        <div class="review-summary">
-          <div class="rating-average">
-            <div class="average-score">{{ averageRating }}</div>
-            <div class="star-display">
-              <i
-                v-for="i in 5"
-                :key="i"
-                class="fas"
-                :class="i <= Math.round(averageRating) ? 'fa-star' : 'fa-star-o'"
-                :style="{ color: i <= Math.round(averageRating) ? '#E8BA38' : '#d9d9d9' }"
-              >
-              </i>
+              <div class="price-tier">
+                <h3>Premium: Rp {{ formatPrice(katalog?.harga?.premium) }}</h3>
+                <ul class="price-features">
+                  <li>Bahan premium, hasil cetakan tajam</li>
+                  <li>Gratis kemasan exclusive</li>
+                  <li>Garansi produk 1 bulan</li>
+                </ul>
+              </div>
+
+              <div class="price-tier">
+                <h3>Budgeting: {{ katalog?.harga?.budgetting }}</h3>
+                <ul class="price-features">
+                  <li>Dapat disesuaikan dengan budget</li>
+                  <li>Minimum order 100 pcs</li>
+                </ul>
+              </div>
             </div>
+
+            <button class="order-now-btn" @click="navigateToCustom">PESAN SEKARANG</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPECIFICATIONS SECTION -->
+      <div class="specs-section">
+        <h2>SPESIFIKASI PRODUK</h2>
+        <div class="specs-content">
+          <div class="specs-column">
+            <h3>Dimensi & Material</h3>
+            <ul>
+              <li>
+                Ukuran: P {{ katalog?.detail?.ukuran?.panjang || 0 }} x L
+                {{ katalog?.detail?.ukuran?.lebar || 0 }} x T
+                {{ katalog?.detail?.ukuran?.tinggi || 0 }} cm
+              </li>
+              <li>Bahan Luar: {{ katalog?.detail?.bahanLuar || '-' }}</li>
+              <li>Bahan Dalam: {{ katalog?.detail?.bahanDalam || '-' }}</li>
+              <li>Berat: 250 gram per pcs</li>
+              <li>Ketebalan: 2-3 mm</li>
+            </ul>
+          </div>
+          <div class="specs-column">
+            <h3>Aksesoris & Tampilan</h3>
+            <ul>
+              <li>Aksesoris: {{ katalog?.detail?.aksesoris || '-' }}</li>
+              <li>Warna: {{ katalog?.detail?.warna || '-' }}</li>
+              <li>Cetak Logo: Tersedia (min. order 100)</li>
+              <li>Personalisasi: Nama/Inisial tersedia</li>
+              <li>Kemasan: Box Premium/Pouch/Paper Bag</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- MATERIALS SECTION -->
+      <div class="materials-section">
+        <h2>DETAIL BAHAN & AKSESORIS</h2>
+        <div class="materials-content">
+          <!-- Bahan Luar -->
+          <div class="material-type">
+            <h3>Bahan Luar</h3>
+            <div class="material-samples">
+              <div class="material-sample">
+                <div class="material-image">
+                  <img
+                    :src="
+                      katalog?.detail?.bahanLuarImage || 'https://via.placeholder.com/120x90/755c48'
+                    "
+                    alt="Bahan Luar"
+                  />
+                </div>
+                <span class="material-name">{{ katalog?.detail?.bahanLuar || 'Bahan Luar' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bahan Dalam -->
+          <div class="material-type">
+            <h3>Bahan Dalam</h3>
+            <div class="material-samples">
+              <div class="material-sample">
+                <div class="material-image">
+                  <img
+                    :src="
+                      katalog?.detail?.bahanDalamImage ||
+                      'https://via.placeholder.com/120x90/d8c9b9'
+                    "
+                    alt="Bahan Dalam"
+                  />
+                </div>
+                <span class="material-name">{{
+                  katalog?.detail?.bahanDalam || 'Bahan Dalam'
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aksesoris -->
+          <div class="material-type">
+            <h3>Aksesoris</h3>
+            <div class="material-samples">
+              <div class="material-sample">
+                <div class="material-image accessory-image">
+                  <!-- Placeholder for aksesoris -->
+                </div>
+                <span class="material-name">{{ katalog?.detail?.aksesoris || 'Aksesoris' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="material-info">
+          <h3>Informasi Bahan:</h3>
+          <ul>
+            <li>
+              {{ katalog?.detail?.bahanLuar || 'Bahan Luar' }}:
+              {{ katalog?.detail?.bahanLuarDesc || 'Deskripsi tidak tersedia' }}
+            </li>
+            <li>
+              {{ katalog?.detail?.bahanDalam || 'Bahan Dalam' }}:
+              {{ katalog?.detail?.bahanDalamDesc || 'Deskripsi tidak tersedia' }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PROCESSING TIME SECTION -->
+      <div class="processing-section">
+        <h2>WAKTU PENGERJAAN</h2>
+        <div class="timeline">
+          <div class="timeline-track"></div>
+          <div class="timeline-points">
+            <div class="timeline-point">
+              <div class="point-label">50-100 pcs</div>
+              <div class="point-marker"></div>
+              <div class="point-time">{{ katalog?.waktuPengerjaan?.pcs50_100 || '-' }} hari</div>
+            </div>
+            <div class="timeline-point">
+              <div class="point-label">200 pcs</div>
+              <div class="point-marker"></div>
+              <div class="point-time">{{ katalog?.waktuPengerjaan?.pcs200 || '-' }} hari</div>
+            </div>
+            <div class="timeline-point">
+              <div class="point-label">300 pcs</div>
+              <div class="point-marker"></div>
+              <div class="point-time">{{ katalog?.waktuPengerjaan?.pcs300 || '-' }} hari</div>
+            </div>
+            <div class="timeline-point">
+              <div class="point-label">>300 pcs</div>
+              <div class="point-marker"></div>
+              <div class="point-time">{{ katalog?.waktuPengerjaan?.pcsAbove300 || '-' }} hari</div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-notes">
+          <p>
+            * Express: {{ katalog?.waktuPengerjaan?.express || 'Additional 5% dari total hari' }}
+          </p>
+          <p>* Pengiriman dilakukan setelah proses produksi selesai</p>
+        </div>
+      </div>
+
+      <!-- REVIEWS SECTION -->
+      <div class="reviews-section">
+        <h2>ULASAN PEMBELI</h2>
+        <div class="reviews-summary">
+          <div class="average-rating">
+            <div class="average-score">{{ averageRating }}</div>
             <div class="total-reviews">{{ reviews.length }} ulasan</div>
           </div>
-
+          <div class="rating-stars">
+            <i v-for="i in 5" :key="`star-${i}`" class="fas fa-star"></i>
+          </div>
           <div class="rating-bars">
-            <div v-for="star in 5" :key="star" class="rating-bar-container">
-              <span class="rating-label">{{ 6 - star }}</span>
-              <div class="rating-bar-wrapper">
+            <div class="rating-bar-row">
+              <span class="bar-label">5 ★</span>
+              <div class="bar-background">
+                <div class="bar-fill" :style="{ width: `${getPercentageForStar(5)}%` }"></div>
+              </div>
+              <span class="bar-count">{{ getCountForStar(5) }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">4 ★</span>
+              <div class="bar-background">
+                <div class="bar-fill" :style="{ width: `${getPercentageForStar(4)}%` }"></div>
+              </div>
+              <span class="bar-count">{{ getCountForStar(4) }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">≤ 3 ★</span>
+              <div class="bar-background">
                 <div
-                  class="rating-bar"
-                  :style="{ width: `${getPercentageForStar(6 - star)}%` }"
+                  class="bar-fill"
+                  :style="{
+                    width: `${getPercentageForStar(3) + getPercentageForStar(2) + getPercentageForStar(1)}%`,
+                  }"
                 ></div>
               </div>
-              <span class="rating-count">{{ getCountForStar(6 - star) }}</span>
+              <span class="bar-count">{{
+                getCountForStar(3) + getCountForStar(2) + getCountForStar(1)
+              }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Filter section -->
         <div class="review-filters">
           <div class="filter-label">Filter:</div>
           <div
@@ -168,11 +287,10 @@
           </div>
         </div>
 
-        <!-- Reviews list -->
         <div v-if="reviewsLoading" class="reviews-loading">Loading reviews...</div>
 
-        <div v-else class="reviews-container">
-          <div v-if="reviews.length === 0" class="no-reviews">No reviews yet</div>
+        <div v-else class="review-cards">
+          <div v-if="reviews.length === 0" class="no-reviews">Belum ada ulasan</div>
 
           <div v-for="(review, index) in filteredReviews" :key="index" class="review-card">
             <div class="review-header">
@@ -191,11 +309,9 @@
                 <i
                   v-for="i in 5"
                   :key="i"
-                  class="fas"
-                  :class="i <= review.rating ? 'fa-star' : 'fa-star-o'"
+                  class="fas fa-star"
                   :style="{ color: i <= review.rating ? '#E8BA38' : '#d9d9d9' }"
-                >
-                </i>
+                ></i>
               </div>
             </div>
 
@@ -228,17 +344,16 @@
             </div>
           </div>
 
-          <!-- Show more button -->
           <div v-if="hasMoreReviews" class="load-more">
             <button @click="loadMoreReviews" class="load-more-btn">
               Lihat Lebih Banyak Ulasan
             </button>
           </div>
         </div>
-      </section>
+      </div>
     </div>
 
-    <!-- Image modal -->
+    <!-- Image modal (keeping existing implementation) -->
     <div v-if="showImageModal" class="image-modal" @click="closeImageModal">
       <div class="modal-content" @click.stop>
         <button class="modal-close" @click="closeImageModal">
@@ -269,12 +384,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Include your existing footer component here -->
+    <Footer />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useKatalogStore } from '@/stores/KatalogStore'
@@ -291,16 +409,22 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
-import { useRouter } from 'vue-router' // Add this import
+import ProductCarousel from '@/components/ProductCarousel.vue'
+import Navbar from '@/components/NavigationBar.vue'
+import Footer from '@/components/FooterComponent.vue'
 
-// Add near the start of your script setup
+// Initialize router and route
 const router = useRouter()
-
 const route = useRoute()
 const toast = useToast()
 const katalogStore = useKatalogStore()
 const authStore = useAuthStore()
 const katalog = ref(null)
+
+// Function to format price with comma as thousand separator
+const formatPrice = (price) => {
+  return price ? price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '0'
+}
 
 // Function to save catalog to localStorage
 const saveCatalogToCache = (catalogData) => {
@@ -315,6 +439,7 @@ const getCatalogFromCache = (id) => {
   return cached ? JSON.parse(cached) : null
 }
 
+// Load data on component mount
 onMounted(async () => {
   const id = route.params.id
 
@@ -339,9 +464,6 @@ onMounted(async () => {
     saveCatalogToCache(item)
   }
 
-  // Start autoplay
-  startAutoplay()
-
   // Set up real-time reviews listener
   const productId = route.params.id
   if (productId) {
@@ -349,72 +471,12 @@ onMounted(async () => {
   }
 })
 
-// Add cleanup on component unmount
+// Clean up on component unmount
 onBeforeUnmount(() => {
-  stopAutoplay()
   if (unsubscribe.value) {
     unsubscribe.value()
   }
 })
-
-// Carousel functionality
-const currentIndex = ref(0)
-
-const carouselStyle = computed(() => ({
-  transform: `translateX(-${(currentIndex.value + 1) * 100}%)`,
-  transition: 'transform 0.5s ease-in-out',
-}))
-
-const prevSlide = () => {
-  // stopAutoplay()
-  if (currentIndex.value === 0) {
-    currentIndex.value = katalog.value.images.length - 1
-  } else {
-    currentIndex.value--
-  }
-}
-
-const nextSlide = () => {
-  // stopAutoplay()
-  if (currentIndex.value === katalog.value.images.length - 1) {
-    currentIndex.value = 0
-  } else {
-    currentIndex.value++
-  }
-}
-
-const goToSlide = (index) => {
-  // stopAutoplay()
-  currentIndex.value = index
-}
-
-// Add autoplay functionality
-let autoplayInterval
-const AUTOPLAY_DELAY = 3000 // 3 seconds
-
-const startAutoplay = () => {
-  // Clear any existing interval first
-  stopAutoplay()
-  autoplayInterval = setInterval(() => {
-    nextSlide()
-  }, AUTOPLAY_DELAY)
-}
-
-const stopAutoplay = () => {
-  if (autoplayInterval) {
-    clearInterval(autoplayInterval)
-    autoplayInterval = null
-  }
-}
-
-// Handle mouse move for zoom effect
-const handleMouseMove = (e) => {
-  const rect = e.currentTarget.getBoundingClientRect()
-  const x = ((e.clientX - rect.left) / rect.width) * 100
-  const y = ((e.clientY - rect.top) / rect.height) * 100
-  e.currentTarget.style.setProperty('--x', `${x}%`)
-  e.currentTarget.style.setProperty('--y', `${y}%`)
-}
 
 // Reviews functionality
 const reviews = ref([])
@@ -423,61 +485,12 @@ const displayLimit = ref(3)
 const reviewsLoading = ref(false)
 const unsubscribe = ref(null)
 
-// Update the loadReviewsFromFirestore function
-const loadReviewsFromFirestore = (productId) => {
-  reviewsLoading.value = true
+// Check if there are more reviews to show
+const hasMoreReviews = computed(() => {
+  return filteredReviews.value.length > displayLimit.value
+})
 
-  const reviewsRef = collection(db, 'reviews')
-  const q = query(reviewsRef, where('productId', '==', productId), orderBy('createdAt', 'desc'))
-
-  unsubscribe.value = onSnapshot(
-    q,
-    async (snapshot) => {
-      const reviewsPromises = snapshot.docs.map(async (doc) => {
-        const reviewData = doc.data()
-        const userData = await getUserData(reviewData.userId)
-
-        return {
-          id: doc.id,
-          name: userData?.name || 'Anonymous',
-          avatarUrl: userData?.profilePhoto || defaultAvatar, // Update this line
-          date: reviewData.createdAt?.toDate() || new Date(),
-          rating: reviewData.rating,
-          content: reviewData.review,
-          images: reviewData.images || [],
-          helpfulCount: reviewData.helpfulCount || 0,
-          userFoundHelpful: false,
-        }
-      })
-
-      reviews.value = await Promise.all(reviewsPromises)
-      reviewsLoading.value = false
-    },
-    (error) => {
-      console.error('Error fetching reviews:', error)
-      reviewsLoading.value = false
-    },
-  )
-}
-
-// Add helper function to get user data
-const getUserData = async (userId) => {
-  try {
-    const usersRef = collection(db, 'users')
-    const q = query(usersRef, where('uid', '==', userId))
-    const querySnapshot = await getDocs(q)
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].data()
-    }
-    return null
-  } catch (error) {
-    console.error('Error fetching user data:', error)
-    return null
-  }
-}
-
-// Filter reviews based on selected filter
+// Get filtered reviews with pagination
 const filteredReviews = computed(() => {
   let result = [...reviews.value]
 
@@ -497,7 +510,7 @@ const filteredReviews = computed(() => {
     // default is 'all', no filtering needed
   }
 
-  return result
+  return result.slice(0, displayLimit.value)
 })
 
 // Calculate average rating
@@ -506,6 +519,60 @@ const averageRating = computed(() => {
   const sum = reviews.value.reduce((acc, review) => acc + review.rating, 0)
   return (sum / reviews.value.length).toFixed(1)
 })
+
+// Fetch reviews from Firestore
+const loadReviewsFromFirestore = (productId) => {
+  reviewsLoading.value = true
+
+  const reviewsRef = collection(db, 'reviews')
+  const q = query(reviewsRef, where('productId', '==', productId), orderBy('createdAt', 'desc'))
+
+  unsubscribe.value = onSnapshot(
+    q,
+    async (snapshot) => {
+      const reviewsPromises = snapshot.docs.map(async (doc) => {
+        const reviewData = doc.data()
+        const userData = await getUserData(reviewData.userId)
+
+        return {
+          id: doc.id,
+          name: userData?.name || 'Anonymous',
+          avatarUrl: userData?.profilePhoto || defaultAvatar,
+          date: reviewData.createdAt?.toDate() || new Date(),
+          rating: reviewData.rating,
+          content: reviewData.review,
+          images: reviewData.images || [],
+          helpfulCount: reviewData.helpfulCount || 0,
+          userFoundHelpful: false,
+        }
+      })
+
+      reviews.value = await Promise.all(reviewsPromises)
+      reviewsLoading.value = false
+    },
+    (error) => {
+      console.error('Error fetching reviews:', error)
+      reviewsLoading.value = false
+    },
+  )
+}
+
+// Get user data from Firestore
+const getUserData = async (userId) => {
+  try {
+    const usersRef = collection(db, 'users')
+    const q = query(usersRef, where('uid', '==', userId))
+    const querySnapshot = await getDocs(q)
+
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].data()
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching user data:', error)
+    return null
+  }
+}
 
 // Load more reviews
 const loadMoreReviews = () => {
@@ -636,354 +703,514 @@ const goToModalImage = (index) => {
   currentModalImageIndex.value = index
 }
 
-// Add this navigation method
+// Navigation method to custom page
 const navigateToCustom = () => {
-  router.push(`/custom/${katalog.value.id}`)
+  if (katalog.value && katalog.value.id) {
+    router.push(`/custom/${katalog.value.id}`)
+  }
 }
 </script>
 
 <style scoped>
-.detail-view {
-  display: flex;
-  height: 100vh;
-  background-color: #d9d9d9;
+/* Base styles */
+.detail-container {
   font-family: 'Montserrat', sans-serif;
-  overflow: hidden;
-}
-
-.gambar-detail {
-  width: 50%;
-  padding: 60px 100px; /* Reduced top padding from 100px to 60px */
-  position: relative;
-  display: flex;
-  margin-top: -10px;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.back {
-  position: absolute;
-  top: 2rem; /* Slightly adjusted for better spacing */
-  left: 1rem;
-  text-decoration: none;
-}
-
-.back i {
-  color: #353535;
-  font-size: 2rem !important;
+  color: #333;
+  background-color: #f5f5f7;
 }
 
 .content-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 100%;
-  align-self: center; /* Center the content wrapper itself */
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-top: 75px; /* Add padding-top to create space below navbar */
+  /* margin-top: 20px; Additional margin for better spacing */
 }
 
-.gambar-detail h1 {
-  font-size: 2.4rem;
-  margin-bottom: 1rem; /* Reduced from 1.5rem to 1rem */
-  margin-left: 1.6rem; /* Reduced from 1.5rem to 1rem */
-  align-self: flex-start;
-  width: 100%;
+/* Breadcrumbs */
+.breadcrumbs {
+  font-size: 12px;
+  color: #666;
+  margin: 20px 0;
 }
 
-.gambar-detail img {
-  width: 100%;
-  max-width: 500px;
-  height: auto;
-  border-radius: 8px;
-  object-fit: cover;
-}
-.gambar-detail i {
-  font-size: 3rem;
+.breadcrumbs a {
+  color: #666;
+  text-decoration: none;
 }
 
-.hub {
-  background-color: #e8ba38;
-  color: white;
-  padding: 0.6rem 1.8rem;
-  border-radius: 50px;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  margin: 0.5rem 0;
-  transition: all 0.3s ease; /* Add smooth transition */
+.breadcrumbs a:hover {
+  text-decoration: underline;
 }
 
-.hub:hover {
-  background-color: #d5a832; /* Slightly darker shade on hover */
-  transform: translateY(-1px); /* Slight lift effect */
-}
-
-.toko-section {
-  width: 100%;
-  text-align: center;
+/* Product Header */
+.product-header {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-around;
   align-items: center;
+  margin-bottom: 20px;
 }
 
-.toko-section h2 {
-  margin-bottom: 0.8rem;
-  font-size: 1.5rem;
-  float: left;
-  text-align: left;
-  width: 100%;
+.product-header h1 {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  margin-right: 20px;
 }
 
-.sosmed-link {
-  display: flex;
-  gap: 1rem;
-  width: 100%;
-  float: left;
-  text-align: left;
-}
-
-.sosmed {
+.rating-display {
   display: flex;
   align-items: center;
-  text-decoration: none;
-  color: black;
-  font-size: 0.85rem;
+  margin-right: 20px;
 }
 
-.sosmed i {
-  background-color: #e8ba38;
-  color: white;
-  padding: 0.5rem;
-  border-radius: 50%;
-  margin-right: 0.4rem;
-  font-size: 1.5rem;
+.stars {
+  color: #ffc107;
+  margin-right: 5px;
 }
 
-.detail-keterangan {
-  width: 50%;
-  background-color: white;
-  padding: 1.5rem 1rem;
+.stars i {
+  margin-right: 2px;
+}
+
+.review-count {
+  color: #666;
+  font-size: 14px;
+}
+
+.badges {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 0;
-  height: 100%;
-  box-shadow: #0000 9px 9px 10px;
-  overflow-y: auto; /* Allow scrolling for longer content */
+  gap: 10px;
 }
 
-.detail-keterangan section {
+.bestseller-badge {
+  background-color: #ffc107;
+  color: #333;
+  font-weight: bold;
+  padding: 5px 15px;
+  border-radius: 15px;
+  font-size: 12px;
+}
+
+/* Product Main Content */
+.product-main {
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
-.detail-keterangan h2 {
-  background-color: #02163b;
-  color: white;
-  padding: 0.6rem;
-  text-align: center;
-  font-size: 1.8rem;
-  margin: 0;
-}
-
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.info-content p {
-  font-size: 1rem;
-  padding: 0.2rem 0;
-  margin: 0;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* Carousel styles */
-.carousel-container {
+.product-images {
+  flex: 1;
+  min-width: 300px;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
-  max-width: 500px;
-  height: 360px;
-  overflow: hidden;
-  border-radius: 8px;
-  --x: center;
-  --y: center;
-}
-
-.carousel-container:hover .carousel-btn {
-  opacity: 1;
-}
-
-.carousel-wrapper {
   display: flex;
-  height: 100%;
-  transition: transform 0.5s ease-in-out;
+  justify-content: center; /* Center carousel horizontally */
+  align-items: center;
 }
 
-.carousel-image {
-  width: 500px;
-  height: 360px;
-  flex-shrink: 0;
-  object-fit: cover;
-  transition: transform 0.3s ease-out;
-  transform-origin: var(--x, center) var(--y, center);
+.product-details {
+  flex: 1;
+  min-width: 300px;
 }
 
-.carousel-container:hover .carousel-image {
-  cursor: zoom-in;
+.price-section {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* This targets only the currently visible image */
-.carousel-container:hover .carousel-image:hover {
-  transform: scale(2);
+.price-section h2 {
+  background-color: #0a2551;
+  color: white;
+  margin: 0;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 22px; /* Increased font size */
 }
 
-.carousel-btn {
+.price-info {
+  padding: 20px;
+}
+
+.price-tier {
+  margin-bottom: 24px; /* Increased spacing */
+}
+
+.price-tier h3 {
+  font-size: 18px; /* Increased font size */
+  font-weight: bold;
+  margin-bottom: 8px; /* Increased spacing */
+}
+
+.price-features {
+  list-style-type: none;
+  padding-left: 20px;
+  margin: 0;
+}
+
+.price-features li {
+  position: relative;
+  padding-left: 15px;
+  font-size: 14px; /* Increased font size */
+  color: #555; /* Darker color for better readability */
+  margin-bottom: 8px; /* Increased spacing */
+}
+
+.price-features li::before {
+  content: '•';
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(255, 255, 255, 0.9);
+  left: 0;
+  color: #555;
+}
+
+.order-now-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 0 20px 20px;
+  padding: 14px 0; /* Increased padding */
+  background-color: #ffc107;
   color: #333;
   border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 16px; /* Increased font size */
   cursor: pointer;
-  z-index: 1;
-  opacity: 0;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s;
 }
 
-.carousel-btn:hover {
-  background-color: rgba(255, 255, 255, 1);
-  transform: translateY(-50%) scale(1.1);
+.order-now-btn:hover {
+  background-color: #e0a800;
 }
 
-.carousel-btn.prev {
-  left: 16px;
+/* Specifications Section */
+.specs-section {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.carousel-btn.next {
-  right: 16px;
+.specs-section h2 {
+  background-color: #0a2551;
+  color: white;
+  margin: 0;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 18px;
 }
 
-.carousel-btn i {
-  font-size: 1.2rem;
+.specs-content {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20px;
 }
 
-.carousel-indicators {
+.specs-column {
+  flex: 1;
+  min-width: 300px;
+  padding: 0 15px;
+}
+
+.specs-column h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.specs-column ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.specs-column li {
+  position: relative;
+  padding-left: 15px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.specs-column li::before {
+  content: '•';
   position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  color: #333;
+}
+
+/* Materials Section */
+.materials-section {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.materials-section h2 {
+  background-color: #0a2551;
+  color: white;
+  margin: 0;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 20px; /* Increased font size */
+}
+
+.materials-content {
   display: flex;
-  gap: 8px;
-  padding: 8px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 16px;
+  flex-wrap: wrap;
+  padding: 20px;
+  gap: 20px;
 }
 
-.indicator {
-  width: 8px;
-  height: 8px;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.material-type {
+  flex: 1;
+  min-width: 200px;
 }
 
-.indicator.active {
-  background-color: #e8ba38;
-  transform: scale(1.2);
+.material-type h3 {
+  font-size: 18px; /* Increased font size */
+  font-weight: bold;
+  margin-bottom: 15px;
 }
 
-/* Reviews section styles */
-.review-section {
-  margin-top: 1rem;
-}
-
-.review-summary {
+.material-samples {
   display: flex;
-  align-items: center;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-.rating-average {
+.material-sample {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-right: 1.5rem;
-  border-right: 1px solid #ddd;
-  min-width: 120px;
+}
+
+.material-image {
+  width: 140px; /* Increased size */
+  height: 110px; /* Increased size */
+  border-radius: 5px;
+  overflow: hidden;
+  border: 2px solid #e0e0e0;
+  margin-bottom: 12px; /* Increased spacing */
+}
+
+.material-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.accessory-image {
+  background-color: #e0e0e0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.material-name {
+  font-size: 15px; /* Increased font size */
+  text-align: center;
+  font-weight: 500;
+  color: #444;
+}
+
+.material-info {
+  padding: 0 20px 20px;
+}
+
+.material-info h3 {
+  font-size: 16px; /* Increased font size */
+  font-weight: bold;
+  margin-bottom: 12px; /* Increased spacing */
+}
+
+.material-info ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.material-info li {
+  position: relative;
+  padding-left: 15px;
+  margin-bottom: 10px; /* Increased spacing */
+  font-size: 14px; /* Increased font size */
+  color: #555; /* Darker color for better readability */
+  line-height: 1.5;
+}
+
+.material-info li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #555;
+}
+
+/* Processing Time Section */
+.processing-section {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.processing-section h2 {
+  background-color: #0a2551;
+  color: white;
+  margin: 0;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 18px;
+}
+
+.timeline {
+  position: relative;
+  padding: 40px 20px;
+}
+
+.timeline-track {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  right: 10%;
+  height: 4px;
+  background-color: #e0e0e0;
+}
+
+.timeline-points {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 10%;
+  position: relative;
+}
+
+.timeline-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80px;
+}
+
+.point-label {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.point-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ffc107;
+  z-index: 1;
+  margin-bottom: 15px;
+}
+
+.point-time {
+  text-align: center;
+  font-size: 14px;
+}
+
+.timeline-notes {
+  padding: 0 20px 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Reviews Section */
+.reviews-section {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reviews-section h2 {
+  background-color: #0a2551;
+  color: white;
+  margin: 0;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 18px;
+}
+
+.reviews-summary {
+  display: flex;
+  padding: 20px;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.average-rating {
+  text-align: center;
+  margin-right: 30px;
 }
 
 .average-score {
-  font-size: 2.5rem;
+  font-size: 40px;
   font-weight: bold;
-  color: #02163b;
-}
-
-.star-display {
-  margin: 0.3rem 0;
 }
 
 .total-reviews {
-  font-size: 0.8rem;
+  font-size: 14px;
   color: #666;
 }
 
-/* Continue styling for rating bars */
+.rating-stars {
+  display: flex;
+  margin-right: 40px;
+}
+
+.rating-stars i {
+  color: #ffc107;
+  font-size: 24px;
+  margin-right: 5px;
+}
+
 .rating-bars {
   flex: 1;
-  margin-left: 1.5rem;
-  width: 100%;
 }
 
-.rating-bar-container {
+.rating-bar-row {
   display: flex;
   align-items: center;
-  margin-bottom: 0.4rem;
+  margin-bottom: 10px;
 }
 
-.rating-label {
-  width: 15px;
-  margin-right: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.rating-bar-wrapper {
-  flex: 1;
-  height: 8px;
-  background-color: #eee;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.rating-bar {
-  height: 100%;
-  background-color: #e8ba38;
-  border-radius: 4px;
-}
-
-.rating-count {
-  margin-left: 0.5rem;
-  font-size: 0.85rem;
+.bar-label {
+  width: 40px;
+  font-size: 14px;
   color: #666;
-  width: 25px;
+}
+
+.bar-background {
+  flex: 1;
+  height: 15px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 10px;
+}
+
+.bar-fill {
+  height: 100%;
+  background-color: #ffc107;
+  border-radius: 8px;
+}
+
+.bar-count {
+  width: 30px;
+  font-size: 12px;
+  color: #666;
   text-align: right;
 }
 
@@ -993,7 +1220,7 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
-  margin: 1rem 0;
+  margin: 1rem;
 }
 
 .filter-label {
@@ -1015,21 +1242,20 @@ body {
 }
 
 .filter-chip.active {
-  background-color: #02163b;
+  background-color: #0a2551;
   color: white;
 }
 
-/* Reviews container */
-.reviews-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+/* Review cards */
+.review-cards {
+  padding: 20px;
 }
 
 .review-card {
   background-color: #f8f8f8;
   border-radius: 8px;
   padding: 1rem;
+  margin-bottom: 15px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -1153,8 +1379,8 @@ body {
 
 .load-more-btn {
   background-color: white;
-  border: 1px solid #02163b;
-  color: #02163b;
+  border: 1px solid #0a2551;
+  color: #0a2551;
   padding: 0.6rem 1.2rem;
   border-radius: 4px;
   cursor: pointer;
@@ -1166,7 +1392,20 @@ body {
   background-color: #f1f1f1;
 }
 
-/* Image modal */
+.reviews-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Image modal (keeping existing implementation) */
 .image-modal {
   position: fixed;
   top: 0;
@@ -1271,85 +1510,41 @@ body {
   object-fit: cover;
 }
 
-/* Responsive styles */
-@media (max-width: 1200px) {
-  .gambar-detail {
-    padding: 40px 60px;
-  }
-}
-
+/* Responsive Design */
 @media (max-width: 992px) {
-  .detail-view {
-    flex-direction: column;
-    height: auto;
-    overflow-y: auto;
+  .timeline-points {
+    margin: 0 5%;
   }
 
-  .gambar-detail,
-  .detail-keterangan {
-    width: 100%;
-    height: auto;
-  }
-
-  .gambar-detail {
-    padding: 40px;
-  }
-
-  .carousel-container {
-    max-width: 100%;
-    height: auto;
-    aspect-ratio: 4/3;
-  }
-
-  .carousel-image {
-    width: 100%;
-    height: auto;
-  }
-
-  .review-summary {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .rating-average {
-    padding-right: 0;
-    padding-bottom: 1rem;
-    border-right: none;
-    border-bottom: 1px solid #ddd;
-    width: 100%;
-    margin-bottom: 1rem;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .rating-bars {
-    margin-left: 0;
-    width: 100%;
+  .timeline-track {
+    left: 5%;
+    right: 5%;
   }
 }
 
 @media (max-width: 768px) {
-  .gambar-detail {
-    padding: 30px 20px;
+  .reviews-summary {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .gambar-detail h1 {
-    font-size: 1.8rem;
+  .average-rating {
+    margin-bottom: 20px;
+    margin-right: 0;
   }
 
-  .detail-keterangan h2 {
-    font-size: 1.4rem;
+  .rating-stars {
+    margin-bottom: 20px;
+    margin-right: 0;
   }
 
-  .review-images img {
-    width: 70px;
-    height: 70px;
+  .timeline-point {
+    width: 60px;
   }
 
-  .modal-nav {
-    width: 30px;
-    height: 30px;
+  .point-label,
+  .point-time {
+    font-size: 12px;
   }
 
   .modal-nav.prev {
@@ -1362,21 +1557,47 @@ body {
 }
 
 @media (max-width: 576px) {
-  .gambar-detail h1 {
-    font-size: 1.5rem;
-  }
-
-  .carousel-container {
-    height: 280px;
-  }
-
-  .toko-section h2 {
-    font-size: 1.2rem;
-  }
-
-  .sosmed-link {
+  .product-header {
     flex-direction: column;
-    gap: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .product-header h1 {
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+
+  .rating-display {
+    margin-bottom: 10px;
+    margin-right: 0;
+  }
+
+  .timeline {
+    padding: 60px 10px 30px;
+  }
+
+  .timeline-point {
+    width: auto;
+  }
+
+  .point-label {
+    font-size: 10px;
+    margin-bottom: 30px;
+    transform: rotate(-45deg);
+  }
+
+  .point-marker {
+    width: 20px;
+    height: 20px;
+  }
+
+  .point-time {
+    font-size: 10px;
+    transform: rotate(-45deg);
+  }
+
+  .timeline-notes {
+    flex-direction: column;
   }
 
   .review-header {
@@ -1404,18 +1625,5 @@ body {
   .modal-nav.next {
     right: 10px;
   }
-}
-
-.reviews-loading {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-}
-
-.no-reviews {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-style: italic;
 }
 </style>

@@ -1,57 +1,74 @@
 <template>
-  <div class="card" v-if="review">
-    <div class="card-header">
-      <div class="avatar">
-        <img :src="review.avatarUrl || defaultAvatar" alt="avatar" @error="handleAvatarError" />
-      </div>
-      <div class="user-info">
-        <h3 class="username">{{ review.name || 'User' }}</h3>
-        <div class="rating">
-          <i v-for="star in 5" :key="star" class="fas fa-star"></i>
+  <div class="reviews-carousel">
+    <div class="carousel-container">
+      <div class="carousel-track" ref="carouselTrack">
+        <div v-for="(item, index) in reviews" :key="`review-${index}`" class="carousel-item">
+          <div class="card">
+            <div class="card-header">
+              <div class="avatar">
+                <img
+                  :src="item.avatarUrl || defaultAvatar"
+                  alt="avatar"
+                  @error="handleAvatarError"
+                />
+              </div>
+              <div class="user-info">
+                <h3 class="username">{{ item.name || 'User' }}</h3>
+                <div class="rating">
+                  <i v-for="star in 5" :key="star" class="fas fa-star"></i>
+                </div>
+              </div>
+              <div class="review-date">{{ formatDate(item.createdAt) }}</div>
+            </div>
+
+            <div class="review-content">
+              <p>{{ item.review || 'No review content' }}</p>
+            </div>
+
+            <div class="review-images" v-if="item.images && item.images.length > 0">
+              <img
+                v-for="(image, imgIndex) in item.images"
+                :key="imgIndex"
+                :src="image"
+                alt="Review image"
+                @error="handleReviewImageError"
+              />
+            </div>
+
+            <div class="product-info">
+              <img
+                :src="item.productImage || defaultLogo"
+                alt="Product"
+                @error="handleProductImageError"
+              />
+              <div class="product-details">
+                <h4>{{ item.productName || 'Product' }}</h4>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="review-date">{{ formatDate(review.createdAt) }}</div>
     </div>
 
-    <div class="review-content">
-      <p>{{ review.review || 'No review content' }}</p>
-    </div>
-
-    <div class="review-images" v-if="review.images && review.images.length > 0">
-      <img
-        v-for="(image, index) in review.images"
-        :key="index"
-        :src="image"
-        alt="Review image"
-        @error="handleReviewImageError"
-      />
-    </div>
-
-    <div class="product-info">
-      <img
-        :src="review.productImage || defaultLogo"
-        alt="Product"
-        @error="handleProductImageError"
-      />
-      <div class="product-details">
-        <h4>{{ review.productName || 'Product' }}</h4>
-      </div>
+    <!-- Loading indicator -->
+    <div v-if="isLoading" class="loading-indicator">
+      <i class="fas fa-spinner fa-spin"></i> Memuat ulasan...
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import {
   collection,
   query,
   where,
   orderBy,
   onSnapshot,
-  limit as limitQuery,
   getDoc,
   doc,
   getDocs,
+  limit,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
@@ -62,28 +79,59 @@ const props = defineProps({
     type: String,
     default: null,
   },
-  limit: {
-    type: Number,
-    default: 1,
-  },
 })
 
-const review = ref(null)
+const reviews = ref([])
 const unsubscribe = ref(null)
+const carouselTrack = ref(null)
+const isLoading = ref(true)
+let animationId = null
+let position = 0
+const speed = 0.8 // Increased speed for faster scrolling
 
-// Separate error handlers for different image types
+// Caching mechanism to improve performance
+const reviewCache = new Map()
+
+// Carousel animation function with optimized performance
+const animateCarousel = () => {
+  if (!carouselTrack.value || reviews.value.length <= 1) return
+
+  position -= speed
+
+  // Get first item width (with improved handling)
+  const firstItem = carouselTrack.value.querySelector('.carousel-item')
+  if (!firstItem) return
+
+  const firstItemWidth = firstItem.offsetWidth
+
+  if (firstItemWidth > 0) {
+    // Check if first item has moved completely out of view
+    if (-position >= firstItemWidth) {
+      // Move first item to end (optimized DOM operations)
+      const firstItemClone = firstItem.cloneNode(true)
+      carouselTrack.value.appendChild(firstItemClone)
+      carouselTrack.value.removeChild(firstItem)
+
+      // Reset position by first item width to create seamless effect
+      position += firstItemWidth
+    }
+  }
+
+  // Use transform3d for hardware acceleration
+  carouselTrack.value.style.transform = `translate3d(${position}px, 0, 0)`
+  animationId = requestAnimationFrame(animateCarousel)
+}
+
+// Error handlers for images
 const handleAvatarError = (e) => {
-  console.log('Avatar image error, using default')
   e.target.src = defaultAvatar
 }
 
 const handleProductImageError = (e) => {
-  console.log('Product image error, using default logo')
   e.target.src = defaultLogo
 }
 
 const handleReviewImageError = (e) => {
-  console.log('Review image error, hiding image')
   e.target.style.display = 'none'
 }
 
@@ -99,24 +147,25 @@ const formatDate = (timestamp) => {
   }).format(date)
 }
 
-// Improved function to get user data for a review
+// Optimized function to get user data with caching
 const fetchUserData = async (userId) => {
+  if (!userId) return null
+
+  // Check cache first
+  const cacheKey = `user-${userId}`
+  if (reviewCache.has(cacheKey)) {
+    return reviewCache.get(cacheKey)
+  }
+
   try {
-    if (!userId) {
-      console.log('No userId provided for fetchUserData')
-      return null
-    }
-
-    console.log('Fetching user data for userId:', userId)
-
-    // Try both methods to get user data - direct document lookup and query
     // Method 1: Direct document lookup
     const userRef = doc(db, 'users', userId)
     const userDoc = await getDoc(userRef)
 
     if (userDoc.exists()) {
-      console.log('User found by direct ID lookup:', userDoc.data())
-      return userDoc.data()
+      const userData = userDoc.data()
+      reviewCache.set(cacheKey, userData)
+      return userData
     }
 
     // Method 2: Query by uid field (in case userId is auth uid)
@@ -124,11 +173,12 @@ const fetchUserData = async (userId) => {
     const querySnapshot = await getDocs(usersQuery)
 
     if (!querySnapshot.empty) {
-      console.log('User found by uid query:', querySnapshot.docs[0].data())
-      return querySnapshot.docs[0].data()
+      const userData = querySnapshot.docs[0].data()
+      reviewCache.set(cacheKey, userData)
+      return userData
     }
 
-    console.log('No user found with ID or uid:', userId)
+    reviewCache.set(cacheKey, null)
     return null
   } catch (error) {
     console.error('Error fetching user data:', error)
@@ -136,24 +186,27 @@ const fetchUserData = async (userId) => {
   }
 }
 
-// New function to get product data
+// Optimized function to get product data with caching
 const fetchProductData = async (productId) => {
-  try {
-    if (!productId) {
-      console.log('No productId provided for fetchProductData')
-      return null
-    }
+  if (!productId) return null
 
-    console.log('Fetching product data for productId:', productId)
+  // Check cache first
+  const cacheKey = `product-${productId}`
+  if (reviewCache.has(cacheKey)) {
+    return reviewCache.get(cacheKey)
+  }
+
+  try {
     const productRef = doc(db, 'katalog', productId)
     const productDoc = await getDoc(productRef)
 
     if (productDoc.exists()) {
-      console.log('Product data found:', productDoc.data().nama)
-      return productDoc.data()
+      const productData = productDoc.data()
+      reviewCache.set(cacheKey, productData)
+      return productData
     }
 
-    console.log('No product found with ID:', productId)
+    reviewCache.set(cacheKey, null)
     return null
   } catch (error) {
     console.error('Error fetching product data:', error)
@@ -161,11 +214,45 @@ const fetchProductData = async (productId) => {
   }
 }
 
-// Set up real-time listener for reviews
-onMounted(() => {
-  console.log('CardUlasan mounted, fetching reviews...')
-  console.log('productId:', props.productId)
+// Process a single review with user and product data (batched for performance)
+const processReview = async (reviewData, reviewId) => {
+  // Return basic data immediately so we can show something fast
+  const basicReview = {
+    id: reviewId,
+    ...reviewData,
+    name: reviewData.name || 'User',
+    avatarUrl: reviewData.avatarUrl || null,
+    productName: reviewData.productName || 'Product',
+    productImage: reviewData.productImage || null,
+  }
 
+  // In parallel, fetch the detailed data
+  Promise.all([fetchUserData(reviewData.userId), fetchProductData(reviewData.productId)]).then(
+    ([userData, productData]) => {
+      // Find this review in the reviews array and update it
+      const index = reviews.value.findIndex((r) => r.id === reviewId)
+      if (index !== -1) {
+        reviews.value[index] = {
+          ...reviews.value[index],
+          name: userData?.name || reviewData.name || 'User',
+          avatarUrl: userData?.profilePhoto || userData?.photoURL || reviewData.avatarUrl || null,
+          productName: reviewData.productName || productData?.nama || 'Product',
+          productImage: reviewData.productImage || productData?.images?.[0] || null,
+        }
+      }
+    },
+  )
+
+  return basicReview
+}
+
+// Optimized setup for real-time listeners
+onMounted(() => {
+  console.log('Mounting CardUlasan component')
+  isLoading.value = true
+
+  // Limit to 15 reviews for better performance
+  const MAX_REVIEWS = 15
   let reviewsQuery
 
   if (props.productId) {
@@ -175,7 +262,7 @@ onMounted(() => {
       where('productId', '==', props.productId),
       where('rating', '==', 5),
       orderBy('createdAt', 'desc'),
-      limitQuery(props.limit),
+      limit(MAX_REVIEWS),
     )
   } else {
     // Otherwise get all 5-star reviews
@@ -183,61 +270,83 @@ onMounted(() => {
       collection(db, 'reviews'),
       where('rating', '==', 5),
       orderBy('createdAt', 'desc'),
-      limitQuery(props.limit),
+      limit(MAX_REVIEWS),
     )
   }
+
+  console.log('Setting up real-time listener for reviews')
 
   unsubscribe.value = onSnapshot(
     reviewsQuery,
     async (snapshot) => {
-      if (!snapshot.empty) {
-        const reviewData = snapshot.docs[0].data()
-        console.log('Found review data:', reviewData)
+      console.log(`Received ${snapshot.docs.length} reviews`)
 
-        // Log the userId for debugging
-        console.log('Review userId:', reviewData.userId)
-
-        // Fetch user data to get avatar and name
-        const userData = await fetchUserData(reviewData.userId)
-        console.log('Fetched user data:', userData)
-
-        // Fetch product data to get product image
-        const productData = await fetchProductData(reviewData.productId)
-
-        review.value = {
-          id: snapshot.docs[0].id,
-          ...reviewData,
-          name: userData?.name || reviewData.name || 'User',
-          avatarUrl: userData?.profilePhoto || userData?.photoURL || reviewData.avatarUrl || null,
-          productName: reviewData.productName || productData?.nama || 'Product',
-          productImage: reviewData.productImage || productData?.images?.[0] || null,
-        }
-
-        console.log('Final review data constructed:', review.value)
-      } else {
-        console.log('No reviews found matching the criteria')
+      if (snapshot.empty) {
+        reviews.value = []
+        isLoading.value = false
+        return
       }
+
+      // Process reviews in batches to improve UI responsiveness
+      const processedReviews = []
+      for (const doc of snapshot.docs) {
+        const processedReview = await processReview(doc.data(), doc.id)
+        processedReviews.push(processedReview)
+      }
+
+      reviews.value = processedReviews
+
+      // If not enough reviews, duplicate them to ensure smooth carousel
+      if (reviews.value.length < 4 && reviews.value.length > 0) {
+        let duplicated = [...reviews.value]
+        while (duplicated.length < 8) {
+          duplicated = [...duplicated, ...reviews.value]
+        }
+        reviews.value = duplicated
+      }
+
+      isLoading.value = false
+
+      // Start animation after reviews are loaded (with a shorter delay)
+      setTimeout(() => {
+        console.log('Starting carousel animation')
+        if (carouselTrack.value) {
+          animationId = requestAnimationFrame(animateCarousel)
+        }
+      }, 300) // Reduced from 500ms to 300ms
     },
     (error) => {
       console.error('Error fetching reviews:', error)
+      isLoading.value = false
     },
   )
 })
 
-// Clean up listener when component unmounts
+// Watch for changes in reviews array
+watch(reviews, (newReviews) => {
+  console.log(`Reviews updated: ${newReviews.length} items`)
+})
+
+// Clean up listener and animation when component unmounts
 onUnmounted(() => {
+  console.log('Unmounting CardUlasan component')
   if (unsubscribe.value) {
     unsubscribe.value()
+  }
+
+  if (animationId) {
+    cancelAnimationFrame(animationId)
   }
 })
 </script>
 
 <style scoped>
+/* Original card styles preserved */
 .card {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 450px;
+  max-width: 400px; /* Slightly reduced width */
   border-radius: 16px;
   background-color: white;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -246,6 +355,7 @@ onUnmounted(() => {
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
+  height: calc(100% - 2rem); /* Ensure consistent height */
 }
 
 .card:hover {
@@ -338,7 +448,7 @@ onUnmounted(() => {
   background-color: #f8f8f8;
   padding: 0.75rem;
   border-radius: 8px;
-  margin-top: 0.5rem;
+  margin-top: auto; /* Push to bottom */
 }
 
 .product-info img {
@@ -355,10 +465,71 @@ onUnmounted(() => {
   color: #555;
 }
 
+/* New carousel styles with increased gap */
+.reviews-carousel {
+  width: 100%;
+  position: relative;
+  min-height: 200px;
+}
+
+.carousel-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 15%, #000 35%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+}
+
+.carousel-track {
+  display: flex;
+  transition: none;
+  will-change: transform;
+  padding: 10px 0; /* Added padding */
+}
+
+.carousel-item {
+  flex: 0 0 auto;
+  padding: 0 30px; /* Increased padding from 15px to 30px to create bigger gaps */
+  box-sizing: border-box;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  text-align: center;
+  padding: 2rem;
+  color: #02163b;
+  font-size: 1.1rem;
+}
+
+.loading-indicator i {
+  margin-right: 8px;
+  color: #e8ba38;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .card {
     max-width: 100%;
     margin: 1rem 0;
+  }
+
+  .carousel-item {
+    flex: 0 0 100%;
+    padding: 0 20px; /* Adjusted for mobile */
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .carousel-item {
+    flex: 0 0 50%;
+    padding: 0 25px; /* Adjusted for tablets */
+  }
+}
+
+@media (min-width: 1201px) {
+  .carousel-item {
+    flex: 0 0 33.33%;
+    padding: 0 30px; /* Maintained for desktop */
   }
 }
 </style>
