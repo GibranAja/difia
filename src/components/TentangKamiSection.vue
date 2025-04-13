@@ -64,6 +64,8 @@
 
     <!-- Clear container for achievement section -->
     <div class="achievement-wrapper">
+      <span class="point"></span>
+      <span class="point-bottom"></span>
       <AchievementSection />
     </div>
   </section>
@@ -276,7 +278,26 @@ import AchievementSection from '@/components/AchievementSection.vue'
   z-index: 3; /* Ensure achievement section is on top */
   margin-top: 2rem; /* More spacing between sections */
 }
-
+.achievement-wrapper .point {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 100px;
+  z-index: -1;
+  top: -50px;
+  left: 155px;
+}
+.achievement-wrapper .point-bottom {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 100px;
+  z-index: -1;
+  bottom: -50px;
+  left: 155px;
+}
 /* Responsive adjustments */
 @media (max-width: 992px) {
   .about-content {
