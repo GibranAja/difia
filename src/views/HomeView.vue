@@ -7,6 +7,9 @@
   <main>
     <TentangKamiSection />
     <section class="katalog" id="catalog">
+      <span class="box"></span>
+      <span class="rounded"></span>
+      <span class="rounded-left"></span>
       <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
@@ -310,6 +313,7 @@ header {
   align-items: center;
   flex-wrap: wrap;
   padding: 100px;
+  position: relative;
   /* font-family: 'Times New Roman', Times, serif; */
 }
 
@@ -319,9 +323,44 @@ header {
   text-align: center;
 }
 
+.katalog .box {
+  position: absolute;
+  left: -70px;
+  height: 150px;
+  width: 150px;
+  z-index: -1;
+  bottom: 100px;
+  rotate: 50deg;
+  background-color: #ffbb00;
+}
+.katalog .rounded {
+  position: absolute;
+  right: 20px;
+  height: 150px;
+  width: 150px;
+  z-index: -1;
+  top: 100px;
+  /* rotate: 50deg; */
+  /* background-color: #ffbb00; */
+  border-radius: 100px;
+  border: 15px solid #ffbb00;
+}
+.katalog .rounded-left {
+  position: absolute;
+  left: 20px;
+  height: 150px;
+  width: 150px;
+  z-index: -1;
+  top: 100px;
+  /* rotate: 50deg; */
+  /* background-color: #ffbb00; */
+  border-radius: 100px;
+  border: 15px solid #ffbb00;
+}
+
 .katalog .dot {
   width: 30%;
-  border: 2px dotted #e8ba38;
+  border: 1px solid #e8ba38;
 }
 
 .catalog-grid {

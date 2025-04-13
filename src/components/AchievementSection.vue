@@ -1,9 +1,11 @@
 <template>
   <div class="swipper">
     <p><b>PENGHARGAAN</b></p>
-    <span class="ring"></span>
+    <!-- <span class="ring"></span>
+    <span class="ring-left"></span> -->
     <span class="bg-scroll"></span>
     <span class="side-color"> </span>
+    <span class="wave-section"></span>
     <div class="carousel-container">
       <div class="carousel-track" ref="carouselTrack">
         <!-- Add hover events to each carousel item and track position -->
@@ -249,21 +251,31 @@ onBeforeUnmount(() => {
   width: 200px;
   height: 300px;
   left: 0;
-  background-color: #000000;
-  box-shadow: 10px 0 150px black;
+  background-color: #FEBA17;
+  /* box-shadow: 10px 0 500px black; */
   border-radius: 0 20px 20px 0;
   z-index: -10;
 }
 
-.swipper .ring {
+/* .swipper .ring {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border: 1px solid #000000;
+  border-radius: 50%;
+  z-index: -1;
+  left: 110px;
+}
+.swipper .ring-left {
   position: absolute;
   width: 450px;
   height: 450px;
   border: 1px solid #000000;
   border-radius: 50%;
   z-index: -10;
-  left: -190px;
-}
+  right: -190px;
+} */
+
 
 /* Responsive settings */
 @media (max-width: 1200px) {
