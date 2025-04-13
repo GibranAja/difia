@@ -117,6 +117,57 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
+  // Add this new method in the OrderStore
+  const createMultipleOrder = async (orderDetails) => {
+    try {
+      loading.value = true
+      error.value = null
+
+      // Create the common order data
+      const orderBase = {
+        userId: authStore.currentUser?.id,
+        shippingDetails: {
+          name: orderDetails.name,
+          email: orderDetails.email,
+          phone: orderDetails.phone,
+          address: orderDetails.address,
+          province: orderDetails.province,
+          city: orderDetails.city,
+          zip: orderDetails.zip,
+        },
+        shippingCost: orderDetails.shippingCost,
+        paymentProof: paymentProof.value,
+        voucherApplied: orderDetails.voucher || null,
+        discountAmount: orderDetails.discountAmount || 0,
+        totalAmount: orderDetails.finalTotal,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        products: orderDetails.products.map((product) => ({
+          productId: product.productId,
+          productName: product.productName,
+          quantity: product.quantity,
+          price: product.price,
+          customOptions: product.customOptions,
+          isBulkOrder: product.customOptions.purchaseType === 'Souvenir',
+        })),
+      }
+
+      const docRef = await addDoc(collection(db, 'orders'), orderBase)
+
+      // Clear payment proof after successful creation
+      paymentProof.value = null
+
+      toast.success('Order berhasil dibuat!')
+      return { success: true, orderId: docRef.id }
+    } catch (err) {
+      error.value = err.message
+      toast.error('Gagal membuat order: ' + err.message)
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Get user orders
   const getUserOrders = async () => {
     try {
@@ -213,6 +264,7 @@ export const useOrderStore = defineStore('order', () => {
     setCurrentOrder,
     setPaymentProof,
     createOrder,
+    createMultipleOrder,
     getUserOrders,
     fetchOrders, // Add this line
     fetchAllOrders,

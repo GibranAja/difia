@@ -13,44 +13,79 @@
     <div v-if="orderStore.currentOrder || getOrderFromLocal()" class="checkout-content">
       <section class="checkout-section order-details">
         <h2 class="section-title">Ringkasan Order</h2>
-        <div class="order-card" v-if="orderStore.currentOrder">
-          <img
-            :src="orderStore.currentOrder.image"
-            :alt="orderStore.currentOrder.name"
-            class="order-image"
-          />
+
+        <!-- Show first two products -->
+        <div v-for="item in displayedCartItems" :key="item.id" class="order-card">
+          <img :src="item.image" :alt="item.name" class="order-image" />
           <div class="order-info">
             <div class="order-header">
-              <h3>{{ orderStore.currentOrder.name }}</h3>
-              <p class="order-price">
-                {{ orderStore.currentOrder.quantity }}x Rp
-                {{ formatPrice(orderStore.currentOrder.price) }}
-              </p>
+              <h3>{{ item.name }}</h3>
+              <p class="order-price">{{ item.quantity }}x Rp {{ formatPrice(item.price) }}</p>
             </div>
             <div class="order-specs">
               <div class="spec-item">
                 <span class="spec-label">Tipe:</span>
-                <span>{{ orderStore.currentOrder.customOptions.purchaseType }}</span>
+                <span>{{ item.customOptions.purchaseType }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Harga:</span>
-                <span>{{ orderStore.currentOrder.customOptions.priceType }}</span>
+                <span>{{ item.customOptions.priceType }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Bahan Luar:</span>
-                <span>{{ orderStore.currentOrder.customOptions.bahanLuar }}</span>
+                <span>{{ item.customOptions.bahanLuar }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Bahan Dalam:</span>
-                <span>{{ orderStore.currentOrder.customOptions.bahanDalam }}</span>
+                <span>{{ item.customOptions.bahanDalam }}</span>
               </div>
               <div class="spec-item">
                 <span class="spec-label">Aksesoris:</span>
-                <span>{{ orderStore.currentOrder.customOptions.aksesoris.join(', ') }}</span>
+                <span>{{ item.customOptions.aksesoris.join(', ') }}</span>
               </div>
-              <div class="spec-item" v-if="orderStore.currentOrder.customOptions.note">
+              <div class="spec-item" v-if="item.customOptions.note">
                 <span class="spec-label">Catatan:</span>
-                <span>{{ orderStore.currentOrder.customOptions.note }}</span>
+                <span>{{ item.customOptions.note }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Show "See more" button if there are more than 2 products -->
+        <div v-if="cartItems.length > 2" class="see-more-container">
+          <button @click="toggleShowAllItems" class="see-more-button">
+            {{
+              showAllItems
+                ? 'Tampilkan Lebih Sedikit'
+                : `Lihat ${cartItems.length - 2} Produk Lainnya`
+            }}
+          </button>
+        </div>
+
+        <!-- Additional products modal/expansion when "See more" is clicked -->
+        <div v-if="showAllItems && cartItems.length > 2" class="additional-products">
+          <div v-for="item in additionalCartItems" :key="item.id" class="order-card">
+            <img :src="item.image" :alt="item.name" class="order-image" />
+            <div class="order-info">
+              <div class="order-header">
+                <h3>{{ item.name }}</h3>
+                <p class="order-price">{{ item.quantity }}x Rp {{ formatPrice(item.price) }}</p>
+              </div>
+              <!-- Collapsed specs with toggle -->
+              <div class="order-specs-toggle" @click="toggleProductDetails(item.id)">
+                <span>{{ expandedProducts[item.id] ? 'Sembunyikan Detail' : 'Lihat Detail' }}</span>
+              </div>
+              <div class="order-specs" v-if="expandedProducts[item.id]">
+                <!-- Same specs as above -->
+                <div class="spec-item">
+                  <span class="spec-label">Tipe:</span>
+                  <span>{{ item.customOptions.purchaseType }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-label">Harga:</span>
+                  <span>{{ item.customOptions.priceType }}</span>
+                </div>
+                <!-- Additional specs similar to above -->
               </div>
             </div>
           </div>
@@ -316,6 +351,8 @@ const isProcessing = ref(false) // Add this with other refs
 
 // Add these refs with your existing refs
 const cartItems = ref([])
+const showAllItems = ref(false)
+const expandedProducts = ref({}) // Track expanded state of each product
 
 // Add near other refs
 const acceptedTerms = ref(false)
@@ -431,9 +468,9 @@ const formatPrice = (price) => {
 }
 
 const getSubtotal = computed(() => {
-  const order = orderStore.currentOrder || getOrderFromLocal()
-  if (!order) return 0
-  return order.price * order.quantity
+  return cartItems.value.reduce((total, item) => {
+    return total + item.price * item.quantity
+  }, 0)
 })
 
 // Fungsi untuk menyimpan order ke localStorage
@@ -596,13 +633,14 @@ onBeforeMount(async () => {
     // Rest of existing code...
     await loadCartItems()
 
-    if (!orderStore.currentOrder) {
+    // If no items were loaded, check for single item in currentOrder
+    if (cartItems.value.length === 0) {
       const savedOrder = localStorage.getItem('currentOrder')
       if (savedOrder) {
         const parsedOrder = JSON.parse(savedOrder)
         if (Date.now() - parsedOrder.timestamp < 30 * 60 * 1000) {
-          await orderStore.setCurrentOrder(parsedOrder)
-          return
+          // Add the single current order to cartItems
+          cartItems.value = [parsedOrder]
         }
       }
     }
@@ -816,6 +854,7 @@ const handleSubmitOrder = async () => {
     const voucherProcessed = await processVoucherUsage()
     if (!voucherProcessed) return
 
+    // Prepare order details with multiple products
     const orderDetails = {
       name: formData.value.name,
       email: formData.value.email,
@@ -828,14 +867,20 @@ const handleSubmitOrder = async () => {
       finalTotal: finalTotal.value,
       voucher: appliedVoucher.value,
       discountAmount: discountAmount.value,
+      products: cartItems.value.map((item) => ({
+        productId: item.productId,
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        customOptions: item.customOptions,
+      })),
     }
 
-    const result = await orderStore.createOrder(orderDetails)
+    const result = await orderStore.createMultipleOrder(orderDetails)
     if (result.success) {
       // Clear checkout data
       localStorage.removeItem('checkout_items')
       router.push('/notification')
-      localStorage.removeItem('currentOrder')
     }
   } catch (error) {
     toast.error('Gagal membuat pesanan: ' + error.message)
@@ -895,6 +940,23 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
+
+// Add new refs and methods for displaying cart items
+const displayedCartItems = computed(() => {
+  return showAllItems.value ? cartItems.value : cartItems.value.slice(0, 2)
+})
+
+const additionalCartItems = computed(() => {
+  return cartItems.value.slice(2)
+})
+
+const toggleShowAllItems = () => {
+  showAllItems.value = !showAllItems.value
+}
+
+const toggleProductDetails = (productId) => {
+  expandedProducts.value[productId] = !expandedProducts.value[productId]
+}
 </script>
 
 <style scoped>
@@ -1700,5 +1762,63 @@ html {
   resize: vertical;
   min-height: 100px;
   max-height: 200px;
+}
+
+/* Add these new styles */
+.see-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.see-more-button {
+  background-color: transparent;
+  border: none;
+  color: #e8ba38;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.see-more-button:hover {
+  background-color: rgba(232, 186, 56, 0.1);
+}
+
+.see-more-button::after {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid #e8ba38;
+  border-bottom: 2px solid #e8ba38;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.see-more-button:hover::after {
+  transform: rotate(45deg) translateY(2px);
+}
+
+.additional-products {
+  margin-top: 1rem;
+  border-top: 1px dashed #e0e0e0;
+  padding-top: 1rem;
+}
+
+.order-specs-toggle {
+  color: #e8ba38;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  display: inline-block;
+}
+
+.order-specs-toggle:hover {
+  text-decoration: underline;
 }
 </style>

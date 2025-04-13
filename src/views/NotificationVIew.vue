@@ -55,38 +55,111 @@
               <!-- Product Details -->
               <div class="detail-section">
                 <h3>Detail Produk</h3>
-                <div class="product-info">
-                  <!-- Main Product Image (Catalog) -->
-                  <img
-                    :src="getProductImage(order)"
-                    :alt="order.productName"
-                    class="product-image"
-                    @error="handleImageError"
-                  />
-                  <div class="product-details">
-                    <div class="product-header">
-                      <h4>{{ order.productName }}</h4>
-                      <!-- Tambahkan container baru untuk design logo -->
-                      <div
-                        class="custom-design-container"
-                        v-if="
-                          order.customOptions?.purchaseType === 'Souvenir' &&
-                          order.customOptions?.uploadedImage
-                        "
-                      >
-                        <span class="design-logo-label">Design Logo</span>
-                        <div class="custom-design-thumbnail">
-                          <img :src="order.customOptions.uploadedImage" alt="Design Logo" />
+
+                <!-- First 2 products shown by default -->
+                <div
+                  v-for="(product, index) in getVisibleProducts(order)"
+                  :key="`${order.id}-product-${index}`"
+                  class="product-item"
+                >
+                  <div class="product-info">
+                    <img
+                      :src="getProductImageForItem(product)"
+                      :alt="product.productName"
+                      class="product-image"
+                      @error="handleImageError"
+                    />
+                    <div class="product-details">
+                      <div class="product-header">
+                        <h4>{{ product.productName }}</h4>
+                        <!-- Design logo if available -->
+                        <div
+                          class="custom-design-container"
+                          v-if="
+                            product.customOptions?.purchaseType === 'Souvenir' &&
+                            product.customOptions?.uploadedImage
+                          "
+                        >
+                          <span class="design-logo-label">Design Logo</span>
+                          <div class="custom-design-thumbnail">
+                            <img :src="product.customOptions.uploadedImage" alt="Design Logo" />
+                          </div>
+                        </div>
+                      </div>
+                      <div class="product-specs">
+                        <span class="product-quantity">{{ product.quantity }}x</span>
+                        <span class="product-price">Rp {{ formatPrice(product.price) }}</span>
+                      </div>
+                      <div class="product-options">
+                        <p>Tipe: {{ product.customOptions.purchaseType }}</p>
+                        <p>Harga: {{ product.customOptions.priceType }}</p>
+
+                        <!-- Expandable details -->
+                        <button
+                          class="toggle-details-btn"
+                          @click="toggleProductDetails(order.id, index)"
+                        >
+                          {{
+                            isProductExpanded(order.id, index)
+                              ? 'Sembunyikan Detail'
+                              : 'Lihat Detail'
+                          }}
+                        </button>
+
+                        <div v-if="isProductExpanded(order.id, index)" class="expanded-details">
+                          <p>Bahan Luar: {{ product.customOptions.bahanLuar }}</p>
+                          <p>Bahan Dalam: {{ product.customOptions.bahanDalam }}</p>
+                          <p>Aksesoris: {{ product.customOptions.aksesoris.join(', ') }}</p>
+                          <p v-if="product.customOptions.note" class="product-note">
+                            <strong>Catatan:</strong> {{ product.customOptions.note }}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <p>Tipe: {{ order.customOptions.purchaseType }}</p>
-                    <p>Harga: {{ order.customOptions.priceType }}</p>
-                    <p>Jumlah: {{ order.quantity }} pcs</p>
-                    <p>Bahan Luar: {{ order.customOptions.bahanLuar }}</p>
-                    <p>Bahan Dalam: {{ order.customOptions.bahanDalam }}</p>
-                    <p>Aksesoris: {{ order.customOptions.aksesoris.join(', ') }}</p>
-                    <p v-if="order.customOptions.note">Catatan: {{ order.customOptions.note }}</p>
+                  </div>
+                </div>
+
+                <!-- Show more products button -->
+                <div v-if="hasMoreProducts(order)" class="show-more-container">
+                  <button @click="toggleShowAllProducts(order.id)" class="show-more-btn">
+                    <i
+                      :class="[
+                        'fas',
+                        isShowingAllProducts(order.id) ? 'fa-chevron-up' : 'fa-chevron-down',
+                      ]"
+                    ></i>
+                    {{
+                      isShowingAllProducts(order.id)
+                        ? 'Tampilkan Lebih Sedikit'
+                        : `Lihat ${getHiddenProductCount(order)} Produk Lainnya`
+                    }}
+                  </button>
+                </div>
+
+                <!-- Additional products (shown when expanded) -->
+                
+
+                <!-- Order summary -->
+                <div class="order-summary">
+                  <div class="summary-row">
+                    <span>Total Produk:</span>
+                    <span>{{ getTotalProductCount(order) }} item</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>Rp {{ formatPrice(getOrderSubtotal(order)) }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Biaya Pengiriman:</span>
+                    <span>Rp {{ formatPrice(order.shippingCost || 0) }}</span>
+                  </div>
+                  <div v-if="order.discountAmount" class="summary-row discount">
+                    <span>Diskon:</span>
+                    <span>-Rp {{ formatPrice(order.discountAmount) }}</span>
+                  </div>
+                  <div class="summary-row total">
+                    <span>Total:</span>
+                    <span>Rp {{ formatPrice(order.totalAmount) }}</span>
                   </div>
                 </div>
               </div>
@@ -183,28 +256,14 @@ const cooldowns = ref({}) // Tracks cooldown timers for each invoice
 const showReviewModal = ref(false)
 const selectedOrder = ref(null)
 
+// Add these new refs for multiple product display
+const expandedProducts = ref({}) // Track expanded state for first 2 products
+const showAllProductsMap = ref({}) // Track which orders show all products
+
 // Handle image error
 const handleImageError = (e) => {
   console.warn('Image failed to load:', e.target.src)
   e.target.src = '/src/assets/default-avatar-wm14gXiP.png'
-}
-
-// Update the getProductImage function
-const getProductImage = (order) => {
-  // For catalog product image (both standard and souvenir)
-  if (order.productId && order.productImage) {
-    return order.productImage
-  }
-
-  // Fallback to custom uploaded image for souvenir if no catalog image
-  if (order.customOptions?.purchaseType === 'Souvenir' && order.customOptions?.uploadedImage) {
-    return order.customOptions.uploadedImage
-  }
-
-  // Other fallbacks
-  return (
-    order.customOptions?.productImage || order.image || '/src/assets/default-avatar-wm14gXiP.png'
-  )
 }
 
 // Fetch orders on component mount
@@ -227,15 +286,51 @@ onMounted(async () => {
           ...doc.data(),
         }))
 
-        // Fetch catalog images for each order
+        // Process each order to ensure proper product format
         const ordersWithImages = await Promise.all(
           orderDocs.map(async (order) => {
-            if (order.productId) {
+            // Handle new multi-product format
+            if (order.products && Array.isArray(order.products)) {
+              // Fetch images for each product if needed
+              const productsWithImages = await Promise.all(
+                order.products.map(async (product) => {
+                  if (product.productId) {
+                    try {
+                      const catalogRef = doc(db, 'katalog', product.productId)
+                      const catalogDoc = await getDoc(catalogRef)
+                      if (catalogDoc.exists()) {
+                        const catalogData = catalogDoc.data()
+                        return {
+                          ...product,
+                          image: product.image || catalogData.images?.[0],
+                          customOptions: {
+                            ...product.customOptions,
+                            productImage:
+                              catalogData.images?.[0] || product.customOptions?.productImage,
+                          },
+                        }
+                      }
+                    } catch (err) {
+                      console.error('Error fetching catalog for product:', err)
+                    }
+                  }
+                  return product
+                }),
+              )
+
+              return {
+                ...order,
+                products: productsWithImages,
+              }
+            }
+            // Handle legacy single-product format
+            else if (order.productId) {
               try {
                 const catalogRef = doc(db, 'katalog', order.productId)
                 const catalogDoc = await getDoc(catalogRef)
                 if (catalogDoc.exists()) {
                   const catalogData = catalogDoc.data()
+                  // Create a backward compatible structure
                   return {
                     ...order,
                     productImage: catalogData.images?.[0] || null,
@@ -390,6 +485,88 @@ const openReviewModal = (order) => {
 const closeReviewModal = () => {
   showReviewModal.value = false
   selectedOrder.value = null
+}
+
+// Add these functions
+const getVisibleProducts = (order) => {
+  if (!order.products || !Array.isArray(order.products)) {
+    // Handle legacy orders with single product
+    return [
+      {
+        productId: order.productId,
+        productName: order.productName,
+        quantity: order.quantity || 1,
+        price: order.price || 0,
+        customOptions: order.customOptions || {},
+      },
+    ]
+  }
+
+  return isShowingAllProducts(order.id) ? order.products : order.products.slice(0, 2)
+}
+
+// This function was redundant since getVisibleProducts already handles showing all products
+
+const hasMoreProducts = (order) => {
+  return order.products && Array.isArray(order.products) && order.products.length > 2
+}
+
+const getHiddenProductCount = (order) => {
+  if (!order.products || !Array.isArray(order.products)) {
+    return 0
+  }
+
+  return Math.max(0, order.products.length - 2)
+}
+
+const getTotalProductCount = (order) => {
+  if (!order.products || !Array.isArray(order.products)) {
+    return 1 // Legacy single product order
+  }
+
+  return order.products.length
+}
+
+// Toggle functions
+const toggleShowAllProducts = (orderId) => {
+  showAllProductsMap.value = {
+    ...showAllProductsMap.value,
+    [orderId]: !showAllProductsMap.value[orderId],
+  }
+}
+
+const isShowingAllProducts = (orderId) => {
+  return showAllProductsMap.value[orderId] || false
+}
+
+const toggleProductDetails = (orderId, productIndex) => {
+  const key = `${orderId}-${productIndex}`
+  expandedProducts.value = {
+    ...expandedProducts.value,
+    [key]: !expandedProducts.value[key],
+  }
+}
+
+const isProductExpanded = (orderId, productIndex) => {
+  const key = `${orderId}-${productIndex}`
+  return expandedProducts.value[key] || false
+}
+
+// Helper function to get product image for each item
+const getProductImageForItem = (product) => {
+  return product.customOptions?.productImage || product.image || 'default-product.jpg'
+}
+
+// Calculate order subtotal (without shipping)
+const getOrderSubtotal = (order) => {
+  if (!order.products || !Array.isArray(order.products)) {
+    // Handle legacy orders
+    return order.price * (order.quantity || 1)
+  }
+
+  return order.products.reduce((total, product) => {
+    return total + product.price * product.quantity
+  }, 0)
 }
 </script>
 
@@ -875,5 +1052,207 @@ input:focus {
   font-size: 0.95rem;
   line-height: 1.5;
   white-space: pre-line;
+}
+
+/* Keep existing styles and add these new styles */
+
+/* Product item styling */
+.product-item {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.product-item:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.additional-product {
+  background-color: #fcfcfc;
+  border-left: 3px solid #e8ba38;
+}
+
+.product-info {
+  display: flex;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #eee;
+}
+
+.product-details {
+  flex: 1;
+}
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.product-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #02163b;
+}
+
+.product-specs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-quantity {
+  font-weight: 600;
+  color: #666;
+}
+
+.product-price {
+  font-weight: 600;
+  color: #02163b;
+}
+
+.product-options {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.product-options p {
+  margin: 0.25rem 0;
+}
+
+.product-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #fff8e6;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Toggle buttons */
+.toggle-details-btn {
+  background: none;
+  border: none;
+  color: #e8ba38;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+  margin: 0.25rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.toggle-details-btn:hover {
+  text-decoration: underline;
+}
+
+.toggle-details-btn::after {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid #e8ba38;
+  border-bottom: 2px solid #e8ba38;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+  margin-left: 0.25rem;
+}
+
+.expanded-details {
+  padding: 0.5rem 0;
+  border-top: 1px dashed #eee;
+  margin-top: 0.5rem;
+}
+
+/* Show more button */
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 1rem;
+}
+
+.show-more-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #02163b;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 50px;
+  background-color: #f5f5f5;
+  transition: all 0.2s ease;
+}
+
+.show-more-btn:hover {
+  background-color: #e8e8e8;
+}
+
+.show-more-btn i {
+  font-size: 0.8rem;
+}
+
+/* Order summary */
+.order-summary {
+  margin-top: 1.5rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.summary-row.total {
+  font-weight: 700;
+  color: #02163b;
+  font-size: 1.1rem;
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.summary-row.discount {
+  color: #e53935;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .product-info {
+    flex-direction: column;
+  }
+
+  .product-image {
+    width: 100%;
+    height: 150px;
+  }
+
+  .product-header {
+    flex-direction: column;
+  }
+
+  .custom-design-container {
+    margin-top: 0.5rem;
+  }
 }
 </style>
