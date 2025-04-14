@@ -436,7 +436,7 @@ const optimizeImage = async (imageUrl) => {
   top: 0.8em;
   width: 25px;
   height: 3px;
-  background-color: #e8ba38;
+  /* background-color: #e8ba38; */
 }
 
 .hero-title {

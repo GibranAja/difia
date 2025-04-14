@@ -9,7 +9,12 @@
     <nav :class="{ 'nav-scrolled': isScrolled, 'nav-expanded': isMobileMenuOpen }">
       <!-- Main navigation container -->
       <div class="nav-container">
-        <!-- Left side - Navigation links with unique animation -->
+        <!-- Left side - Logo -->
+        <div class="nav-logo">
+          <img src="../assets/Logo_Difia_Haki.png" alt="Difia Logo" class="logo-image" />
+        </div>
+
+        <!-- Center - Navigation links with improved interaction -->
         <div class="nav-links-container">
           <div class="nav-links-backdrop" :class="{ active: isMobileMenuOpen }"></div>
           <ul class="nav-links" :class="{ 'menu-active': isMobileMenuOpen }">
@@ -18,9 +23,9 @@
                 @click.prevent="navigateTo(item.path, item.section)"
                 :href="item.href"
                 class="nav-link"
+                :class="{ active: isActiveLink(item.section) }"
               >
                 <span class="nav-link-text">{{ item.text }}</span>
-                <span class="nav-link-indicator"></span>
               </a>
             </li>
             <li v-if="authStore.currentUser?.isAdmin" class="nav-item admin-item">
@@ -32,10 +37,14 @@
           </ul>
         </div>
 
-        <!-- Right side - user actions -->
+        <!-- Right side - user actions with improved accessibility -->
         <div class="user-actions">
-          <!-- Notification bell with animation -->
-          <button class="action-button notification-button" @click="handleNotificationClick">
+          <!-- Notification bell with improved animation -->
+          <button
+            class="action-button notification-button"
+            @click="handleNotificationClick"
+            aria-label="Notifications"
+          >
             <div class="button-content">
               <i class="fas fa-bell"></i>
               <div v-if="notificationStore.notificationCount > 0" class="notification-badge pulse">
@@ -48,8 +57,12 @@
             </div>
           </button>
 
-          <!-- Shopping cart with animated indicator -->
-          <button class="action-button cart-button" @click="navigateToCart">
+          <!-- Shopping cart with improved visual feedback -->
+          <button
+            class="action-button cart-button"
+            @click="navigateToCart"
+            aria-label="Shopping Cart"
+          >
             <div class="button-content">
               <i class="fas fa-shopping-bag"></i>
               <div v-if="cartItemCount > 0" class="cart-badge">
@@ -58,7 +71,7 @@
             </div>
           </button>
 
-          <!-- User account section -->
+          <!-- User account section with clearer interactions -->
           <div class="user-section">
             <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
               <span class="login-text">Login</span>
@@ -70,18 +83,20 @@
                 class="profile-container"
                 @click="showProfileModal = true"
                 :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+                aria-label="User Profile"
+                role="button"
               >
                 <div class="profile-accent"></div>
               </div>
 
-              <button class="logout-button" @click="showLogoutModal = true">
+              <button class="logout-button" @click="showLogoutModal = true" aria-label="Logout">
                 <i class="fas fa-sign-out-alt"></i>
               </button>
             </div>
           </div>
 
-          <!-- Mobile menu toggle -->
-          <button class="menu-toggle" @click="toggleMobileMenu">
+          <!-- Mobile menu toggle with improved animations -->
+          <button class="menu-toggle" @click="toggleMobileMenu" aria-label="Toggle Menu">
             <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
               <span></span>
               <span></span>
@@ -95,7 +110,6 @@
 
   <!-- Modals -->
   <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
-
   <NegativeModal
     v-if="showLogoutModal"
     title="Konfirmasi Logout"
@@ -115,7 +129,7 @@ import ModalProfile from './ModalProfile.vue'
 import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
-import { useVoucherStore } from '@/stores/VoucherStore' // Add this import
+import { useVoucherStore } from '@/stores/VoucherStore'
 
 // Stores and routing
 const router = useRouter()
@@ -123,7 +137,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const notificationStore = useNotificationStore()
-const voucherStore = useVoucherStore() // Add voucher store
+const voucherStore = useVoucherStore()
 
 // Reactive state
 const isScrolled = ref(false)
@@ -133,6 +147,7 @@ const isMobileMenuOpen = ref(false)
 const showProfileModal = ref(false)
 const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
+const activeSection = ref('home')
 
 // Navigation items
 const navItems = [
@@ -141,6 +156,28 @@ const navItems = [
   { text: 'Katalog', path: '/', section: 'catalog', href: '#catalog' },
   { text: 'Artikel', path: '/', section: 'articel', href: '#articel' },
 ]
+
+// Check if a link is active - New function
+const isActiveLink = (section) => {
+  return activeSection.value === section
+}
+
+// Update active section based on scroll position - New function
+const updateActiveSection = () => {
+  const sections = navItems.map((item) => item.section)
+
+  for (const section of sections) {
+    const element = document.getElementById(section)
+    if (element) {
+      const rect = element.getBoundingClientRect()
+      // If the section is in view (with some buffer for better UX)
+      if (rect.top <= 200 && rect.bottom >= 200) {
+        activeSection.value = section
+        break
+      }
+    }
+  }
+}
 
 // Close mobile menu on route change
 watch(
@@ -160,11 +197,9 @@ const cartItemCount = computed(() => {
   return cartStore.cartItems.length
 })
 
-// Add a computed property to check for active vouchers
 const hasActiveVouchers = computed(() => {
-  // Filter active, non-expired vouchers with remaining uses
+  const now = new Date()
   const activeVouchers = voucherStore.voucherItems.filter((voucher) => {
-    const now = new Date()
     const isNotExpired = new Date(voucher.validUntil) > now
     const hasRemainingUses = voucher.currentUses < voucher.maxUses
     return voucher.isActive && isNotExpired && hasRemainingUses
@@ -186,13 +221,16 @@ const handleScroll = () => {
   } else {
     const isScrollingDown = currentScrollPosition > lastScrollPosition.value
 
-    // Add hysteresis - only hide/show after passing threshold
+    // Only hide/show after passing threshold
     if (Math.abs(currentScrollPosition - lastScrollPosition.value) > 10) {
       shouldHideNav.value = isScrollingDown
     }
   }
 
   lastScrollPosition.value = currentScrollPosition
+
+  // Update active section for menu highlighting
+  updateActiveSection()
 }
 
 const toggleMobileMenu = () => {
@@ -216,6 +254,7 @@ const navigateTo = async (path, section = null) => {
     const element = document.getElementById(section)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' })
+      activeSection.value = section
     }
     return
   }
@@ -230,6 +269,7 @@ const navigateTo = async (path, section = null) => {
         const element = document.getElementById(section)
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' })
+          activeSection.value = section
         }
       }, 150)
     } else {
@@ -301,7 +341,7 @@ onMounted(() => {
     }
   }
 
-  // Add this to fetch vouchers
+  // Fetch vouchers
   voucherStore.fetchVouchers()
 
   // Add event listener for clicks outside
@@ -316,21 +356,20 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Base styles with white dominant theme */
+/* Base styles with improved aesthetics */
 .navbar-wrapper {
   position: fixed;
-  top: 40px; /* Default position with voucher notification */
+  top: 40px;
   left: 0;
   width: 100%;
   z-index: 100;
   transition:
-    transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 0.4s cubic-bezier(0.215, 0.61, 0.355, 1),
     top 0.3s ease;
 }
 
-/* Add this new class */
 .no-voucher-offset {
-  top: 0; /* Position at the top when no active vouchers */
+  top: 0;
 }
 
 .navbar-hidden {
@@ -338,20 +377,22 @@ onUnmounted(() => {
 }
 
 nav {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   height: 70px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.4s ease;
   position: relative;
 }
 
 .nav-scrolled {
   height: 60px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.12);
 }
 
 .nav-container {
-  max-width: 1500px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
   height: 100%;
@@ -360,10 +401,50 @@ nav {
   align-items: center;
 }
 
-/* Innovative navigation links */
+/* Logo styles with consistent dimensions */
+.nav-logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-image {
+  height: 120px;
+  width: 200px;
+  border-radius: 0;
+  transition: transform 0.3s ease;
+  object-fit: contain;
+}
+
+/* Keep the same dimensions when scrolled */
+.nav-scrolled .logo-image {
+  height: 120px;
+  width: 200px;
+}
+
+.logo-image:hover {
+  transform: scale(1.05);
+}
+
+/* Ensure consistent dimensions on mobile devices */
+@media (max-width: 768px) {
+  .logo-image {
+    height: 120px;
+    width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-image {
+    height: 120px;
+    width: 200px;
+  }
+}
+
+/* Improved navigation links - CENTERED */
 .nav-links-container {
-  position: relative;
-  margin-right: 2rem;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .nav-links {
@@ -371,7 +452,7 @@ nav {
   padding: 0;
   margin: 0;
   list-style: none;
-  gap: 0.2rem;
+  gap: 0.5rem;
   position: relative;
   z-index: 2;
 }
@@ -381,46 +462,68 @@ nav {
 }
 
 .nav-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.5rem 1.25rem;
-  color: #222222;
-  text-decoration: none;
-  font-weight: 600;
-  border-radius: 10px;
   position: relative;
+  padding: 0.7rem 1.25rem;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 12px;
   font-family: 'Montserrat', sans-serif;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.nav-link:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background-color: #e8ba38;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.nav-link:hover:before,
+.nav-link.active:before {
+  width: 60%;
 }
 
 .nav-link-text {
   position: relative;
   z-index: 2;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
 }
 
-.nav-link:hover .nav-link-text {
+.nav-link:hover .nav-link-text,
+.nav-link.active .nav-link-text {
   transform: translateY(-2px);
   color: #02163b;
+  font-weight: 600;
 }
 
-.nav-link-indicator {
+.nav-link:after {
+  content: '';
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 3px;
-  background-color: #e8ba38;
-  transition:
-    width 0.3s ease,
-    left 0.3s ease;
-  border-radius: 2px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(232, 186, 56, 0.08);
+  border-radius: 12px;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.3s ease;
+  z-index: 1;
 }
 
-.nav-link:hover .nav-link-indicator {
-  width: 40%;
-  left: 30%;
+.nav-link:hover:after,
+.nav-link.active:after {
+  transform: scaleY(1);
 }
 
 .admin-link {
@@ -428,10 +531,17 @@ nav {
   align-items: center;
   gap: 0.5rem;
   color: #02163b;
-  background-color: rgba(232, 186, 56, 0.1);
-  border-radius: 10px;
-  padding: 0.5rem 1rem;
+  background-color: rgba(232, 186, 56, 0.12);
+  border-radius: 12px;
+  padding: 0.7rem 1.25rem;
   margin-left: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.admin-link:hover {
+  background-color: rgba(232, 186, 56, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(232, 186, 56, 0.15);
 }
 
 .admin-icon {
@@ -439,21 +549,21 @@ nav {
   font-size: 0.9rem;
 }
 
-/* User actions section - right side */
+/* User actions section with improved interactions */
 .user-actions {
   display: flex;
   align-items: center;
-  gap: 1.2rem;
+  gap: 1.4rem;
 }
 
-/* Action buttons with unique design */
+/* Action buttons with enhanced feedback */
 .action-button {
   position: relative;
   background: transparent;
   border: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -469,14 +579,18 @@ nav {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(232, 186, 56, 0.1);
-  border-radius: 50%;
+  background-color: rgba(232, 186, 56, 0.12);
+  border-radius: 12px;
   transform: scale(0);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .action-button:hover::before {
   transform: scale(1);
+}
+
+.action-button:active::before {
+  background-color: rgba(232, 186, 56, 0.25);
 }
 
 .button-content {
@@ -492,7 +606,9 @@ nav {
 .action-button i {
   color: #02163b;
   font-size: 1.2rem;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
 }
 
 .action-button:hover i {
@@ -500,28 +616,37 @@ nav {
   color: #e8ba38;
 }
 
-/* Badges with pulse animation */
+/* Enhanced badges */
 .notification-badge,
 .cart-badge {
   position: absolute;
-  top: -1px;
-  right: -1px;
+  top: 5px;
+  right: 1px;
   background-color: #e8ba38;
   color: #02163b;
-  border-radius: 10px;
-  font-size: 0.55rem;
+  border-radius: 12px;
+  font-size: 0.6rem;
   font-weight: bold;
-  padding: 1px 4px;
-  min-width: 14px;
-  height: 14px;
+  padding: 1px 5px;
+  min-width: 6px;
+  height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  border: 2px solid #ffffff;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
 }
 
-/* Pulse animation for notification badge */
+.action-button:hover .notification-badge,
+.action-button:hover .cart-badge {
+  transform: scale(1.1);
+  background-color: #f3c847;
+}
+
+/* Improved pulse animation */
 .pulse {
   animation: pulse-animation 2s infinite;
 }
@@ -531,27 +656,20 @@ nav {
     box-shadow: 0 0 0 0 rgba(232, 186, 56, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(232, 186, 56, 0);
+    box-shadow: 0 0 0 10px rgba(232, 186, 56, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(232, 186, 56, 0);
   }
 }
 
-/* User section with profile and login */
-.user-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Redesigned login button */
+/* Reimagined login button */
 .login-button {
   background: linear-gradient(135deg, #02163b, #02265e);
   color: white;
   border: none;
-  border-radius: 10px;
-  padding: 0.6rem 1.3rem;
+  border-radius: 12px;
+  padding: 0.7rem 1.5rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -559,10 +677,8 @@ nav {
   gap: 0.8rem;
   position: relative;
   overflow: hidden;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-  box-shadow: 0 4px 12px rgba(2, 22, 59, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(2, 22, 59, 0.2);
 }
 
 .login-button::before {
@@ -578,8 +694,13 @@ nav {
 }
 
 .login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(2, 22, 59, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(2, 22, 59, 0.25);
+}
+
+.login-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(2, 22, 59, 0.2);
 }
 
 .login-button:hover::before {
@@ -590,19 +711,20 @@ nav {
 .login-arrow {
   position: relative;
   z-index: 2;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .login-button:hover .login-text {
   color: #02163b;
+  transform: translateX(-3px);
 }
 
 .login-button:hover .login-arrow {
-  transform: translateX(4px);
+  transform: translateX(5px);
   color: #02163b;
 }
 
-/* Profile section with accent */
+/* Enhanced profile section */
 .user-profile {
   display: flex;
   align-items: center;
@@ -610,24 +732,23 @@ nav {
 }
 
 .profile-container {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   position: relative;
   background-size: cover;
   background-position: center;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   border: 2px solid #fff;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .profile-container:hover {
-  transform: scale(1.1);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: #e8ba38;
 }
 
 .profile-accent {
@@ -635,57 +756,63 @@ nav {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 30%;
+  height: 100%;
   background: linear-gradient(to top, rgba(232, 186, 56, 0.7), transparent);
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .profile-container:hover .profile-accent {
-  transform: translateY(0);
+  opacity: 0.7;
 }
 
 .logout-button {
   background-color: transparent;
   border: 1px solid #e1e1e1;
   color: #555;
-  width: 36px;
-  height: 36px;
-  border-radius: u;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  border-radius: 50%;
 }
 
 .logout-button:hover {
   background-color: #f6f6f6;
   border-color: #e8ba38;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .logout-button i {
   font-size: 0.9rem;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .logout-button:hover i {
   color: #e8ba38;
+  transform: scale(1.1);
 }
 
-/* Mobile menu toggle button */
+/* Modern mobile menu toggle */
 .menu-toggle {
   display: none;
   background: transparent;
   border: none;
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-  display: flex;
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
   justify-content: center;
   align-items: center;
-  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.menu-toggle:hover {
+  background-color: rgba(232, 186, 56, 0.12);
 }
 
 .menu-icon {
@@ -703,7 +830,7 @@ nav {
   height: 2px;
   background-color: #02163b;
   border-radius: 3px;
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
 }
 
 .menu-icon.open span:nth-child(1) {
@@ -713,6 +840,7 @@ nav {
 
 .menu-icon.open span:nth-child(2) {
   opacity: 0;
+  transform: translateX(-10px);
 }
 
 .menu-icon.open span:nth-child(3) {
@@ -720,14 +848,21 @@ nav {
   background-color: #e8ba38;
 }
 
-/* Responsive adaptations */
+/* Enhanced responsive adaptations */
 @media (max-width: 1024px) {
   .nav-link {
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1rem;
   }
 
   .nav-container {
-    padding: 0 1rem;
+    padding: 0 1.5rem;
+  }
+
+  .nav-links-container {
+    position: relative;
+    left: 0;
+    transform: none;
+    margin: 0 auto;
   }
 }
 
@@ -736,9 +871,15 @@ nav {
     display: flex;
   }
 
+  .nav-logo {
+    order: 2; /* Reposition logo to center on mobile */
+    margin: 0 auto;
+  }
+
   .nav-links-container {
     position: static;
     margin-right: 0;
+    transform: none;
   }
 
   .nav-links-backdrop {
@@ -747,10 +888,11 @@ nav {
     left: 0;
     width: 100%;
     height: 0;
-    background-color: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     overflow: hidden;
-    transition: height 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    transition: height 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     z-index: 1;
   }
 
@@ -763,13 +905,13 @@ nav {
     top: 60px;
     left: 0;
     width: 100%;
-    padding: 1.5rem 0;
+    padding: 2rem 0;
     flex-direction: column;
     align-items: center;
     transform: translateY(-20px);
     opacity: 0;
     visibility: hidden;
-    transition: all 0.4s ease;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     z-index: 2;
   }
 
@@ -781,19 +923,22 @@ nav {
 
   .nav-link {
     padding: 1rem 0;
-    width: 80%;
+    width: 100%;
+    max-width: 250px;
     text-align: center;
-    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
   }
 
-  .nav-link-indicator {
-    display: none;
+  .nav-link:before {
+    bottom: -3px;
   }
 
   .admin-link {
     margin: 1rem 0 0 0;
     justify-content: center;
-    width: 80%;
+    width: 100%;
+    max-width: 250px;
   }
 
   .user-actions {
@@ -802,48 +947,54 @@ nav {
   }
 
   .login-button {
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
   }
 
-  .login-text {
-    font-size: 0.9rem;
+  .nav-container {
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 480px) {
   .nav-container {
-    padding: 0 0.8rem;
+    padding: 0 1rem;
   }
 
   .action-button {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .logo-image {
+    height: 32px;
+    width: 32px;
   }
 
   .user-actions {
-    gap: 0.8rem;
+    gap: 1rem;
   }
 
   .login-button {
-    padding: 0.5rem 0.8rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
   }
 
   .profile-container {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
   }
 
   .logout-button {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 }
 
-/* Unique animation for mobile menu transition */
+/* Fluid animation for mobile menu items */
 @keyframes fadeSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-15px);
   }
   to {
     opacity: 1;
@@ -852,7 +1003,7 @@ nav {
 }
 
 .nav-links.menu-active .nav-item {
-  animation: fadeSlideIn 0.4s forwards;
+  animation: fadeSlideIn 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .nav-links.menu-active .nav-item:nth-child(1) {
