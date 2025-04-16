@@ -50,18 +50,7 @@
               </div>
             </td>
             <td>
-              <!-- For single product orders (legacy format) -->
-              <ProductTooltip v-if="!order.products" :order="order" :searchQuery="searchQuery" />
-
-              <!-- For multiple product orders -->
-              <div v-else class="multiple-products">
-                <ProductTooltip :order="order" :searchQuery="searchQuery" />
-
-                <!-- If more than one product, show indicator -->
-                <div v-if="order.products.length > 1" class="product-count">
-                  +{{ order.products.length - 1 }} more
-                </div>
-              </div>
+              <ProductTooltip :order="order" :searchQuery="searchQuery" />
             </td>
             <td>{{ order.quantity }}</td>
             <td>{{ formatPrice(order.totalAmount) }}</td>
@@ -104,7 +93,7 @@
       </table>
     </div>
   </div>
-
+  
   <!-- Show empty state for no orders or filtered orders -->
   <div v-else class="empty-state">
     <div class="empty-state-content">
@@ -116,83 +105,56 @@
 </template>
 
 <script setup>
-import StatusBadge from './StatusBadge.vue'
-import ProductTooltip from './ProductTooltip.vue'
+import StatusBadge from './StatusBadge.vue';
+import ProductTooltip from './ProductTooltip.vue';
 
 defineProps({
   orders: {
     type: Array,
-    required: true,
+    required: true
   },
   searchQuery: {
     type: String,
-    default: '',
+    default: ''
   },
   orderType: {
     type: String,
-    default: 'regular',
+    default: 'regular'
   },
   showEmbossColumn: {
     type: Boolean,
-    default: false,
+    default: false
   },
   emptyStateIcon: {
     type: String,
-    default: 'fa-box-open',
+    default: 'fa-box-open'
   },
   emptyStateTitle: {
     type: String,
-    default: 'Tidak ada data order',
+    default: 'Tidak ada data order'
   },
   emptyStateMessage: {
     type: String,
-    default: 'Tidak ditemukan pesanan dengan filter yang dipilih',
-  },
-})
+    default: 'Tidak ditemukan pesanan dengan filter yang dipilih'
+  }
+});
 
-defineEmits(['update-status', 'view-payment', 'view-design'])
+defineEmits(['update-status', 'view-payment', 'view-design']);
 
 // Helper functions
 const highlightMatch = (text, query) => {
-  if (!query.trim() || !text) return text
+  if (!query.trim() || !text) return text;
 
-  const regex = new RegExp(`(${query.trim()})`, 'gi')
-  return text.toString().replace(regex, '<span class="highlight">$1</span>')
-}
+  const regex = new RegExp(`(${query.trim()})`, 'gi');
+  return text.toString().replace(regex, '<span class="highlight">$1</span>');
+};
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
-  }).format(price)
-}
-
-// Add this computed property
-const getOrderType = (order) => {
-  // For legacy orders
-  if (!order.products) {
-    return order.isBulkOrder ? 'souvenir' : 'regular'
-  }
-
-  // For multiple product orders
-  if (order.products.length === 1) {
-    return order.products[0].isBulkOrder ? 'souvenir' : 'regular'
-  }
-
-  // Check if order has mixed types
-  const hasSouvenir = order.products.some(
-    (p) => p.isBulkOrder || p.customOptions?.purchaseType === 'Souvenir',
-  )
-  const hasRegular = order.products.some(
-    (p) => !p.isBulkOrder || p.customOptions?.purchaseType === 'Satuan',
-  )
-
-  if (hasSouvenir && hasRegular) {
-    return 'mixed'
-  }
-
-  return hasSouvenir ? 'souvenir' : 'regular'
-}
+  }).format(price);
+};
 </script>
 
 <style scoped>
@@ -385,88 +347,4 @@ const getOrderType = (order) => {
   padding: 0 1px;
   border-radius: 2px;
 }
-
-.multiple-products {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.product-count {
-  font-size: 0.8rem;
-  color: #666;
-  background-color: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 12px;
-  display: inline-block;
-  align-self: flex-start;
-}
-
-/* Add these new styles to fix tooltip positioning */
-:deep(.product-details-tooltip) {
-  z-index: 1000 !important; /* Ensure tooltip is above other elements */
-  position: absolute;
-}
-
-:deep(.product-name-wrapper) {
-  position: relative;
-  display: inline-block;
-}
-
-/* Improve tooltip position consistency */
-:deep(.product-name-wrapper:hover .product-details-tooltip) {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* Fix for mixed table specifically */
-.order-table tr:hover :deep(.product-details-tooltip) {
-  z-index: 1000 !important;
-}
-
-/* Improved tooltip positioning fixes */
-:deep(.product-details-tooltip) {
-  z-index: 1000 !important;
-  position: absolute !important;
-  pointer-events: auto !important; /* Allow interaction with tooltip */
-  transform: none !important; /* Prevent transform issues */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important; /* Stronger shadow for better visibility */
-}
-
-:deep(.product-name-wrapper) {
-  position: relative !important;
-  display: inline-block !important;
-  z-index: 2; /* Ensure wrapper has a z-index to create stacking context */
-}
-
-/* Force tooltip visibility on hover */
-:deep(.product-name-wrapper:hover .product-details-tooltip) {
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: block !important;
-}
-
-/* Ensure the table doesn't clip the tooltips */
-.table-responsive {
-  overflow: visible !important; /* Allow tooltips to overflow */
-  z-index: 1; /* Create proper stacking context */
-}
-
-/* Make sure the table headers don't overlap tooltips */
-.order-table thead th {
-  z-index: 5; /* Lower than tooltip but higher than regular cells */
-}
-
-/* Elevate the tooltip when a table row is hovered */
-.order-table tr:hover {
-  position: relative;
-  z-index: 3; /* Higher than normal but lower than the tooltip */
-}
-
-/* Hack to fix tooltip in mixed table */
-.order-table tr:hover td {
-  position: relative;
-}
-
-/* Empty state and other existing styles... */
 </style>

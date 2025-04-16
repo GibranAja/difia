@@ -41,7 +41,7 @@
       :navigation="{
         nextEl: '.swiper-button-next',
         prevEl: '.swiper-button-prev',
-        disableEl: null, // Add this to prevent default elements from being created
+        disableEl: null,
         hideOnClick: false,
       }"
       :modules="modules"
@@ -51,6 +51,7 @@
       :effect="'fade'"
       :fadeEffect="{ crossFade: true }"
       class="hero-swiper"
+      @slideChange="onSlideChange"
     >
       <SwiperSlide v-for="slide in cachedSliders" :key="slide.id" class="swiper-slide">
         <div class="slide-wrapper">
@@ -71,6 +72,7 @@
             class="slide-image"
             :class="{ loaded: slide.loaded }"
             loading="eager"
+            fetchpriority="high"
             @load="handleImageLoaded(slide)"
           />
         </div>
@@ -102,7 +104,7 @@
     <!-- Progress bar -->
     <div class="progress-container">
       <div class="slide-count">
-        <span class="current">01</span>
+        <span class="current">{{ (activeIndex + 1).toString().padStart(2, '0') }}</span>
         <span class="separator">/</span>
         <span class="total">{{ cachedSliders.length.toString().padStart(2, '0') || '01' }}</span>
       </div>
@@ -150,6 +152,14 @@ const props = defineProps({
 const cachedSliders = ref([])
 let unsubscribe = null
 const modules = [Autoplay, Pagination, Navigation, EffectFade]
+
+// Add this after other ref declarations
+const activeIndex = ref(0)
+
+// Add this function to handle slide changes
+const onSlideChange = (swiper) => {
+  activeIndex.value = swiper.realIndex
+}
 
 // Load images from cache first for instant display
 const loadFromCache = () => {
@@ -222,15 +232,26 @@ const setupFirestoreListener = () => {
 const handleImageLoaded = (slide) => {
   slide.loaded = true
 
-  // After current image loads, preload the next one
+  // Preload next image with high priority
   const index = cachedSliders.value.findIndex((s) => s.id === slide.id)
   if (index < cachedSliders.value.length - 1) {
     const nextSlide = cachedSliders.value[index + 1]
     if (!nextSlide.loaded) {
       const img = new Image()
-      img.src = nextSlide.image
+      img.importance = 'high' // Signal browser this is high priority
+      img.src = nextSlide.optimizedImage || nextSlide.image
     }
   }
+
+  // Preload remaining images with low priority
+  cachedSliders.value.forEach((otherSlide) => {
+    if (!otherSlide.loaded && otherSlide.id !== slide.id) {
+      const img = new Image()
+      img.loading = 'lazy'
+      img.importance = 'low'
+      img.src = otherSlide.optimizedImage || otherSlide.image
+    }
+  })
 }
 
 // Smooth scroll to section function
@@ -283,12 +304,12 @@ const generateThumbnail = async (imageUrl) => {
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
-        // Small dimensions for quick loading
-        canvas.width = 20
-        canvas.height = 20
+        // Increase thumbnail size for better quality
+        canvas.width = 60 // Increase from 20
+        canvas.height = 40 // New proportional height
 
-        ctx.drawImage(img, 0, 0, 20, 20)
-        resolve(canvas.toDataURL('image/jpeg', 0.1))
+        ctx.drawImage(img, 0, 0, 60, 40)
+        resolve(canvas.toDataURL('image/jpeg', 0.3)) // Slightly better quality
       }
       img.onerror = () => {
         resolve(null)
@@ -311,12 +332,13 @@ const optimizeImage = async (imageUrl) => {
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
-        // Optimize dimensions
-        const maxWidth = 1200
-        const maxHeight = 800
+        // Increase resolution while maintaining aspect ratio
+        const maxWidth = 1600 // Increase from 1200
+        const maxHeight = 900 // Increase from 800
         let width = img.width
         let height = img.height
 
+        // Maintain aspect ratio while resizing
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width)
@@ -332,8 +354,13 @@ const optimizeImage = async (imageUrl) => {
         canvas.width = width
         canvas.height = height
 
+        // Use better quality settings for drawing
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', 0.8))
+
+        // Increase quality slightly but keep file size reasonable
+        resolve(canvas.toDataURL('image/jpeg', 0.85)) // Increase from 0.8
       }
       img.onerror = () => {
         resolve(null)
@@ -555,7 +582,9 @@ const optimizeImage = async (imageUrl) => {
     opacity 1s ease;
   opacity: 0;
   transform: scale(1.05);
-  filter: brightness(0.8);
+  filter: brightness(0.85); /* Slightly brighter than before */
+  image-rendering: -webkit-optimize-contrast; /* Sharper images on Chrome/Safari */
+  backface-visibility: hidden; /* Helps with certain rendering issues */
 }
 
 .slide-image.loaded {
@@ -1009,9 +1038,9 @@ const optimizeImage = async (imageUrl) => {
   left: 0;
   width: 100%;
   height: 100%;
-  filter: blur(20px);
+  filter: blur(15px); /* Reduced blur for better appearance */
   transform: scale(1.1);
-  opacity: 1;
+  opacity: 0.8; /* Slightly more transparent */
   z-index: 1;
 }
 

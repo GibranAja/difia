@@ -1,7 +1,10 @@
 <template>
   <div class="chat-container">
-    <!-- Chat Header -->
+    <!-- Chat Header with Back Button -->
     <div class="chat-header">
+      <button class="back-button" @click="goBack">
+        <i class="fas fa-arrow-left"></i>
+      </button>
       <div class="user-info">
         <div class="user-avatar"></div>
         <div class="user-details">
@@ -12,14 +15,12 @@
 
     <!-- Messages Area -->
     <div class="messages-area" ref="messagesContainer">
-      <div v-if="!messages.length" class="no-messages">
-        Start a conversation with us!
-      </div>
-      <div 
-        v-for="msg in messages" 
-        :key="msg.id" 
+      <div v-if="!messages.length" class="no-messages">Start a conversation with us!</div>
+      <div
+        v-for="msg in messages"
+        :key="msg.id"
         class="message"
-        :class="{ 'sent': msg.senderId === currentUser.id }"
+        :class="{ sent: msg.senderId === currentUser.id }"
       >
         <div class="message-bubble">
           {{ msg.text }}
@@ -30,8 +31,8 @@
 
     <!-- Quick Messages -->
     <div class="quick-messages">
-      <button 
-        v-for="(message, index) in quickMessages" 
+      <button
+        v-for="(message, index) in quickMessages"
         :key="index"
         @click="sendQuickMessage(message, index)"
         class="quick-message-btn"
@@ -44,15 +45,15 @@
 
     <!-- Input Area -->
     <div class="input-area">
-      <input 
-        v-model="newMessage" 
+      <input
+        v-model="newMessage"
         @keyup.enter="sendMessage"
         placeholder="Ketik Sesuatu....."
         :disabled="!isLoggedIn"
         class="message-input"
       />
-      <button 
-        @click="sendMessage" 
+      <button
+        @click="sendMessage"
         :disabled="!newMessage.trim() || !isLoggedIn"
         class="send-button"
       >
@@ -65,199 +66,222 @@
     </div>
   </div>
 </template>
-  
-  <script setup>
-  import { ref, onMounted, onUnmounted, watch } from 'vue'
-  import { useAuthStore } from '@/stores/AuthStore'
-  import { rtdb } from '@/config/firebase'
-  import { ref as dbRef, onValue, push, set, update, serverTimestamp, get, increment } from 'firebase/database'
-  import { format } from 'date-fns'
-  
-  const authStore = useAuthStore()
-  const isLoggedIn = ref(authStore.isLoggedIn)
-  const currentUser = ref(authStore.currentUser)
-  const isChatOpen = ref(false)
-  const messages = ref([])
-  const newMessage = ref('')
-  const messagesContainer = ref(null)
-  const unreadCount = ref(0)
-  const threadId = ref(null)
-  
-  let messagesListener = null
-  
-  onMounted(() => {
-    if (isLoggedIn.value) {
-      initializeChat()
-    }
-  })
-  
-  onUnmounted(() => {
-    if (messagesListener) messagesListener()
-  })
-  
-  watch(() => authStore.isLoggedIn, (newValue) => {
+
+<script setup>
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { rtdb } from '@/config/firebase'
+import {
+  ref as dbRef,
+  onValue,
+  push,
+  set,
+  update,
+  serverTimestamp,
+  get,
+  increment,
+} from 'firebase/database'
+import { format } from 'date-fns'
+import { useRouter } from 'vue-router' // Add this import
+
+const router = useRouter() // Initialize router
+const authStore = useAuthStore()
+const isLoggedIn = ref(authStore.isLoggedIn)
+const currentUser = ref(authStore.currentUser)
+const isChatOpen = ref(false)
+const messages = ref([])
+const newMessage = ref('')
+const messagesContainer = ref(null)
+const unreadCount = ref(0)
+const threadId = ref(null)
+
+let messagesListener = null
+
+onMounted(() => {
+  if (isLoggedIn.value) {
+    initializeChat()
+  }
+})
+
+onUnmounted(() => {
+  if (messagesListener) messagesListener()
+})
+
+watch(
+  () => authStore.isLoggedIn,
+  (newValue) => {
     isLoggedIn.value = newValue
     currentUser.value = authStore.currentUser
     if (newValue) {
       initializeChat()
     }
-  })
-  
-  const initializeChat = async () => {
-    threadId.value = `user_${currentUser.value.id}`
-    const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
-    
-    await set(threadRef, {
+  },
+)
+
+const initializeChat = async () => {
+  threadId.value = `user_${currentUser.value.id}`
+  const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
+
+  await set(
+    threadRef,
+    {
       userId: currentUser.value.id,
       userName: currentUser.value.name,
       lastMessage: '',
       lastMessageTime: serverTimestamp(),
-      unreadCount: 0
-    }, { merge: true })
-  
-    const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
-    messagesListener = onValue(messagesRef, (snapshot) => {
-      const messagesList = []
-      snapshot.forEach((childSnapshot) => {
-        messagesList.push({
-          id: childSnapshot.key,
-          ...childSnapshot.val()
-        })
-      })
-      messages.value = messagesList
-  
-      unreadCount.value = messagesList.filter(
-        msg => msg.senderId !== currentUser.value.id && !msg.read
-      ).length
-    })
-  }
-  
-  const toggleChat = () => {
-    isChatOpen.value = !isChatOpen.value
-    if (isChatOpen.value && threadId.value) {
-      markMessagesAsRead()
-    }
-  }
-  
-  const markMessagesAsRead = async () => {
-    if (!threadId.value) return
-  
-    const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
-    const snapshot = await get(messagesRef)
-    
-    const updates = {}
+      unreadCount: 0,
+    },
+    { merge: true },
+  )
+
+  const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
+  messagesListener = onValue(messagesRef, (snapshot) => {
+    const messagesList = []
     snapshot.forEach((childSnapshot) => {
-      const message = childSnapshot.val()
-      if (message.senderId !== currentUser.value.id && !message.read) {
-        updates[`${childSnapshot.key}/read`] = true
-      }
+      messagesList.push({
+        id: childSnapshot.key,
+        ...childSnapshot.val(),
+      })
     })
-  
-    if (Object.keys(updates).length > 0) {
-      await update(messagesRef, updates)
-      unreadCount.value = 0
-    }
+    messages.value = messagesList
+
+    unreadCount.value = messagesList.filter(
+      (msg) => msg.senderId !== currentUser.value.id && !msg.read,
+    ).length
+  })
+}
+
+const toggleChat = () => {
+  isChatOpen.value = !isChatOpen.value
+  if (isChatOpen.value && threadId.value) {
+    markMessagesAsRead()
   }
-  
-  const sendMessage = async () => {
-    if (!newMessage.value.trim() || !isLoggedIn.value) return
-  
+}
+
+const markMessagesAsRead = async () => {
+  if (!threadId.value) return
+
+  const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
+  const snapshot = await get(messagesRef)
+
+  const updates = {}
+  snapshot.forEach((childSnapshot) => {
+    const message = childSnapshot.val()
+    if (message.senderId !== currentUser.value.id && !message.read) {
+      updates[`${childSnapshot.key}/read`] = true
+    }
+  })
+
+  if (Object.keys(updates).length > 0) {
+    await update(messagesRef, updates)
+    unreadCount.value = 0
+  }
+}
+
+const sendMessage = async () => {
+  if (!newMessage.value.trim() || !isLoggedIn.value) return
+
+  const messageData = {
+    text: newMessage.value.trim(),
+    senderId: currentUser.value.id,
+    senderName: currentUser.value.name,
+    timestamp: serverTimestamp(),
+    read: false,
+  }
+
+  const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
+  await push(messagesRef, messageData)
+
+  const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
+  await update(threadRef, {
+    lastMessage: messageData.text,
+    lastMessageTime: serverTimestamp(),
+    unreadCount: increment(1),
+  })
+
+  newMessage.value = ''
+}
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return format(date, 'HH:mm')
+}
+
+watch(messages, () => {
+  setTimeout(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  }, 100)
+})
+
+const quickMessages = [
+  'Halo min',
+  'Saya tertarik dengan katalog',
+  'Apakah masih tersedia?',
+  'Berapa harganya min?',
+  'Saya mau order',
+]
+
+// Add cooldown state for each quick message
+const cooldowns = ref(quickMessages.map(() => 0))
+
+const startCooldown = (index) => {
+  cooldowns.value[index] = 5
+  const timer = setInterval(() => {
+    cooldowns.value[index]--
+    if (cooldowns.value[index] <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
+const sendQuickMessage = async (message, index) => {
+  if (!isLoggedIn.value || cooldowns.value[index] > 0) return
+
+  try {
     const messageData = {
-      text: newMessage.value.trim(),
+      text: message,
       senderId: currentUser.value.id,
       senderName: currentUser.value.name,
       timestamp: serverTimestamp(),
-      read: false
+      read: false,
     }
-  
+
     const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
     await push(messagesRef, messageData)
-  
+
     const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
     await update(threadRef, {
       lastMessage: messageData.text,
       lastMessageTime: serverTimestamp(),
-      unreadCount: increment(1)
+      unreadCount: increment(1),
     })
-  
-    newMessage.value = ''
-  }
-  
-  const formatTime = (timestamp) => {
-    if (!timestamp) return ''
-    const date = new Date(timestamp)
-    return format(date, 'HH:mm')
-  }
-  
-  watch(messages, () => {
-    setTimeout(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    }, 100)
-  })
 
-  const quickMessages = [
-    "Halo min",
-    "Saya tertarik dengan katalog",
-    "Apakah masih tersedia?",
-    "Berapa harganya min?",
-    "Saya mau order"
-  ]
-
-  // Add cooldown state for each quick message
-  const cooldowns = ref(quickMessages.map(() => 0))
-
-  const startCooldown = (index) => {
-    cooldowns.value[index] = 5
-    const timer = setInterval(() => {
-      cooldowns.value[index]--
-      if (cooldowns.value[index] <= 0) {
-        clearInterval(timer)
-      }
-    }, 1000)
+    // Start cooldown after successful send
+    startCooldown(index)
+  } catch (error) {
+    console.error('Error sending quick message:', error)
   }
-  
-  const sendQuickMessage = async (message, index) => {
-    if (!isLoggedIn.value || cooldowns.value[index] > 0) return
-  
-    try {
-      const messageData = {
-        text: message,
-        senderId: currentUser.value.id,
-        senderName: currentUser.value.name,
-        timestamp: serverTimestamp(),
-        read: false
-      }
-  
-      const messagesRef = dbRef(rtdb, `messages/${threadId.value}`)
-      await push(messagesRef, messageData)
-  
-      const threadRef = dbRef(rtdb, `chat_threads/${threadId.value}`)
-      await update(threadRef, {
-        lastMessage: messageData.text,
-        lastMessageTime: serverTimestamp(),
-        unreadCount: increment(1)
-      })
-  
-      // Start cooldown after successful send
-      startCooldown(index)
-    } catch (error) {
-      console.error('Error sending quick message:', error)
+}
+
+// Cleanup intervals on component unmount
+onUnmounted(() => {
+  cooldowns.value.forEach((_, index) => {
+    if (cooldowns.value[index] > 0) {
+      cooldowns.value[index] = 0
     }
-  }
-  
-  // Cleanup intervals on component unmount
-  onUnmounted(() => {
-    cooldowns.value.forEach((_, index) => {
-      if (cooldowns.value[index] > 0) {
-        cooldowns.value[index] = 0
-      }
-    })
   })
-  </script>
-  
-  <style scoped>
+})
+
+// Add back button functionality
+const goBack = () => {
+  router.back()
+}
+</script>
+
+<style scoped>
 .chat-container {
   font-family: 'Montserrat', sans-serif; /* Changed from 'Judson' */
   display: flex;
@@ -267,10 +291,40 @@
   position: relative;
 }
 
+/* Add these styles for the back button */
+.back-button {
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.back-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(-3px);
+}
+
+.back-button:active {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Update the chat header to include the back button */
 .chat-header {
   background-color: #02163b; /* Changed from #8B4513 */
   padding: 0.8rem;
   color: white;
+  display: flex;
+  align-items: center;
 }
 
 .user-info {

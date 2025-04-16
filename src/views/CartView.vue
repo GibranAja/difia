@@ -1,7 +1,8 @@
 <template>
+  <VoucherNotification />
   <Navbar />
-  <main class="cart-view">
-    <router-link to="/" class="back-button">
+  <main class="cart-view" :class="{ 'with-voucher': hasActiveVouchers }">
+    <router-link to="/" class="back-button" :class="{ 'with-voucher': hasActiveVouchers }">
       <i class="fas fa-arrow-left"></i>
     </router-link>
 
@@ -137,10 +138,13 @@ import { useCartStore } from '@/stores/CartStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/NavigationBar.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue'
 import { useToast } from 'vue-toastification'
+import { useVoucherStore } from '@/stores/VoucherStore'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const voucherStore = useVoucherStore()
 const router = useRouter()
 const toast = useToast()
 const shippingCost = 0
@@ -334,13 +338,56 @@ const removeItem = async (itemId) => {
 const formatPrice = (price) => {
   return price.toLocaleString('id-ID')
 }
+
+// Add this computed property to check for active vouchers
+const hasActiveVouchers = computed(() => {
+  return voucherStore.voucherItems.some((voucher) => {
+    const now = new Date()
+    const isNotExpired = new Date(voucher.validUntil) > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
+})
 </script>
 
 <style scoped>
 .cart-view {
   max-width: 1200px;
-  margin: 4rem auto;
-  padding: 2rem;
+  margin: 0 auto;
+  padding: 7rem 2rem 2rem; /* Default padding without voucher */
+  position: relative;
+}
+
+/* Add extra padding when voucher is present */
+.cart-view.with-voucher {
+  padding-top: 9.5rem; /* Increased to account for navbar + voucher */
+}
+
+/* Back Button */
+.back-button {
+  position: fixed;
+  left: 2rem;
+  top: 5.5rem; /* Default position without voucher */
+  font-size: 1.5rem;
+  color: #000;
+  text-decoration: none;
+  transition:
+    color 0.2s,
+    top 0.3s ease;
+  z-index: 90;
+}
+
+/* Adjust back button position when voucher is present */
+.back-button.with-voucher {
+  top: 7.5rem;
+}
+
+/* Page Title */
+.page-title {
+  margin: 0 0 2rem; /* Remove top margin */
+  text-align: center;
+  font-size: 2rem;
+  color: #02163b;
 }
 
 .cart-container {
@@ -696,8 +743,12 @@ const formatPrice = (price) => {
   }
 
   .back-button {
-    top: 4rem;
+    top: 5rem; /* Adjust for mobile */
     left: 1rem;
+  }
+
+  .back-button.with-voucher {
+    top: 7rem;
   }
 
   .page-title {
