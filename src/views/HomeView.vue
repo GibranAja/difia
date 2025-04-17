@@ -1,11 +1,6 @@
 <template>
   <VoucherNotification />
-  <NavigationBar
-    :showLogout="isLoggedIn"
-    @logout="handleLogout"
-    class="navbar"
-    :class="{ 'navbar-with-voucher': hasActiveVouchers }">
-    </NavigationBar>
+  <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout" class="navbar"></NavigationBar>
   <header id="home" :class="{ 'header-at-top': isAtTop }">
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
@@ -146,7 +141,6 @@ const hasActiveVouchers = computed(() => {
 })
 
 const isAtTop = computed(() => {
-  // This will be true when page is at the top AND there are active vouchers
   return window.scrollY === 0 && hasActiveVouchers.value
 })
 
@@ -244,21 +238,21 @@ header {
 }
 
 .header-at-top {
-  transform: translateY(40px); /* Adjust this to match your VoucherNotification height */
+  transform: translateY(100px); /* Adjust this value to match your navbar height */
 }
 
-/* Also make sure the navbar transitions properly */
 .navbar {
   position: fixed;
-  top: 0; /* Start at 0 by default */
+  top: 40px; /* Account for VoucherNotification */
   left: 0;
   width: 100%;
   z-index: 100;
-  transition: top 0.3s ease; /* Add transition */
 }
 
-.navbar-with-voucher {
-  top: 40px; /* Move down when voucher is visible */
+@media (max-width: 768px) {
+  .header-at-top {
+    transform: translateY(60px); /* Smaller offset for mobile */
+  }
 }
 
 /* STYLE UNTUK CAROUSEL PENGHARGAAN */

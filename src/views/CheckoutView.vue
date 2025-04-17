@@ -699,6 +699,66 @@ const removeVoucher = () => {
 // Add to existing script section
 const paymentFile = ref(null)
 
+// Add this compression function to your script section
+const compressPaymentProof = (file) => {
+  return new Promise((resolve, reject) => {
+    const MAX_DIMENSION = 1200
+    const COMPRESSION_QUALITY = 0.7
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const image = new Image()
+
+    image.onload = () => {
+      let width = image.width
+      let height = image.height
+
+      // Calculate new dimensions - more aggressive resizing
+      if (width > height) {
+        if (width > MAX_DIMENSION) {
+          height = Math.round((height * MAX_DIMENSION) / width)
+          width = MAX_DIMENSION
+        }
+      } else {
+        if (height > MAX_DIMENSION) {
+          width = Math.round((width * MAX_DIMENSION) / height)
+          height = MAX_DIMENSION
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      // Use canvas to resize
+      ctx.drawImage(image, 0, 0, width, height)
+
+      // Convert to a more compressed JPEG
+      canvas.toBlob(
+        (blob) => {
+          // Convert the blob to a base64 string for preview
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            // Create a compressed file
+            const fileName = file.name.split('.')[0] + '.jpg'
+            const compressedFile = new File([blob], fileName, { type: 'image/jpeg' })
+            
+            resolve({
+              dataUrl: reader.result,
+              compressedFile: compressedFile
+            })
+          }
+          reader.readAsDataURL(blob)
+        },
+        'image/jpeg',
+        COMPRESSION_QUALITY
+      )
+    }
+
+    image.onerror = reject
+    image.src = URL.createObjectURL(file)
+  })
+}
+
+// Replace your existing handlePaymentProofUpload with this updated version
 const handlePaymentProofUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
@@ -711,11 +771,27 @@ const handlePaymentProofUpload = async (event) => {
   }
 
   try {
-    await orderStore.setPaymentProof(file)
-    paymentFile.value = file
+    // Show loading indicator
+    isProcessing.value = true
+    
+    // Compress the image
+    const result = await compressPaymentProof(file)
+    
+    // Get compressed file and check its size
+    const compressedFile = result.compressedFile
+    
+    console.log(`Original size: ${(file.size / 1024).toFixed(2)}KB, Compressed size: ${(compressedFile.size / 1024).toFixed(2)}KB`)
+    
+    // Set the payment proof using the compressed file
+    await orderStore.setPaymentProof(compressedFile)
+    paymentFile.value = compressedFile
+    
+    toast.success('Bukti pembayaran berhasil diunggah')
   } catch (error) {
     console.error('Error uploading payment proof:', error)
-    toast.error('Failed to upload payment proof')
+    toast.error('Gagal mengunggah bukti pembayaran')
+  } finally {
+    isProcessing.value = false
   }
 }
 

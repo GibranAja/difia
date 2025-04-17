@@ -235,9 +235,7 @@ const handleBuyNow = async () => {
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null,
         note: note.value,
-        // Fix - make sure we're passing the actual base64 string, not just a boolean check
-        uploadedImage: purchaseType.value === 'Souvenir' ? uploadedImage.value : null,
-        productImage: selectedProduct.value.images[0], // Add product image as fallback
+        uploadedImage: uploadedImage.value,
       },
     }
 

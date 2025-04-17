@@ -1,12 +1,9 @@
 <template>
   <div class="detail-container">
-    <!-- Add VoucherNotification component before Navbar -->
-    <VoucherNotification />
-
     <!-- Include your existing navbar component here -->
     <Navbar />
 
-    <div class="content-wrapper" :class="{ 'with-voucher': hasActiveVouchers }">
+    <div class="content-wrapper">
       <!-- Breadcrumbs -->
       <div class="breadcrumbs">
         <router-link to="/">Beranda</router-link> &gt; <router-link to="/">Produk</router-link> &gt;
@@ -399,7 +396,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useKatalogStore } from '@/stores/KatalogStore'
-import { useVoucherStore } from '@/stores/VoucherStore'
 import {
   collection,
   query,
@@ -416,7 +412,6 @@ import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
 import ProductCarousel from '@/components/ProductCarousel.vue'
 import Navbar from '@/components/NavigationBar.vue'
 import Footer from '@/components/FooterComponent.vue'
-import VoucherNotification from '@/components/VoucherNotification.vue'
 
 // Initialize router and route
 const router = useRouter()
@@ -424,7 +419,6 @@ const route = useRoute()
 const toast = useToast()
 const katalogStore = useKatalogStore()
 const authStore = useAuthStore()
-const voucherStore = useVoucherStore()
 const katalog = ref(null)
 
 // Function to format price with comma as thousand separator
@@ -715,16 +709,6 @@ const navigateToCustom = () => {
     router.push(`/custom/${katalog.value.id}`)
   }
 }
-
-// Add this computed property
-const hasActiveVouchers = computed(() => {
-  return voucherStore.voucherItems.some((voucher) => {
-    const now = new Date()
-    const isNotExpired = new Date(voucher.validUntil) > now
-    const hasRemainingUses = voucher.currentUses < voucher.maxUses
-    return voucher.isActive && isNotExpired && hasRemainingUses
-  })
-})
 </script>
 
 <style scoped>
@@ -1641,9 +1625,5 @@ const hasActiveVouchers = computed(() => {
   .modal-nav.next {
     right: 10px;
   }
-}
-
-.content-wrapper.with-voucher {
-  padding-top: 115px; /* Increased from 75px to accommodate voucher banner */
 }
 </style>
