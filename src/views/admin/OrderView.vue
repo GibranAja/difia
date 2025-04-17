@@ -69,38 +69,6 @@
           @update:entriesPerPage="updateEntriesPerPage"
         />
       </div>
-
-      <!-- Mixed Orders Section -->
-      <div class="order-section" v-if="activeOrderType === 'mixed'">
-        <OrderTable
-          :orders="paginatedMixedOrders"
-          :searchQuery="searchQuery"
-          orderType="mixed"
-          :showEmbossColumn="true"
-          :emptyStateIcon="'fa-shopping-basket'"
-          :emptyStateTitle="
-            mixedOrders.length ? 'Tidak ada data order' : 'Belum Ada Pesanan Campuran'
-          "
-          :emptyStateMessage="
-            mixedOrders.length
-              ? 'Tidak ditemukan pesanan dengan filter yang dipilih'
-              : 'Saat ini belum ada pesanan campuran yang masuk'
-          "
-          @update-status="openStatusModal"
-          @view-payment="openPaymentProof"
-          @view-design="openImagePreview"
-        />
-
-        <PaginationControls
-          v-if="mixedOrders.length"
-          :currentPage="currentMixedPage"
-          :totalPages="totalMixedPages"
-          :entriesPerPage="entriesPerPage"
-          @prev-page="goToPrevMixedPage"
-          @next-page="goToNextMixedPage"
-          @update:entriesPerPage="updateEntriesPerPage"
-        />
-      </div>
     </template>
 
     <!-- Status Update Modal -->
@@ -222,22 +190,6 @@ const souvenirOrders = computed(() => {
   return filtered
 })
 
-const mixedOrders = ref([])
-const currentMixedPage = ref(1)
-
-// Filter function to filter orders by search query
-const filterOrderBySearchQuery = (order) => {
-  const query = searchQuery.value.toLowerCase().trim()
-  return (
-    order.id.toLowerCase().includes(query) ||
-    order.shippingDetails.name.toLowerCase().includes(query) ||
-    order.shippingDetails.email.toLowerCase().includes(query) ||
-    order.shippingDetails.phone.toLowerCase().includes(query) ||
-    (order.productName && order.productName.toLowerCase().includes(query)) ||
-    order.status.toLowerCase().includes(query)
-  )
-}
-
 // Fetch orders
 const fetchOrders = async () => {
   try {
@@ -250,69 +202,6 @@ const fetchOrders = async () => {
       id: doc.id,
       ...doc.data(),
     }))
-
-    // Process orders based on type
-    regularOrders.value = []
-    souvenirOrders.value = []
-    mixedOrders.value = []
-
-    orders.value.forEach((order) => {
-      // Determine if this is a mixed order
-      if (!order.products) {
-        // Legacy order format
-        if (order.isBulkOrder) {
-          souvenirOrders.value.push(order)
-        } else {
-          regularOrders.value.push(order)
-        }
-      } else if (order.products.length === 1) {
-        // Single product order
-        if (
-          order.products[0].isBulkOrder ||
-          order.products[0].customOptions?.purchaseType === 'Souvenir'
-        ) {
-          souvenirOrders.value.push(order)
-        } else {
-          regularOrders.value.push(order)
-        }
-      } else {
-        // Multiple product order - check if mixed
-        const hasSouvenir = order.products.some(
-          (p) => p.isBulkOrder || p.customOptions?.purchaseType === 'Souvenir',
-        )
-        const hasRegular = order.products.some(
-          (p) => !p.isBulkOrder || p.customOptions?.purchaseType === 'Satuan',
-        )
-
-        if (hasSouvenir && hasRegular) {
-          mixedOrders.value.push(order)
-        } else if (hasSouvenir) {
-          souvenirOrders.value.push(order)
-        } else {
-          regularOrders.value.push(order)
-        }
-      }
-    })
-
-    // Filter by status if needed
-    if (selectedStatuses.value.length > 0) {
-      regularOrders.value = regularOrders.value.filter((order) =>
-        selectedStatuses.value.includes(order.status),
-      )
-      souvenirOrders.value = souvenirOrders.value.filter((order) =>
-        selectedStatuses.value.includes(order.status),
-      )
-      mixedOrders.value = mixedOrders.value.filter((order) =>
-        selectedStatuses.value.includes(order.status),
-      )
-    }
-
-    // Filter by search
-    if (searchQuery.value) {
-      regularOrders.value = regularOrders.value.filter(filterOrderBySearchQuery)
-      souvenirOrders.value = souvenirOrders.value.filter(filterOrderBySearchQuery)
-      mixedOrders.value = mixedOrders.value.filter(filterOrderBySearchQuery)
-    }
   } catch (error) {
     toast.error('Failed to fetch orders')
     console.error('Error fetching orders:', error)
@@ -407,10 +296,6 @@ const totalSouvenirPages = computed(() => {
   return Math.max(1, Math.ceil(souvenirOrders.value.length / entriesPerPage.value))
 })
 
-const totalMixedPages = computed(() => {
-  return Math.max(1, Math.ceil(mixedOrders.value.length / entriesPerPage.value))
-})
-
 const paginatedRegularOrders = computed(() => {
   const startIndex = (currentRegularPage.value - 1) * entriesPerPage.value
   const endIndex = startIndex + entriesPerPage.value
@@ -421,12 +306,6 @@ const paginatedSouvenirOrders = computed(() => {
   const startIndex = (currentSouvenirPage.value - 1) * entriesPerPage.value
   const endIndex = startIndex + entriesPerPage.value
   return souvenirOrders.value.slice(startIndex, endIndex)
-})
-
-const paginatedMixedOrders = computed(() => {
-  const startIndex = (currentMixedPage.value - 1) * entriesPerPage.value
-  const endIndex = startIndex + entriesPerPage.value
-  return mixedOrders.value.slice(startIndex, endIndex)
 })
 
 // Navigation functions
@@ -454,24 +333,11 @@ const goToPrevSouvenirPage = () => {
   }
 }
 
-const goToNextMixedPage = () => {
-  if (currentMixedPage.value < totalMixedPages.value) {
-    currentMixedPage.value++
-  }
-}
-
-const goToPrevMixedPage = () => {
-  if (currentMixedPage.value > 1) {
-    currentMixedPage.value--
-  }
-}
-
 const updateEntriesPerPage = (value) => {
   entriesPerPage.value = value
   // Reset page numbers
   currentRegularPage.value = 1
   currentSouvenirPage.value = 1
-  currentMixedPage.value = 1
 }
 
 // Add a watcher for when entriesPerPage changes
@@ -479,7 +345,6 @@ watch(entriesPerPage, () => {
   // Reset page numbers when entries per page changes to avoid being on a now non-existent page
   currentRegularPage.value = 1
   currentSouvenirPage.value = 1
-  currentMixedPage.value = 1
 })
 
 // Lifecycle hooks

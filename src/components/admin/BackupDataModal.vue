@@ -206,7 +206,7 @@ const performBackup = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000; /* Increased from 1000 to 2000, now higher than OrderControls */
+  z-index: 1000;
 }
 
 .modal-content {

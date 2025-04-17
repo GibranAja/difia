@@ -6,26 +6,30 @@
         <!-- Main product info -->
         <div class="product-header">
           <h4>{{ order.productName }}</h4>
-          <span class="price-type-badge" :class="order.customOptions.priceType.toLowerCase()">
+          <span
+            v-if="order.customOptions?.priceType"
+            class="price-type-badge"
+            :class="order.customOptions.priceType.toLowerCase()"
+          >
             {{ order.customOptions.priceType }}
           </span>
         </div>
 
         <!-- Materials section -->
-        <div class="details-section">
+        <div v-if="order.customOptions" class="details-section">
           <h5>Material</h5>
           <div class="detail-row">
             <span class="detail-label">Luar:</span>
-            <span class="detail-value">{{ order.customOptions.bahanLuar }}</span>
+            <span class="detail-value">{{ order.customOptions.bahanLuar || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="detail-label">Dalam:</span>
-            <span class="detail-value">{{ order.customOptions.bahanDalam }}</span>
+            <span class="detail-value">{{ order.customOptions.bahanDalam || 'N/A' }}</span>
           </div>
         </div>
 
         <!-- Accessories section -->
-        <div class="details-section">
+        <div v-if="order.customOptions?.aksesoris" class="details-section">
           <h5>Aksesoris</h5>
           <div class="accessories-tags">
             <span
@@ -39,7 +43,7 @@
         </div>
 
         <!-- Notes if exists -->
-        <div v-if="order.customOptions.note" class="details-section notes">
+        <div v-if="order.customOptions?.note" class="details-section notes">
           <h5>Catatan</h5>
           <p class="note-text">{{ order.customOptions.note }}</p>
         </div>
@@ -49,24 +53,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from 'vue'
 
 const props = defineProps({
   order: {
     type: Object,
-    required: true
+    required: true,
   },
   searchQuery: {
     type: String,
-    default: ''
-  }
-});
+    default: '',
+  },
+})
 
 const highlightedName = computed(() => {
-  if (!props.searchQuery.trim() || !props.order.productName) return props.order.productName;
-  const regex = new RegExp(`(${props.searchQuery.trim()})`, 'gi');
-  return props.order.productName.toString().replace(regex, '<span class="highlight">$1</span>');
-});
+  if (!props.searchQuery.trim() || !props.order.productName) return props.order.productName
+  const regex = new RegExp(`(${props.searchQuery.trim()})`, 'gi')
+  return props.order.productName.toString().replace(regex, '<span class="highlight">$1</span>')
+})
 </script>
 
 <style scoped>
@@ -267,15 +271,27 @@ const highlightedName = computed(() => {
 
 /* Animations */
 @keyframes tooltipBounce {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 @keyframes tooltipBounceReverse {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(3px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 :deep(.highlight) {
