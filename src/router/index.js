@@ -123,6 +123,15 @@ const router = createRouter({
       name: 'ForgotPassword',
       component: ForgotPassword,
     },
+    {
+      path: '/verify-email',
+      name: 'VerifyEmail',
+      component: () => import('@/views/auth/VerifyEmail.vue'),
+      meta: {
+        requiresAuth: false,
+        title: 'Verify Email - DIFIA',
+      },
+    },
 
     // Admin Routes
     {
