@@ -28,6 +28,7 @@ import CheckoutView from '@/views/CheckoutView.vue'
 import ChatCustomer from '@/views/ChatCustomer.vue'
 import NotificationVIew from '@/views/NotificationVIew.vue'
 import TermsConditionView from '@/views/TermsConditionView.vue'
+import TentangKamiView from '@/views/TentangKamiView.vue'
 
 // Auth Views
 import LoginPage from '@/views/LoginPage.vue'
@@ -122,6 +123,11 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: ForgotPassword,
+    },
+    {
+      path: '/tentangkami',
+      name: 'TentangKamiView',
+      component: TentangKamiView,
     },
 
     // Admin Routes

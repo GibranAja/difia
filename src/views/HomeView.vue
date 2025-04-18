@@ -5,7 +5,15 @@
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
   <main>
-    <TentangKamiSection />
+    <!-- <TentangKamiSection /> -->
+    <section class="top-seller">
+      <div class="video-ad">
+        <video src=""></video>
+      </div>
+      <div class="top-product">
+        <CardCatalog></CardCatalog>
+      </div>
+    </section>
     <section class="katalog" id="catalog">
       <span class="box"></span>
       <span class="rounded"></span>
@@ -76,7 +84,7 @@ import FooterComponent from '@/components/FooterComponent.vue'
 import CardUlasan from '@/components/CardUlasan.vue'
 import CardMitra from '@/components/CardMitra.vue'
 import HeroSwiper from '@/components/HeroSwiper.vue'
-import TentangKamiSection from '@/components/TentangKamiSection.vue'
+// import TentangKamiSection from '@/components/TentangKamiSection.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -305,6 +313,15 @@ header {
 .foto-tentang-kami {
   width: 100%;
   height: 100%;
+}
+
+.top-seller {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 100px;
+  position: relative;
 }
 
 .katalog {

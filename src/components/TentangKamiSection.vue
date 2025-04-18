@@ -196,6 +196,8 @@ import AchievementSection from '@/components/AchievementSection.vue'
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   z-index: 2;
+  justify-content: center;
+  display: inline-block;
 }
 
 .about-image {

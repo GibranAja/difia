@@ -153,7 +153,7 @@ const activeSection = ref('home')
 // Navigation items
 const navItems = [
   { text: 'Beranda', path: '/', section: 'home', href: '#home' },
-  { text: 'Tentang Kami', path: '/', section: 'about', href: '#about' },
+  { text: 'Tentang Kami', path: '/tentangkami', section: 'about', href: '/tentangkami' },
   { text: 'Katalog', path: '/', section: 'catalog', href: '#catalog' },
   { text: 'Artikel', path: '/', section: 'articel', href: '#articel' },
 ]
