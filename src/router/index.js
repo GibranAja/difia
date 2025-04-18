@@ -129,6 +129,15 @@ const router = createRouter({
       name: 'TentangKamiView',
       component: TentangKamiView,
     },
+    {
+      path: '/verify-email',
+      name: 'VerifyEmail',
+      component: () => import('@/views/auth/VerifyEmail.vue'),
+      meta: {
+        requiresAuth: false,
+        title: 'Verify Email - DIFIA',
+      },
+    },
 
     // Admin Routes
     {

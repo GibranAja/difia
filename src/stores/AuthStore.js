@@ -10,8 +10,13 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   sendPasswordResetEmail,
+  sendEmailVerification, // Add this import
+  applyActionCode,
+  checkActionCode,
+  EmailAuthProvider,
+  linkWithCredential,
 } from 'firebase/auth'
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
+import { collection, doc, updateDoc, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
 import bcrypt from 'bcryptjs'
 
@@ -30,6 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
   const message = ref('')
   const resetEmail = ref('')
   const verificationCode = ref(null)
+  const isEmailVerified = ref(false) // Add this state
 
   const user = reactive({
     name: '',
@@ -113,6 +119,14 @@ export const useAuthStore = defineStore('auth', () => {
             throw new Error('User account not found')
           }
         }
+
+        // Add a check for email verification
+        if (userCredential && !userCredential.user.emailVerified) {
+          toast.warning('Please verify your email before logging in.')
+          await sendEmailVerification(userCredential.user)
+          await router.push('/verify-email')
+          return
+        }
       } else {
         // Register flow with hashed password
         const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.password)
@@ -121,6 +135,10 @@ export const useAuthStore = defineStore('auth', () => {
           // Hash password before storing
           const hashedPassword = await hashPassword(user.password)
 
+          // Send verification email
+          await sendEmailVerification(userCredential.user)
+          isEmailVerified.value = false
+
           await addDoc(collection(db, 'users'), {
             uid: userCredential.user.uid,
             name: user.name,
@@ -128,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
             hashedPassword: hashedPassword, // Store hashed password instead of plaintext
             profilePhoto: user.profilePhoto || '',
             isAdmin: false,
+            emailVerified: false, // Add this field
           })
 
           // Set current user after successful registration
@@ -137,13 +156,14 @@ export const useAuthStore = defineStore('auth', () => {
             name: user.name,
             isAdmin: false,
             profilePhoto: user.profilePhoto || '',
+            emailVerified: false,
           }
 
-          isLoggedIn.value = true
-          toast.success('Registrasi berhasil!')
+          toast.success('Registration successful! Please check your email to verify your account.')
 
           if (router) {
-            await router.push('/') // Redirect to home instead of login
+            // Redirect to verify-email page instead of home
+            await router.push('/verify-email')
           }
         }
       }
@@ -203,6 +223,9 @@ export const useAuthStore = defineStore('auth', () => {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         try {
           if (firebaseUser) {
+            // Set email verification status
+            isEmailVerified.value = firebaseUser.emailVerified
+
             // Check users (admin) collection
             const usersRef = collection(db, 'users')
             const userQuery = query(usersRef, where('uid', '==', firebaseUser.uid))
@@ -241,11 +264,13 @@ export const useAuthStore = defineStore('auth', () => {
           } else {
             currentUser.value = null
             isLoggedIn.value = false
+            isEmailVerified.value = false
           }
         } catch (error) {
           console.error('Auth state error:', error)
           currentUser.value = null
           isLoggedIn.value = false
+          isEmailVerified.value = false
         } finally {
           isLoading.value = false
           resolve()
@@ -353,6 +378,91 @@ export const useAuthStore = defineStore('auth', () => {
     verificationCode.value = null
   }
 
+  const checkEmailVerification = () => {
+    return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // Force refresh to get the latest emailVerified status
+          user.reload().then(async () => {
+            isEmailVerified.value = user.emailVerified
+
+            if (user.emailVerified) {
+              // Update the Firestore document when email is verified
+              await updateUserVerificationStatus(user.uid)
+
+              // Set the user as logged in
+              isLoggedIn.value = true
+
+              // Fetch user data from Firestore to update currentUser
+              const userQuery = query(collection(db, 'users'), where('uid', '==', user.uid))
+              const userData = await getDocs(userQuery)
+
+              if (!userData.empty) {
+                const userDoc = userData.docs[0].data()
+                currentUser.value = {
+                  email: user.email,
+                  id: user.uid,
+                  name: userDoc.name,
+                  isAdmin: userDoc.isAdmin || false,
+                  profilePhoto: userDoc.profilePhoto || '',
+                  emailVerified: true,
+                }
+
+                // Show success message to user
+                toast.success('Email berhasil diverifikasi! Anda sudah login.')
+              }
+            }
+            resolve(user.emailVerified)
+          })
+        } else {
+          isEmailVerified.value = false
+          resolve(false)
+        }
+      })
+
+      // Clean up the listener after initial check
+      setTimeout(() => {
+        unsubscribe()
+      }, 1000)
+    })
+  }
+
+  const updateUserVerificationStatus = async (uid) => {
+    try {
+      const userQuery = query(collection(db, 'users'), where('uid', '==', uid))
+      const userData = await getDocs(userQuery)
+
+      if (!userData.empty) {
+        const userDoc = userData.docs[0]
+        const userRef = doc(db, 'users', userDoc.id)
+        await updateDoc(userRef, {
+          emailVerified: true,
+        })
+      }
+    } catch (error) {
+      console.error('Error updating verification status:', error)
+    }
+  }
+
+  const resendVerificationEmail = async () => {
+    try {
+      isLoading.value = true
+      const firebaseUser = auth.currentUser
+
+      if (firebaseUser) {
+        await sendEmailVerification(firebaseUser)
+        toast.success('Verification email sent! Please check your inbox.')
+      } else {
+        toast.error('You must be logged in to resend verification email.')
+      }
+    } catch (error) {
+      console.error('Error sending verification email:', error)
+      toast.error('Failed to send verification email. Please try again later.')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     user,
     isLoggedIn,
@@ -370,5 +480,8 @@ export const useAuthStore = defineStore('auth', () => {
     setVerificationCode,
     sendVerificationEmail,
     updatePassword,
+    isEmailVerified,
+    checkEmailVerification,
+    resendVerificationEmail,
   }
 })
