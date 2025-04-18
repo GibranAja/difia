@@ -12,33 +12,127 @@
       <form @submit.prevent="handleSubmit" class="auth-form">
         <!-- Only show name field for registration -->
         <div class="form-group" v-if="!isLogin">
+          <input type="text" v-model="user.name" placeholder="Nama" class="auth-input" required />
+        </div>
+
+        <!-- Phone number field for registration -->
+        <div class="form-group" v-if="!isLogin">
+          <input
+            type="tel"
+            v-model="user.phone"
+            placeholder="Nomor Telepon"
+            class="auth-input"
+            required
+            maxlength="13"
+            @input="validatePhone"
+          />
+          <p v-if="phoneError" class="error-text">{{ phoneError }}</p>
+        </div>
+
+        <div class="form-group">
           <input
             type="text"
-            v-model="user.name"
-            placeholder="Nama"
+            v-model="emailOrPhone"
+            :placeholder="isLogin ? 'Email atau Nomor Telepon' : 'Email'"
             class="auth-input"
             required
-          >
+          />
         </div>
 
-        <div class="form-group">
-          <input
-            type="email"
-            v-model="user.email"
-            placeholder="Email"
-            class="auth-input"
-            required
-          >
-        </div>
-
-        <div class="form-group">
+        <div class="form-group password-field">
           <input
             :type="showPassword ? 'text' : 'password'"
             v-model="user.password"
             placeholder="Kata Sandi"
             class="auth-input"
             required
+          />
+          <button type="button" class="toggle-password" @click="showPassword = !showPassword">
+            <!-- SVG Eye icon that toggles between open/closed -->
+            <svg
+              v-if="!showPassword"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+              ></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Confirm password field for registration -->
+        <div class="form-group password-field" v-if="!isLogin">
+          <input
+            :type="showConfirmPassword ? 'text' : 'password'"
+            v-model="confirmPassword"
+            placeholder="Konfirmasi Kata Sandi"
+            class="auth-input"
+            required
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            @click="showConfirmPassword = !showConfirmPassword"
           >
+            <!-- SVG Eye icon that toggles between open/closed -->
+            <svg
+              v-if="!showConfirmPassword"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+              ></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+          <p v-if="passwordError" class="error-text">{{ passwordError }}</p>
         </div>
 
         <div class="auth-links">
@@ -48,11 +142,7 @@
               {{ isLogin ? 'Daftar' : 'Masuk' }}
             </router-link>
           </div>
-          <router-link 
-            v-if="isLogin" 
-            to="/forgot-password" 
-            class="redirect-link"
-          >
+          <router-link v-if="isLogin" to="/forgot-password" class="redirect-link">
             Forgot Password?
           </router-link>
         </div>
@@ -60,10 +150,10 @@
         <button
           type="submit"
           class="submit-button"
-          :disabled="isLoading"
+          :disabled="isLoading || (!isLogin && !formValid)"
           :class="{ 'button-loading': isLoading }"
         >
-          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') }}
+          {{ isLoading ? 'Processing...' : isLogin ? 'Masuk' : 'Daftar' }}
         </button>
 
         <div class="divider">
@@ -86,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../stores/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -94,20 +184,114 @@ import { useRouter } from 'vue-router'
 const authStore = useAuthStore()
 const router = useRouter()
 const { user } = storeToRefs(authStore)
+
+// Add phone to user object in local component
+user.value.phone = ''
+
+// Form state
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 const isLoading = ref(false)
+const confirmPassword = ref('')
+const passwordError = ref('')
+const phoneError = ref('')
+const loginIdentifier = ref('')
+
+// Computed property for email/phone input
+const emailOrPhone = computed({
+  get() {
+    return props.isLogin ? loginIdentifier.value : user.value.email
+  },
+  set(value) {
+    if (props.isLogin) {
+      loginIdentifier.value = value
+    } else {
+      user.value.email = value
+    }
+  }
+})
 
 const props = defineProps({
   isLogin: {
     type: Boolean,
-    default: false
+    default: false,
+  },
+})
+
+// Form validation
+const formValid = computed(() => {
+  if (props.isLogin) return true
+
+  if (
+    !user.value.phone ||
+    !user.value.name ||
+    !user.value.email ||
+    !user.value.password ||
+    !confirmPassword.value
+  ) {
+    return false
+  }
+
+  if (phoneError.value) return false
+  if (user.value.password !== confirmPassword.value) {
+    return false
+  }
+
+  return true
+})
+
+// Separate function to check password match
+const validatePasswordMatch = () => {
+  if (!props.isLogin && user.value.password && confirmPassword.value) {
+    if (user.value.password !== confirmPassword.value) {
+      passwordError.value = 'Password dan konfirmasi password harus sama'
+    } else {
+      passwordError.value = ''
+    }
+  }
+}
+
+// Call validation when relevant values change
+watch([() => user.value.password, confirmPassword], () => {
+  validatePasswordMatch()
+})
+
+// Watch for password changes to validate match
+watch([() => user.value.password, confirmPassword], ([password, confirm]) => {
+  if (!props.isLogin && password && confirm && password !== confirm) {
+    passwordError.value = 'Password dan konfirmasi password harus sama'
+  } else {
+    passwordError.value = ''
   }
 })
 
+const validatePhone = () => {
+  // Remove non-digits
+  user.value.phone = user.value.phone.replace(/\D/g, '')
+
+  // Validate format
+  if (user.value.phone && !/^(62|0)\d{9,12}$/.test(user.value.phone)) {
+    phoneError.value = 'Format nomor telepon tidak valid'
+  } else {
+    phoneError.value = ''
+  }
+}
+
 const handleSubmit = async () => {
   try {
+    if (!props.isLogin && user.value.password !== confirmPassword.value) {
+      passwordError.value = 'Password dan konfirmasi password harus sama'
+      return
+    }
+
     isLoading.value = true
-    await authStore.authUser(props.isLogin, router)
+    if (props.isLogin) {
+      // Login with either email or phone
+      await authStore.authUser(props.isLogin, router, loginIdentifier.value)
+    } else {
+      // Register with all fields
+      await authStore.authUser(props.isLogin, router)
+    }
   } catch (error) {
     console.error('Authentication error:', error)
   } finally {
@@ -180,12 +364,32 @@ const handleGoogleSignIn = async () => {
 
 .auth-input:focus {
   outline: none;
-  border-color: #8B7355; /* Brown border on focus */
+  border-color: #8b7355; /* Brown border on focus */
 }
 
 .auth-input::placeholder {
   color: #000000; /* Darker gray for placeholder */
   opacity: 0.7;
+}
+
+/* Password field with eye icon */
+.password-field {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #02163b;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .auth-links {
@@ -221,13 +425,14 @@ const handleGoogleSignIn = async () => {
   left: 0;
   right: 0;
   height: 1px;
-  background: #8B7355;
+  background: #8b7355;
   opacity: 0.3;
   z-index: 0;
 }
 
 /* Update button styles */
-.google-button, .submit-button {
+.google-button,
+.submit-button {
   width: 100%;
   padding: 1rem;
   border: none;
@@ -254,13 +459,15 @@ const handleGoogleSignIn = async () => {
   display: block;
 }
 
-.google-button:hover, .submit-button:hover {
+.google-button:hover,
+.submit-button:hover {
   background-color: #0f3172; /* Even darker on hover */
   color: #ffffff;
   transform: translateY(-1px); /* Slight lift effect */
 }
 
-.google-button:active, .submit-button:active {
+.google-button:active,
+.submit-button:active {
   transform: translateY(0);
 }
 
@@ -294,6 +501,14 @@ const handleGoogleSignIn = async () => {
   width: 100%;
   max-width: 300px;
   height: auto;
+}
+
+/* Error text */
+.error-text {
+  color: #d32f2f;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  padding-left: 1.5rem;
 }
 
 /* Media query for mobile responsiveness */
@@ -331,6 +546,12 @@ const handleGoogleSignIn = async () => {
 .submit-button:disabled {
   cursor: not-allowed;
   transform: none !important;
+}
+
+.toggle-password svg {
+  color: #02163b;
+  width: 20px;
+  height: 20px;
 }
 
 .button-loading:hover {
