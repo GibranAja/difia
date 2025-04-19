@@ -7,6 +7,7 @@ import { useCartStore } from '@/stores/CartStore' // Add this import
 import { useOrderStore } from '@/stores/OrderStore' // Add this import
 import { getDoc, doc } from 'firebase/firestore' // Add this import
 import { db } from '@/config/firebase' // Add this import
+import { PDFDocument } from 'pdf-lib' // Add this import
 
 const route = useRoute()
 const router = useRouter() // Add this
@@ -142,16 +143,82 @@ const validateForm = () => {
   return isValid
 }
 
-// Modify handleImageUpload to use base64
-const handleImageUpload = (event) => {
+// Add these new refs to your component's script section
+const uploadedLogo = ref(null)
+const logoFileName = ref('')
+const logoFileSize = ref(null)
+
+// Replace the handleImageUpload with this PDF upload handler
+const handleLogoUpload = async (event) => {
   const file = event.target.files[0]
-  if (file) {
+  if (!file || file.type !== 'application/pdf') {
+    alert('Please upload a PDF file')
+    return
+  }
+
+  try {
+    // Check file size (limit to 2MB before compression)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File is too large. Maximum size allowed is 2MB')
+      return
+    }
+
+    logoFileName.value = file.name
+    logoFileSize.value = file.size
+
+    // Compress PDF using pdf-lib
+    const compressedPdf = await compressPdf(file)
+
+    // Convert to base64
     const reader = new FileReader()
     reader.onload = (e) => {
-      uploadedImage.value = e.target.result // This will be base64
+      uploadedLogo.value = e.target.result // This will be base64
     }
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(compressedPdf)
+  } catch (error) {
+    console.error('Error processing PDF:', error)
+    alert('Error processing PDF file')
   }
+}
+
+// More robust PDF compression function
+const compressPdf = async (file) => {
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const pdfDoc = await PDFDocument.load(arrayBuffer)
+
+    // Create a compressed version
+    const compressedPdfBytes = await pdfDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    })
+
+    // Convert back to File object
+    const compressedFile = new File([compressedPdfBytes], file.name, {
+      type: 'application/pdf',
+      lastModified: new Date().getTime(),
+    })
+
+    console.log(
+      `Original size: ${(file.size / 1024).toFixed(2)}KB, Compressed size: ${(compressedFile.size / 1024).toFixed(2)}KB`,
+    )
+
+    return compressedFile
+  } catch (error) {
+    console.error('Error compressing PDF:', error)
+    // Return original file if compression fails
+    return file
+  }
+}
+
+// Replace removeUploadedImage with this
+const removeUploadedLogo = () => {
+  uploadedLogo.value = null
+  logoFileName.value = ''
+  logoFileSize.value = null
+  // Reset file input
+  const fileInput = document.getElementById('logoUpload')
+  if (fileInput) fileInput.value = ''
 }
 
 // Add this helper function
@@ -184,7 +251,7 @@ const addToCart = async () => {
         bahanDalam: selectedBahanDalam.value,
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
-        uploadedImage: purchaseType.value === 'souvenir' ? uploadedImage.value : null,
+        uploadedLogo: purchaseType.value === 'Souvenir' ? uploadedLogo.value : null, // Changed from uploadedImage
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
         note: note.value,
@@ -206,15 +273,7 @@ const handleColorChange = (event) => {
   selectedColor.value = event.target.value
 }
 
-// Add remove function
-const removeUploadedImage = () => {
-  uploadedImage.value = null
-  // Reset file input
-  const fileInput = document.getElementById('imageUpload')
-  if (fileInput) fileInput.value = ''
-}
-
-// Add handleBuyNow function
+// Updated handleBuyNow function
 const handleBuyNow = async () => {
   if (!validateForm()) return
 
@@ -235,7 +294,8 @@ const handleBuyNow = async () => {
         purchaseType: purchaseType.value,
         budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null,
         note: note.value,
-        uploadedImage: uploadedImage.value,
+        // Use uploadedLogo with conditional check - consistent with addToCart
+        uploadedLogo: purchaseType.value === 'Souvenir' ? uploadedLogo.value : null,
       },
     }
 
@@ -604,25 +664,31 @@ watch(purchaseType, (newType) => {
               </div>
             </div>
 
-            <!-- Image Upload for Souvenir -->
+            <!-- PDF Upload for Souvenir -->
             <div class="form-row" v-if="purchaseType === 'Souvenir'">
               <div class="input-group full-width">
-                <label>Upload Photo</label>
-                <div class="upload-zone" :class="{ 'has-image': uploadedImage }">
+                <label>Upload Logo (PDF)</label>
+                <div class="upload-zone" :class="{ 'has-file': uploadedLogo }">
                   <input
                     type="file"
-                    id="imageUpload"
-                    @change="handleImageUpload"
-                    accept="image/*"
+                    id="logoUpload"
+                    @change="handleLogoUpload"
+                    accept="application/pdf"
                     hidden
                   />
-                  <label for="imageUpload" class="upload-trigger">
-                    <i class="upload-icon fas fa-cloud-upload-alt"></i>
-                    <img v-if="uploadedImage" :src="uploadedImage" alt="Preview" />
+                  <label for="logoUpload" class="upload-trigger">
+                    <i class="upload-icon fas fa-file-pdf" v-if="!uploadedLogo"></i>
+                    <div class="pdf-preview" v-if="uploadedLogo">
+                      <i class="fas fa-file-pdf pdf-icon"></i>
+                      <span class="pdf-filename">{{ logoFileName }}</span>
+                    </div>
                   </label>
-                  <button v-if="uploadedImage" @click="removeUploadedImage" class="remove-image">
+                  <button v-if="uploadedLogo" @click="removeUploadedLogo" class="remove-file">
                     <i class="fas fa-times"></i>
                   </button>
+                </div>
+                <div class="file-info" v-if="logoFileSize">
+                  {{ (logoFileSize / 1024).toFixed(2) }} KB
                 </div>
               </div>
             </div>
@@ -1239,6 +1305,58 @@ watch(purchaseType, (newType) => {
 }
 
 .remove-image:hover {
+  transform: scale(1.1);
+}
+
+/* Add these styles to your existing style section */
+.pdf-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pdf-icon {
+  font-size: 3rem;
+  color: #e74c3c;
+}
+
+.pdf-filename {
+  font-size: 0.85rem;
+  color: var(--primary-color);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-info {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.remove-file {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--error-color);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: var(--transition);
+}
+
+.remove-file:hover {
   transform: scale(1.1);
 }
 

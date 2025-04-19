@@ -20,6 +20,7 @@
     "firebase": "^11.1.0",
     "html2pdf.js": "^0.10.2",
     "leaflet": "^1.9.4",
+    "pdf-lib": "^1.17.1",
     "pinia": "^2.3.0",
     "pusher": "^5.2.0",
     "swiper": "^11.2.2",

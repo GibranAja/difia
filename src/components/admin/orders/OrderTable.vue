@@ -75,6 +75,17 @@
                 <img :src="order.customOptions.uploadedImage" alt="Design preview" />
               </div>
               <div v-else class="no-design">Tidak ada emboss</div>
+
+              <div v-if="order.customOptions?.uploadedLogo" class="logo-action">
+                <button
+                  @click="openPdfInNewTab(order.customOptions.uploadedLogo)"
+                  class="view-logo-btn"
+                  title="Lihat Logo"
+                >
+                  <i class="fas fa-file-pdf"></i> Lihat Logo
+                </button>
+              </div>
+              <div v-else class="no-logo">Tidak ada logo</div>
             </td>
             <td>
               <StatusBadge :status="order.status" />
@@ -93,7 +104,7 @@
       </table>
     </div>
   </div>
-  
+
   <!-- Show empty state for no orders or filtered orders -->
   <div v-else class="empty-state">
     <div class="empty-state-content">
@@ -105,56 +116,101 @@
 </template>
 
 <script setup>
-import StatusBadge from './StatusBadge.vue';
-import ProductTooltip from './ProductTooltip.vue';
+import StatusBadge from './StatusBadge.vue'
+import ProductTooltip from './ProductTooltip.vue'
 
 defineProps({
   orders: {
     type: Array,
-    required: true
+    required: true,
   },
   searchQuery: {
     type: String,
-    default: ''
+    default: '',
   },
   orderType: {
     type: String,
-    default: 'regular'
+    default: 'regular',
   },
   showEmbossColumn: {
     type: Boolean,
-    default: false
+    default: false,
   },
   emptyStateIcon: {
     type: String,
-    default: 'fa-box-open'
+    default: 'fa-box-open',
   },
   emptyStateTitle: {
     type: String,
-    default: 'Tidak ada data order'
+    default: 'Tidak ada data order',
   },
   emptyStateMessage: {
     type: String,
-    default: 'Tidak ditemukan pesanan dengan filter yang dipilih'
-  }
-});
+    default: 'Tidak ditemukan pesanan dengan filter yang dipilih',
+  },
+})
 
-defineEmits(['update-status', 'view-payment', 'view-design']);
+defineEmits(['update-status', 'view-payment', 'view-design'])
 
 // Helper functions
 const highlightMatch = (text, query) => {
-  if (!query.trim() || !text) return text;
+  if (!query.trim() || !text) return text
 
-  const regex = new RegExp(`(${query.trim()})`, 'gi');
-  return text.toString().replace(regex, '<span class="highlight">$1</span>');
-};
+  const regex = new RegExp(`(${query.trim()})`, 'gi')
+  return text.toString().replace(regex, '<span class="highlight">$1</span>')
+}
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
-  }).format(price);
-};
+  }).format(price)
+}
+
+const openPdfInNewTab = (base64Data) => {
+  try {
+    // Check if it's a valid base64 data URL
+    if (!base64Data || !base64Data.startsWith('data:application/pdf')) {
+      console.error('Invalid PDF data format')
+      alert('PDF data format is invalid or corrupted')
+      return
+    }
+
+    // Open in a new tab
+    const newWindow = window.open()
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>PDF Viewer</title>
+            <style>
+              body, html {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden;
+              }
+              embed {
+                width: 100%;
+                height: 100%;
+              }
+            </style>
+          </head>
+          <body>
+            <embed src="${base64Data}" type="application/pdf" width="100%" height="100%">
+          </body>
+        </html>
+      `)
+    } else {
+      // If popup was blocked
+      alert('Please allow popups to view the PDF')
+    }
+  } catch (error) {
+    console.error('Error opening PDF:', error)
+    alert('Error opening PDF: ' + error.message)
+  }
+}
 </script>
 
 <style scoped>
@@ -307,6 +363,34 @@ const formatPrice = (price) => {
 .no-design {
   color: #999;
   font-size: 0.9em;
+}
+
+.logo-action {
+  text-align: center;
+}
+
+.view-logo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #02163b;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+
+.view-logo-btn:hover {
+  background-color: #032155;
+}
+
+.no-logo {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 /* Empty state */
