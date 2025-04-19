@@ -5,6 +5,8 @@
       <table class="order-table">
         <thead>
           <tr>
+            <th style="width: 50px">No.</th>
+            <!-- New column for row numbers -->
             <th>Order ID</th>
             <th>Customer</th>
             <th>Address</th>
@@ -18,7 +20,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" :key="order.id">
+          <tr v-for="(order, index) in orders" :key="order.id">
+            <td class="text-center">{{ index + 1 }}</td>
+            <!-- New cell for row number -->
             <td v-html="highlightMatch(order.id, searchQuery)"></td>
             <td>
               <div class="customer-info">
@@ -74,7 +78,7 @@
               >
                 <img :src="order.customOptions.uploadedImage" alt="Design preview" />
               </div>
-              <div v-else class="no-design">Tidak ada emboss</div>
+              <!-- <div v-else class="no-design">Tidak ada emboss</div> -->
 
               <div v-if="order.customOptions?.uploadedLogo" class="logo-action">
                 <button
