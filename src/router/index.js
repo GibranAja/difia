@@ -34,6 +34,12 @@ import LoginPage from '@/views/LoginPage.vue'
 import RegisterPage from '@/views/RegisterPage.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 
+// Account Views
+import AccountLayout from '@/layouts/AccountLayout.vue'
+import ProfileView from '@/views/account/ProfileView.vue'
+import OrdersView from '@/views/account/OrdersView.vue'
+import AddressView from '@/views/account/AddressView.vue'
+
 // Other
 import NotFoundView from '@/views/notfound/NotFound.vue'
 import { useAuthStore } from '@/stores/AuthStore'
@@ -131,6 +137,35 @@ const router = createRouter({
         requiresAuth: false,
         title: 'Verify Email - DIFIA',
       },
+    },
+
+    // Account Routes
+    {
+      path: '/my-account',
+      component: AccountLayout,
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'profile',
+          name: 'Profile',
+          component: ProfileView,
+        },
+        {
+          path: 'orders',
+          name: 'Orders',
+          component: OrdersView,
+        },
+        {
+          path: 'address',
+          name: 'Address',
+          component: AddressView,
+        },
+        // Default redirect
+        {
+          path: '',
+          redirect: { name: 'Profile' },
+        },
+      ],
     },
 
     // Admin Routes
@@ -313,20 +348,17 @@ router.beforeEach(async (to, from, next) => {
 
   // Check authentication for protected routes
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    if (
-      !authStore.isLoggedIn ||
-      (!authStore.currentUser?.isAdmin && !authStore.currentUser?.isStaff)
-    ) {
-      next({ name: 'notFound' })
+    if (!authStore.isLoggedIn) {
+      next({ name: 'Login' }) // Redirect to login instead of 404
       return
     }
-  }
 
-  // Check admin-only routes
-  if (to.matched.some((record) => record.meta.requiresAdmin)) {
-    if (!authStore.isLoggedIn || !authStore.currentUser?.isAdmin) {
-      next({ name: 'notFound' })
-      return
+    // Only check admin/staff status for routes that specifically require it
+    if (to.matched.some((record) => record.meta.requiresAdmin)) {
+      if (!authStore.currentUser?.isAdmin) {
+        next({ name: 'notFound' })
+        return
+      }
     }
   }
 
