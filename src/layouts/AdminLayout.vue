@@ -116,6 +116,7 @@ import { useBlogStore } from '@/stores/BlogStore'
 import { useOrderStore } from '@/stores/OrderStore'
 import { usePartnerStore } from '@/stores/PartnerStore'
 import { useStaffStore } from '@/stores/StaffStore'
+import { useVoucherStore } from '@/stores/VoucherStore'
 
 // Add these imports to your existing imports
 import BackupDataModal from '@/components/admin/BackupDataModal.vue'
@@ -140,6 +141,7 @@ const blogStore = useBlogStore()
 const orderStore = useOrderStore()
 const partnerStore = usePartnerStore()
 const staffStore = useStaffStore()
+const voucherStore = useVoucherStore()
 
 // Add computed property for dynamic page title
 const currentPageTitle = computed(() => {
@@ -204,6 +206,7 @@ onMounted(async () => {
       // orderStore.fetchOrders(),
       partnerStore.fetchPartners(),
       staffStore.fetchStaff(),
+      voucherStore.fetchVouchers(),
     ])
   } catch (error) {
     console.error('Error fetching data:', error)
@@ -247,7 +250,7 @@ const handleSearch = () => {
   const query = searchQuery.value.toLowerCase()
   const results = []
 
-  // Tambahkan pengecekan null/undefined untuk setiap store
+  // Search in katalog items
   if (katalogStore.katalogItems && katalogStore.katalogItems.length) {
     katalogStore.katalogItems.forEach((item) => {
       if (item.nama?.toLowerCase().includes(query)) {
@@ -261,6 +264,7 @@ const handleSearch = () => {
     })
   }
 
+  // Search in blog items
   if (blogStore.blogItems && blogStore.blogItems.length) {
     blogStore.blogItems.forEach((item) => {
       if (item.title?.toLowerCase().includes(query)) {
@@ -274,19 +278,46 @@ const handleSearch = () => {
     })
   }
 
-  if (orderStore.orderItems && orderStore.orderItems.length) {
-    orderStore.orderItems.forEach((item) => {
-      if (item.orderNumber?.toLowerCase().includes(query)) {
+  // Search in orders
+  if (orderStore.orders && orderStore.orders.length) {
+    orderStore.orders.forEach((order) => {
+      // Check if order ID contains query
+      if (order.id?.toLowerCase().includes(query)) {
         results.push({
-          id: item.id,
+          id: order.id,
           type: 'order',
-          text: `Order #${item.orderNumber}`,
-          route: `/admin/order/${item.id}`,
+          text: `Order: #${order.id.slice(0, 8)}`,
+          route: '/admin/order',
+        })
+      }
+      
+      // Also check if customer name contains query
+      if (order.shippingDetails?.name?.toLowerCase().includes(query)) {
+        results.push({
+          id: order.id,
+          type: 'order',
+          text: `Order: ${order.shippingDetails.name}`,
+          route: '/admin/order',
         })
       }
     })
   }
 
+  // Search in vouchers
+  if (voucherStore.voucherItems && voucherStore.voucherItems.length) {
+    voucherStore.voucherItems.forEach((voucher) => {
+      if (voucher.code?.toLowerCase().includes(query)) {
+        results.push({
+          id: voucher.id,
+          type: 'voucher',
+          text: `Voucher: ${voucher.code}`,
+          route: '/admin/voucher',
+        })
+      }
+    })
+  }
+
+  // Keep existing search for partners and staff
   if (partnerStore.partners && partnerStore.partners.length) {
     partnerStore.partners.forEach((item) => {
       if (item.name?.toLowerCase().includes(query)) {
@@ -329,6 +360,7 @@ const getIconForType = (type) => {
     order: 'fas fa-shopping-cart',
     partner: 'fas fa-handshake',
     staff: 'fas fa-user-tie',
+    voucher: 'fas fa-tags',
   }
   return icons[type] || 'fas fa-search'
 }
