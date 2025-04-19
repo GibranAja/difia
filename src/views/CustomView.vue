@@ -19,7 +19,7 @@ const { katalogItems } = storeToRefs(store)
 
 const productId = route.params.id
 const selectedProduct = ref(null)
-const uploadedImage = ref(null)
+// const uploadedImage = ref(null)
 const selectedPrice = ref('Standard') // Add this for radio control
 const note = ref('')
 

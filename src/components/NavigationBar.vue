@@ -344,13 +344,13 @@ const navigateToAccount = (section) => {
 }
 
 // Update existing methods
-const goToOrders = () => {
-  navigateToAccount('orders')
-}
+// const goToOrders = () => {
+//   navigateToAccount('orders')
+// }
 
-const openProfileModal = () => {
-  navigateToAccount('profile')
-}
+// const openProfileModal = () => {
+//   navigateToAccount('profile')
+// }
 
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
