@@ -112,7 +112,7 @@ const items = computed(() => {
     { text: 'Penghargaan', icon: 'fas fa-trophy', pathName: 'AchievementView' },
     { text: 'Pesanan', icon: 'fas fa-shopping-cart', pathName: 'OrderView' },
     { text: 'Chat', icon: 'fas fa-comments', pathName: 'ChatList' },
-    { text: 'Partner', icon: 'fas fa-handshake', pathName: 'PartnerView' },
+    { text: 'Client', icon: 'fas fa-handshake', pathName: 'PartnerView' },
     { text: 'Staff', icon: 'fas fa-person', pathName: 'StaffView' },
     { text: 'Voucher', icon: 'fas fa-tags', pathName: 'VoucherView' },
     { text: 'Banner', icon: 'fas fa-ad', pathName: 'SliderView' },

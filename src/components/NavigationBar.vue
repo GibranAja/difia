@@ -65,14 +65,14 @@
             aria-label="Shopping Cart"
           >
             <div class="button-content">
-              <i class="fas fa-shopping-bag"></i>
+              <i class="fas fa-shopping-cart"></i>
               <div v-if="cartItemCount > 0" class="cart-badge">
                 {{ cartItemCount > 99 ? '99+' : cartItemCount }}
               </div>
             </div>
           </button>
 
-          <!-- User account section with clearer interactions -->
+          <!-- User account section with dropdown menu -->
           <div class="user-section">
             <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
               <span class="login-text">Login</span>
@@ -82,7 +82,7 @@
             <div v-else class="user-profile">
               <div
                 class="profile-container"
-                @click="showProfileModal = true"
+                @click="toggleProfileDropdown"
                 :style="{ backgroundImage: `url(${userProfilePhoto})` }"
                 aria-label="User Profile"
                 role="button"
@@ -90,9 +90,38 @@
                 <div class="profile-accent"></div>
               </div>
 
-              <button class="logout-button" @click="showLogoutModal = true" aria-label="Logout">
-                <i class="fas fa-sign-out-alt"></i>
-              </button>
+              <!-- Profile Dropdown Menu -->
+              <div v-if="showProfileDropdown" class="profile-dropdown">
+                <div class="dropdown-user-info">
+                  <div
+                    class="dropdown-avatar"
+                    :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+                  ></div>
+                  <div class="dropdown-user-details">
+                    <p class="dropdown-username">{{ authStore.currentUser?.name }}</p>
+                    <p class="dropdown-email">{{ authStore.currentUser?.email }}</p>
+                  </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <ul class="dropdown-menu">
+                  <li @click="navigateToAccount('orders')">
+                    <i class="fas fa-shopping-bag"></i> Pesanan
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                  </li>
+                  <li @click="navigateToAccount('profile')">
+                    <i class="fas fa-user"></i> Profil
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                  </li>
+                  <li @click="navigateToAccount('address')">
+                    <i class="fas fa-map-marker-alt"></i> Alamat
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                  </li>
+                  <li @click="showLogoutModal = true">
+                    <i class="fas fa-sign-out-alt"></i> Keluar Akun
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -149,6 +178,7 @@ const showProfileModal = ref(false)
 const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
 const activeSection = ref('home')
+const showProfileDropdown = ref(false)
 
 // Navigation items
 const navItems = [
@@ -304,6 +334,24 @@ const handleLogout = async () => {
   }
 }
 
+const toggleProfileDropdown = () => {
+  showProfileDropdown.value = !showProfileDropdown.value
+}
+
+const navigateToAccount = (section) => {
+  router.push(`/my-account/${section}`)
+  showProfileDropdown.value = false
+}
+
+// Update existing methods
+// const goToOrders = () => {
+//   navigateToAccount('orders')
+// }
+
+// const openProfileModal = () => {
+//   navigateToAccount('profile')
+// }
+
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
   if (isMobileMenuOpen.value) {
@@ -311,6 +359,13 @@ const handleClickOutside = (event) => {
     if (navElement && !navElement.contains(event.target)) {
       isMobileMenuOpen.value = false
       document.body.style.overflow = ''
+    }
+  }
+
+  if (showProfileDropdown.value) {
+    const profileDropdown = document.querySelector('.user-profile')
+    if (profileDropdown && !profileDropdown.contains(event.target)) {
+      showProfileDropdown.value = false
     }
   }
 }
@@ -727,6 +782,7 @@ nav {
 
 /* Enhanced profile section */
 .user-profile {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -796,6 +852,109 @@ nav {
 .logout-button:hover i {
   color: #e8ba38;
   transform: scale(1.1);
+}
+
+/* Profile dropdown styles */
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dropdown-user-info {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  gap: 12px;
+}
+
+.dropdown-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid #e8ba38;
+}
+
+.dropdown-user-details {
+  overflow: hidden;
+}
+
+.dropdown-username {
+  font-weight: 600;
+  margin: 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.dropdown-email {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 0;
+}
+
+.dropdown-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-menu li {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: #333;
+  position: relative;
+  font-size: 0.9rem;
+}
+
+.dropdown-menu li:hover {
+  background-color: #f9f9f9;
+}
+
+.dropdown-menu li i:first-child {
+  margin-right: 12px;
+  width: 16px;
+  color: #02163b;
+}
+
+.menu-arrow {
+  position: absolute;
+  right: 15px;
+  color: #999;
+  font-size: 0.7rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Modern mobile menu toggle */

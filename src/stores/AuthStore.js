@@ -10,19 +10,41 @@ import {
   onAuthStateChanged,
   signInWithPopup,
   sendPasswordResetEmail,
-  sendEmailVerification, // Add this import
+  sendEmailVerification,
   applyActionCode,
   checkActionCode,
   EmailAuthProvider,
   linkWithCredential,
+  fetchSignInMethodsForEmail,
 } from 'firebase/auth'
-import { collection, doc, updateDoc, addDoc, query, where, getDocs } from 'firebase/firestore'
+import {
+  collection,
+  doc,
+  updateDoc,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  getDoc,
+} from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
 import bcrypt from 'bcryptjs'
 
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10)
   return bcrypt.hash(password, salt)
+}
+
+// Function to validate email format
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+// Function to validate phone number format
+const isValidPhone = (phone) => {
+  const phoneRegex = /^(62|0)\d{9,12}$/
+  return phoneRegex.test(phone)
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -35,11 +57,12 @@ export const useAuthStore = defineStore('auth', () => {
   const message = ref('')
   const resetEmail = ref('')
   const verificationCode = ref(null)
-  const isEmailVerified = ref(false) // Add this state
+  const isEmailVerified = ref(false)
 
   const user = reactive({
     name: '',
     email: '',
+    phone: '', // Add phone field
     password: '',
     profilePhoto: '',
   })
@@ -58,7 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const authUser = async (isLogin = false, router) => {
+  const authUser = async (isLogin = false, router, loginIdentifier = null) => {
     try {
       isLoading.value = true
       isError.value = false
@@ -66,69 +89,123 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (isLogin) {
         // Login flow
-        const userCredential = await signInWithEmailAndPassword(auth, user.email, user.password)
+        const isEmail = loginIdentifier ? isValidEmail(loginIdentifier) : isValidEmail(user.email)
+        const identifier = loginIdentifier || user.email
 
-        if (userCredential) {
-          // Check in users collection first
-          const userQuery = query(
-            collection(db, 'users'),
-            where('uid', '==', userCredential.user.uid),
-          )
+        if (isEmail) {
+          // Login with email
+          const userCredential = await signInWithEmailAndPassword(auth, identifier, user.password)
+
+          if (userCredential) {
+            // Check in users collection first
+            const userQuery = query(
+              collection(db, 'users'),
+              where('uid', '==', userCredential.user.uid),
+            )
+            const userData = await getDocs(userQuery)
+
+            // Check staff collection if not found in users
+            const staffQuery = query(
+              collection(db, 'staff'),
+              where('email', '==', userCredential.user.email),
+            )
+            const staffData = await getDocs(staffQuery)
+
+            if (!userData.empty) {
+              // User found in users collection
+              const userDoc = userData.docs[0].data()
+              currentUser.value = {
+                email: userCredential.user.email,
+                id: userCredential.user.uid,
+                name: userDoc.name,
+                isAdmin: userDoc.isAdmin || false,
+                phone: userDoc.phone || '',
+                isStaff: false,
+                profilePhoto: userDoc.profilePhoto || '',
+              }
+              isLoggedIn.value = true
+              await redirectAfterAuth(userDoc.isAdmin, router)
+            } else if (!staffData.empty) {
+              // User found in staff collection
+              const staffDoc = staffData.docs[0].data()
+              currentUser.value = {
+                email: userCredential.user.email,
+                id: userCredential.user.uid,
+                name: staffDoc.name,
+                isAdmin: false,
+                isStaff: true,
+                role: 'staff',
+                phone: staffDoc.phone || '',
+                profilePhoto: staffDoc.profilePhoto || '',
+              }
+              isLoggedIn.value = true
+              await router.push('/admin')
+              toast.success('Welcome back, Staff member!')
+            } else {
+              throw new Error('User account not found')
+            }
+          }
+        } else {
+          // Login with phone number
+          const userQuery = query(collection(db, 'users'), where('phone', '==', identifier))
           const userData = await getDocs(userQuery)
 
-          // Check in staff collection
-          const staffQuery = query(collection(db, 'staff'), where('email', '==', user.email))
-          const staffData = await getDocs(staffQuery)
+          if (userData.empty) {
+            throw new Error('No user found with this phone number')
+          }
 
-          if (!userData.empty) {
-            // User is in users collection
-            const adminData = userData.docs[0].data()
-            currentUser.value = {
-              email: userCredential.user.email,
-              id: userCredential.user.uid,
-              name: adminData.name,
-              isAdmin: adminData.isAdmin,
-              profilePhoto: adminData.profilePhoto || '',
-              role: adminData.isAdmin ? 'admin' : 'user',
-            }
-            isLoggedIn.value = true
+          const userDoc = userData.docs[0].data()
 
-            // Only redirect to admin if isAdmin is true
-            if (adminData.isAdmin) {
-              await redirectAfterAuth(true, router)
-            } else {
-              await router.push('/')
-              toast.success('Welcome back!')
-            }
-          } else if (!staffData.empty) {
-            // User is a staff member
-            const staffDoc = staffData.docs[0].data()
+          // Verify password with bcrypt
+          const isPasswordValid = await bcrypt.compare(user.password, userDoc.hashedPassword)
+
+          if (!isPasswordValid) {
+            throw new Error('Invalid phone number or password')
+          }
+
+          // Check if the user has an associated Firebase auth account
+          if (userDoc.uid) {
+            await signInWithEmailAndPassword(
+              auth,
+              userDoc.email,
+              user.password,
+            )
+
             currentUser.value = {
-              email: userCredential.user.email,
-              id: userCredential.user.uid,
-              name: staffDoc.name,
-              isAdmin: false,
-              isStaff: true,
-              role: 'staff',
-              profilePhoto: staffDoc.profilePhoto || '',
+              email: userDoc.email,
+              id: userDoc.uid,
+              name: userDoc.name,
+              phone: userDoc.phone || '',
+              isAdmin: userDoc.isAdmin || false,
+              isStaff: false,
+              profilePhoto: userDoc.profilePhoto || '',
             }
+
             isLoggedIn.value = true
-            await router.push('/admin')
-            toast.success('Welcome back, Staff member!')
+            await redirectAfterAuth(userDoc.isAdmin, router)
           } else {
-            throw new Error('User account not found')
+            throw new Error('Account error: Please contact support')
           }
         }
 
         // Add a check for email verification
-        if (userCredential && !userCredential.user.emailVerified) {
+        const firebaseUser = auth.currentUser
+        if (firebaseUser && !firebaseUser.emailVerified) {
           toast.warning('Please verify your email before logging in.')
-          await sendEmailVerification(userCredential.user)
+          await sendEmailVerification(firebaseUser)
           await router.push('/verify-email')
           return
         }
       } else {
         // Register flow with hashed password
+        // Check if phone number already exists
+        const phoneQuery = query(collection(db, 'users'), where('phone', '==', user.phone))
+        const phoneSnapshot = await getDocs(phoneQuery)
+
+        if (!phoneSnapshot.empty) {
+          throw new Error('Phone number is already registered')
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.password)
 
         if (userCredential) {
@@ -139,14 +216,16 @@ export const useAuthStore = defineStore('auth', () => {
           await sendEmailVerification(userCredential.user)
           isEmailVerified.value = false
 
+          // Store user in Firestore with all fields
           await addDoc(collection(db, 'users'), {
             uid: userCredential.user.uid,
             name: user.name,
             email: user.email,
-            hashedPassword: hashedPassword, // Store hashed password instead of plaintext
+            phone: user.phone,
+            hashedPassword: hashedPassword,
             profilePhoto: user.profilePhoto || '',
             isAdmin: false,
-            emailVerified: false, // Add this field
+            emailVerified: false,
           })
 
           // Set current user after successful registration
@@ -154,6 +233,7 @@ export const useAuthStore = defineStore('auth', () => {
             email: user.email,
             id: userCredential.user.uid,
             name: user.name,
+            phone: user.phone,
             isAdmin: false,
             profilePhoto: user.profilePhoto || '',
             emailVerified: false,
@@ -172,6 +252,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.name = ''
       user.email = ''
       user.password = ''
+      user.phone = ''
       user.profilePhoto = ''
     } catch (error) {
       handleAuthError(error)
@@ -201,7 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        message.value = 'Invalid email or password'
+        message.value = 'Invalid email/phone or password'
         break
       case 'auth/email-already-in-use':
         message.value = 'Email is already registered'
@@ -216,6 +297,7 @@ export const useAuthStore = defineStore('auth', () => {
         message.value = error.message
     }
     toast.error(message.value)
+    return Promise.reject(error)
   }
 
   const initializeAuthState = () => {

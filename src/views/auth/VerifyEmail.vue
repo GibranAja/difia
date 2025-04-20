@@ -155,9 +155,212 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f7f7f7;
+  background-color: #f8f9fa;
   padding: 20px;
+  font-family: 'Montserrat', sans-serif;
 }
 
-/* Rest of your CSS remains unchanged */
+.verify-email-content {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.verify-email-logo {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.difia-logo {
+  width: 160px;
+  height: auto;
+}
+
+.verify-email-box {
+  width: 100%;
+  background-color: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.verify-title {
+  font-size: 2rem;
+  color: #02163b;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.verify-title::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 4px;
+  background-color: #e8ba38;
+  border-radius: 2px;
+}
+
+/* Success state */
+.verification-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.success-icon {
+  font-size: 4rem;
+  color: #28a745;
+  margin-bottom: 1.5rem;
+}
+
+.verified-btn {
+  margin-top: 2rem;
+  background-color: #02163b;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 300px;
+}
+
+.verified-btn:hover {
+  background-color: #0f3172;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(2, 22, 59, 0.2);
+}
+
+.verified-btn:active {
+  transform: translateY(0);
+}
+
+/* Pending state */
+.verification-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.pending-icon {
+  font-size: 4rem;
+  color: #e8ba38;
+  margin-bottom: 1.5rem;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.verification-pending h2 {
+  font-size: 1.5rem;
+  color: #02163b;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.verification-pending p {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.verification-pending p strong {
+  color: #02163b;
+  font-weight: 600;
+}
+
+.verification-instructions {
+  background-color: rgba(232, 186, 56, 0.1);
+  border-left: 4px solid #e8ba38;
+  padding: 1rem;
+  border-radius: 0 8px 8px 0;
+  text-align: left;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.resend-section {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.resend-btn {
+  background-color: white;
+  color: #02163b;
+  border: 2px solid #02163b;
+  border-radius: 50px;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.resend-btn:hover:not(:disabled) {
+  background-color: #02163b;
+  color: white;
+}
+
+.resend-btn:disabled {
+  border-color: #ccc;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .verify-email-box {
+    padding: 1.8rem;
+  }
+
+  .verify-title {
+    font-size: 1.8rem;
+  }
+
+  .verification-pending h2 {
+    font-size: 1.3rem;
+  }
+
+  .verification-instructions {
+    font-size: 0.9rem;
+  }
+}
 </style>
