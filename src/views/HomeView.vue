@@ -5,15 +5,24 @@
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
   <main>
-    <!-- <TentangKamiSection /> -->
-    <!-- <section class="top-seller">
+    <section class="popular">
       <div class="video-ad">
-        <video src=""></video>
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/zkaYFSB-5og?si=ZCt9odiscNqcLabv"
+          title="YouTube video player"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
       </div>
-      <div class="top-product">
-        <CardCatalog></CardCatalog>
+      <div class="product-card">
+        <p v-if="!popularKatalog.length">Produk populer tidak tersedia.</p>
+        <CardPopuler/>
       </div>
-    </section> -->
+    </section>
     <section class="katalog" id="catalog">
       <span class="box"></span>
       <span class="rounded"></span>
@@ -84,6 +93,7 @@ import FooterComponent from '@/components/FooterComponent.vue'
 import CardUlasan from '@/components/CardUlasan.vue'
 import CardMitra from '@/components/CardMitra.vue'
 import HeroSwiper from '@/components/HeroSwiper.vue'
+import CardPopuler from '@/components/CardPopuler.vue'
 // import TentangKamiSection from '@/components/TentangKamiSection.vue'
 
 const authStore = useAuthStore()
@@ -231,6 +241,12 @@ const loadMoreBlogs = () => {
 const hasMoreBlogItems = computed(() => {
   return blogDisplayCount.value < blogStore.blogItems.length
 })
+
+const popularKatalog = computed(() => {
+  if (!katalogStore.katalogItems.length) return []
+  const sortedKatalog = [...katalogStore.katalogItems].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
+  return sortedKatalog.slice(0, 3)
+})
 </script>
 
 <style scoped>
@@ -315,13 +331,29 @@ header {
   height: 100%;
 }
 
-.top-seller {
+.popular {
   display: flex;
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 100px;
+  padding: 10px;
   position: relative;
+  width: 100%;
+}
+.video-ad{
+  width: 20%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.product-card {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 70%;
+  overflow-x: scroll;
+  scrollbar-color: transparent transparent;
 }
 
 .katalog {
