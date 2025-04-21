@@ -6,14 +6,14 @@
   </header>
   <main>
     <!-- <TentangKamiSection /> -->
-    <section class="top-seller">
+    <!-- <section class="top-seller">
       <div class="video-ad">
         <video src=""></video>
       </div>
       <div class="top-product">
         <CardCatalog></CardCatalog>
       </div>
-    </section>
+    </section> -->
     <section class="katalog" id="catalog">
       <span class="box"></span>
       <span class="rounded"></span>
