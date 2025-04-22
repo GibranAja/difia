@@ -19,7 +19,8 @@
         ></iframe>
       </div>
       <div class="product-card">
-        <p v-if="!popularKatalog.length">Produk populer tidak tersedia.</p>
+          <h1><b>PRODUK P<i class="fas fa-crown"></i>PULER</b></h1>
+        <!-- <p v-if="!popularKatalog.length">Produk populer tidak tersedia.</p> -->
         <CardPopuler/>
       </div>
     </section>
@@ -339,21 +340,31 @@ header {
   padding: 10px;
   position: relative;
   width: 100%;
+  height: 100vh;
 }
 .video-ad{
   width: 20%;
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
 }
 .product-card {
   display: flex;
-  justify-content: space-around;
+  justify-content:space-around ;
   align-items: center;
   flex-wrap: wrap;
   width: 70%;
-  overflow-x: scroll;
-  scrollbar-color: transparent transparent;
+  height: 100vh;
+}
+.product-card h1 {
+  font-size: 4rem;
+  width: 100%;
+  text-align: center;
+  color: black;
+}
+.product-card h1 i {
+  color: #e8ba38;
 }
 
 .katalog {
@@ -443,7 +454,7 @@ header {
   font-size: 4rem;
   width: 100%;
   text-align: center;
-  color: #02163b;
+  color: black;
 }
 
 .line {
@@ -471,7 +482,7 @@ header {
   font-size: 4rem;
   width: 100%;
   text-align: center;
-  color: #02163b;
+  color: black;
 }
 
 .ulasan {
@@ -488,7 +499,7 @@ header {
   text-align: center;
   width: 100%;
   font-size: 4rem;
-  color: #02163b;
+  color: black;
 }
 
 /* Add these new styles */

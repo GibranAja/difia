@@ -5,11 +5,15 @@
 
   <div v-else class="popular-cards-container">
     <div
-      v-for="product in popularProducts"
+      v-for="(product, index) in popularProducts"
       :key="product.id"
-      class="card-seller"
+      :class="['card-seller', `rank-${index + 1}`, getSoldCountClass(product.soldCount)]"
+      :style="getCardStyle(index)"
       @click="goToDetail(product.id)"
     >
+      <div class="rank-badge">
+        <i :class="['fas', 'fa-crown', `rank-color-${index + 1}`]"></i>{{ index + 1 }}
+      </div>
       <div class="card-seller__image">
         <img :src="product.image" alt="Card Image" />
         <div class="bestseller-tag">BESTSELLER</div>
@@ -33,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { collection, query, getDocs, doc, getDoc, orderBy, where } from 'firebase/firestore'
 import { db } from '@/config/firebase'
@@ -47,12 +51,10 @@ const fetchPopularProducts = async () => {
   try {
     loading.value = true
 
-    // First, get all orders
     const ordersRef = collection(db, 'orders')
     const q = query(ordersRef, orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
 
-    // Count sales per productId
     const productSales = {}
 
     snapshot.docs.forEach((doc) => {
@@ -65,13 +67,11 @@ const fetchPopularProducts = async () => {
       }
     })
 
-    // Convert to array and sort by sales count
     const sortedProducts = Object.entries(productSales)
       .map(([id, count]) => ({ id, soldCount: count }))
       .sort((a, b) => b.soldCount - a.soldCount)
-      .slice(0, 3) // Get top 3
+      .slice(0, 3)
 
-    // Fetch product details and reviews for each popular product
     const productDetailsPromises = sortedProducts.map(async (product) => {
       const productRef = doc(db, 'katalog', product.id)
       const productDoc = await getDoc(productRef)
@@ -79,12 +79,10 @@ const fetchPopularProducts = async () => {
       if (productDoc.exists()) {
         const data = productDoc.data()
 
-        // Fetch reviews for this product
         const reviewsRef = collection(db, 'reviews')
         const reviewsQuery = query(reviewsRef, where('productId', '==', product.id))
         const reviewsSnapshot = await getDocs(reviewsQuery)
 
-        // Calculate average rating
         let averageRating = 0
         const reviews = reviewsSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -118,12 +116,23 @@ const fetchPopularProducts = async () => {
   }
 }
 
-// Format price with thousand separator
-const formatPrice = (price) => {
-  return price.toLocaleString('id-ID')
+// Determine CSS class based on sold count
+const getSoldCountClass = (soldCount) => {
+  if (soldCount > 100) return 'high-sales'
+  if (soldCount > 50) return 'medium-sales'
+  return 'low-sales'
 }
 
-// Navigate to product detail
+// Get dynamic style for cards
+const getCardStyle = (index) => {
+  const sizes = ['scale(1)', 'scale(0.9)', 'scale(0.8)']
+  const yOffset = index * 20
+  return {
+    transform: `${sizes[index] || 'scale(1)'} translateY(${yOffset}px)`,
+    zIndex: 1 - index,
+  }
+}
+
 const goToDetail = (productId) => {
   router.push(`/detail/${productId}`)
 }
@@ -135,27 +144,31 @@ onMounted(() => {
 
 <style scoped>
 .popular-cards-container {
+  position: relative;
   display: flex;
+  /* gap: 10px; Jarak horizontal antar kartu */
+  /* justify-content: space-around; */
   gap: 20px;
-  justify-content: center;
+  align-items:center;
   flex-wrap: wrap;
+  /* align-items: flex-start; Pastikan kartu tidak menumpuk */
+  /* width: 70%; */
 }
 
 .card-seller {
-  width: 250px;
-  border-radius: 12px;
+  width: 300px;
+  height: 350px;
+  border-radius: 10px;
   overflow: hidden;
   background-color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
+  position: relative;
+  margin-bottom: 0px; /* Jarak vertikal antar kartu */
 }
 
 .card-seller:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px) scale(1.05);
 }
 
 .card-seller__image {
@@ -214,7 +227,7 @@ onMounted(() => {
 }
 
 .sales {
-  font-size: 13px;
+  font-size: 20px;
   color: #666;
 }
 
@@ -227,7 +240,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 20px;
   color: #666;
 }
 
@@ -259,5 +272,47 @@ onMounted(() => {
 .loading i {
   margin-right: 8px;
   color: #e8ba38;
+}
+
+.high-sales {
+  transform: scale(1.1);
+  border: 2px solid #e8ba38;
+}
+
+.medium-sales {
+  transform: scale(1.05);
+  border: 2px solid #ffbb00;
+}
+
+.low-sales {
+  transform: scale(1);
+  border: 2px solid #ccc;
+}
+.rank-badge{
+  position: absolute;
+  top: 0px;
+  right: 0;
+  padding: 5px;
+  background-color: #e8ba38;
+  color: #02163b;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 1;
+  word-spacing: 10rem;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  width: 40px;
+}
+
+.rank-color-1 {
+  color: #ffd700; /* Emas */
+}
+
+.rank-color-2 {
+  color: #c0c0c0; /* Perak */
+}
+
+.rank-color-3 {
+  color: #cd7f32; /* Perunggu */
 }
 </style>
