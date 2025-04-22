@@ -47,7 +47,7 @@
             aria-label="Notifications"
           >
             <div class="button-content">
-              <i class="fas fa-history"></i>
+              <i class="fas fa-bell"></i>
               <div v-if="notificationStore.notificationCount > 0" class="notification-badge pulse">
                 {{
                   notificationStore.notificationCount > 99

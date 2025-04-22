@@ -21,7 +21,7 @@ export const useVoucherStore = defineStore('voucher', () => {
   const isLoading = ref(false)
   const error = ref(null)
 
-  // Cache mechanism
+  // In-memory cache mechanism (no localStorage)
   const cache = {
     data: new Map(),
     timestamp: new Map(),
@@ -30,36 +30,10 @@ export const useVoucherStore = defineStore('voucher', () => {
     set(key, value) {
       this.data.set(key, value)
       this.timestamp.set(key, Date.now())
-
-      // Persist to localStorage as backup
-      try {
-        localStorage.setItem(
-          'voucher_cache',
-          JSON.stringify({
-            data: Array.from(this.data.entries()),
-            timestamp: Array.from(this.timestamp.entries()),
-          }),
-        )
-      } catch (e) {
-        console.warn('LocalStorage write failed:', e)
-      }
+      // Removed localStorage code
     },
 
     get(key) {
-      // Try to load from localStorage first if cache is empty
-      if (this.data.size === 0) {
-        try {
-          const cached = localStorage.getItem('voucher_cache')
-          if (cached) {
-            const { data, timestamp } = JSON.parse(cached)
-            this.data = new Map(data)
-            this.timestamp = new Map(timestamp)
-          }
-        } catch (e) {
-          console.warn('LocalStorage read failed:', e)
-        }
-      }
-
       const timestamp = this.timestamp.get(key)
       if (!timestamp) return null
 
@@ -74,7 +48,7 @@ export const useVoucherStore = defineStore('voucher', () => {
     clear(key) {
       this.data.delete(key)
       this.timestamp.delete(key)
-      localStorage.removeItem('voucher_cache')
+      // Removed localStorage code
     },
   }
 
@@ -121,10 +95,10 @@ export const useVoucherStore = defineStore('voucher', () => {
     }
   }
 
-  // Fetch vouchers with caching
+  // Fetch vouchers without using localStorage cache
   const fetchVouchers = async () => {
     try {
-      // Check cache first
+      // Check in-memory cache first
       const cached = cache.get('vouchers')
       if (cached) {
         voucherItems.value = cached
@@ -142,7 +116,7 @@ export const useVoucherStore = defineStore('voucher', () => {
         ...doc.data(),
       }))
 
-      // Update cache
+      // Update in-memory cache only
       cache.set('vouchers', voucherItems.value)
 
       return { success: true }
