@@ -14,7 +14,7 @@
 import { ref, onMounted, watch, defineProps } from 'vue'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '@/config/firebase'
-import defaultImage from '@/assets/difia.jpg'
+import defaultImage from '@/assets/Logo_Difia_Haki.PNG'
 
 const props = defineProps({
   achievementId: {

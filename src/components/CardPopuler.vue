@@ -8,7 +8,6 @@
       v-for="(product, index) in popularProducts"
       :key="product.id"
       :class="['card-seller', `rank-${index + 1}`, getSoldCountClass(product.soldCount)]"
-      :style="getCardStyle(index)"
       @click="goToDetail(product.id)"
     >
       <div class="rank-badge">
@@ -118,20 +117,20 @@ const fetchPopularProducts = async () => {
 
 // Determine CSS class based on sold count
 const getSoldCountClass = (soldCount) => {
-  if (soldCount > 100) return 'high-sales'
-  if (soldCount > 50) return 'medium-sales'
+  if (soldCount > 50) return 'high-sales'
+  if (soldCount > 40) return 'medium-sales'
   return 'low-sales'
 }
 
-// Get dynamic style for cards
-const getCardStyle = (index) => {
-  const sizes = ['scale(1)', 'scale(0.9)', 'scale(0.8)']
-  const yOffset = index * 20
-  return {
-    transform: `${sizes[index] || 'scale(1)'} translateY(${yOffset}px)`,
-    zIndex: 1 - index,
-  }
-}
+// // Get dynamic style for cards
+// const getCardStyle = (index) => {
+//   const sizes = ['scale(1)', 'scale(0.9)', 'scale(0.8)']
+//   const yOffset = index * 20
+//   return {
+//     transform: `${sizes[index] || 'scale(1)'} translateY(${yOffset}px)`,
+//     zIndex: 1 - index,
+//   }
+// }
 
 const goToDetail = (productId) => {
   router.push(`/detail/${productId}`)
@@ -149,7 +148,7 @@ onMounted(() => {
   /* gap: 10px; Jarak horizontal antar kartu */
   /* justify-content: space-around; */
   gap: 20px;
-  align-items:center;
+  align-items: center;
   flex-wrap: wrap;
   /* align-items: flex-start; Pastikan kartu tidak menumpuk */
   /* width: 70%; */
@@ -157,11 +156,13 @@ onMounted(() => {
 
 .card-seller {
   width: 300px;
-  height: 350px;
+  /* height: 300px; */
   border-radius: 10px;
   overflow: hidden;
   background-color: white;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   cursor: pointer;
   position: relative;
   margin-bottom: 0px; /* Jarak vertikal antar kartu */
@@ -169,6 +170,7 @@ onMounted(() => {
 
 .card-seller:hover {
   transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .card-seller__image {
@@ -274,21 +276,21 @@ onMounted(() => {
   color: #e8ba38;
 }
 
-.high-sales {
-  transform: scale(1.1);
+/* .high-sales {
+  transform: scale(1);
   border: 2px solid #e8ba38;
 }
 
 .medium-sales {
   transform: scale(1.05);
-  border: 2px solid #ffbb00;
+  border: 2px solid #ccc;
 }
 
 .low-sales {
   transform: scale(1);
-  border: 2px solid #ccc;
-}
-.rank-badge{
+  border: 2px solid #A76545;
+} */
+.rank-badge {
   position: absolute;
   top: 0px;
   right: 0;
