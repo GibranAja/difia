@@ -177,10 +177,10 @@ const genderOptions = [
   { value: 'Lainnya', label: 'Lainnya' },
 ]
 
-const today = computed(() => {
-  const date = new Date()
-  return date.toISOString().split('T')[0]
-})
+// const today = computed(() => {
+//   const date = new Date()
+//   return date.toISOString().split('T')[0]
+// })
 
 const triggerFileInput = () => {
   fileInput.value.click()
@@ -296,17 +296,17 @@ const saveProfile = async () => {
   }
 }
 
-const resetForm = () => {
-  userProfile.value = {
-    name: authStore.currentUser?.name || '',
-    email: authStore.currentUser?.email || '',
-    phone: authStore.currentUser?.phone || '',
-    gender: authStore.currentUser?.gender || '',
-    birthdate: authStore.currentUser?.birthdate || '',
-    profilePhoto: authStore.currentUser?.profilePhoto || null,
-  }
-  previewPhoto.value = null
-}
+// const resetForm = () => {
+//   userProfile.value = {
+//     name: authStore.currentUser?.name || '',
+//     email: authStore.currentUser?.email || '',
+//     phone: authStore.currentUser?.phone || '',
+//     gender: authStore.currentUser?.gender || '',
+//     birthdate: authStore.currentUser?.birthdate || '',
+//     profilePhoto: authStore.currentUser?.profilePhoto || null,
+//   }
+//   previewPhoto.value = null
+// }
 
 const days = computed(() => {
   if (!dateComponents.value.month || !dateComponents.value.year)

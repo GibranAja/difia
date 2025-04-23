@@ -38,17 +38,20 @@
             </ul>
           </div>
 
-          <!-- Right side - user actions with improved accessibility -->
           <div class="user-actions">
-            <!-- Notification bell with improved animation -->
-            <div class="notification-icon" @click="handleNotificationClick">
-              <i class="fas fa-bell"></i>
-              <span v-if="notificationStore.unreadCount > 0" class="notification-badge">
-                {{ notificationStore.unreadCount }}
-              </span>
-            </div>
+            <button
+              class="action-button notification-button"
+              @click="handleNotificationClick"
+              aria-label="Notifications"
+            >
+              <div class="button-content">
+                <i class="fas fa-bell"></i>
+                <div v-if="notificationStore.unreadCount > 0" class="notification-badge">
+                  {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
+                </div>
+              </div>
+            </button>
 
-            <!-- Shopping cart with improved visual feedback -->
             <button
               class="action-button cart-button"
               @click="navigateToCart"
@@ -62,7 +65,6 @@
               </div>
             </button>
 
-            <!-- User account section with dropdown menu -->
             <div class="user-section">
               <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
                 <span class="login-text">Login</span>

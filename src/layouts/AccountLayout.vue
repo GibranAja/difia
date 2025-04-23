@@ -1,8 +1,9 @@
 <template>
-  <!-- Add NavigationBar at the top -->
+  <!-- Add VoucherNotification above NavigationBar -->
+  <VoucherNotification />
   <NavigationBar />
 
-  <div class="account-layout">
+  <div class="account-layout" :class="{ 'has-voucher': hasActiveVouchers }">
     <div class="account-container">
       <div class="account-sidebar">
         <div class="sidebar-header">
@@ -51,16 +52,71 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useVoucherStore } from '@/stores/VoucherStore'
 import defaultAvatarImage from '@/assets/default-avatar-wm14gXiP.png'
 import NavigationBar from '@/components/NavigationBar.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue'
+import { collection, query, onSnapshot, where } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 
 const authStore = useAuthStore()
+const voucherStore = useVoucherStore()
+const unsubscribeListener = ref(null)
 
 const userProfilePhoto = computed(() => {
   return authStore.currentUser?.profilePhoto || defaultAvatarImage
+})
+
+// Compute if there are active vouchers
+const hasActiveVouchers = computed(() => {
+  return voucherStore.voucherItems.some((voucher) => {
+    const now = new Date()
+    const validUntilDate = new Date(voucher.validUntil)
+    const isNotExpired = validUntilDate > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
+})
+
+// Set up real-time listener for vouchers
+const setupVoucherListener = () => {
+  try {
+    const vouchersRef = collection(db, 'vouchers')
+    const vouchersQuery = query(vouchersRef, where('isActive', '==', true))
+
+    unsubscribeListener.value = onSnapshot(
+      vouchersQuery,
+      (snapshot) => {
+        const vouchers = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        voucherStore.voucherItems = vouchers
+      },
+      (error) => {
+        console.error('Error in voucher listener:', error)
+      },
+    )
+  } catch (error) {
+    console.error('Error setting up voucher listener:', error)
+  }
+}
+
+onMounted(() => {
+  // Fetch vouchers and setup real-time listener
+  voucherStore.fetchVouchers().then(() => {
+    setupVoucherListener()
+  })
+})
+
+onUnmounted(() => {
+  // Clean up listener when component is unmounted
+  if (unsubscribeListener.value) {
+    unsubscribeListener.value()
+  }
 })
 </script>
 
@@ -69,7 +125,13 @@ const userProfilePhoto = computed(() => {
   background-color: #f8f9fa;
   min-height: calc(100vh - 110px);
   padding: 2rem 0;
-  margin-top: 70px; /* Already accounts for navbar height */
+  margin-top: 70px; /* Default margin for navbar height */
+  transition: margin-top 0.3s ease;
+}
+
+/* Adjust margin when voucher notification is present */
+.account-layout.has-voucher {
+  margin-top: 110px; /* Increased to accommodate both navbar and voucher notification */
 }
 
 .account-container {
@@ -88,6 +150,16 @@ const userProfilePhoto = computed(() => {
   overflow: hidden;
   padding-bottom: 1rem;
   height: fit-content;
+  /* Add sticky positioning */
+  position: sticky;
+  top: 90px; /* Default top position (navbar height + some padding) */
+  transition: top 0.3s ease; /* Smooth transition when voucher appears/disappears */
+  align-self: flex-start; /* Ensures the sidebar doesn't stretch */
+}
+
+/* Adjust top position when voucher notification is present */
+.has-voucher .account-sidebar {
+  top: 130px; /* Increased to accommodate voucher notification */
 }
 
 .sidebar-header {
@@ -185,6 +257,13 @@ const userProfilePhoto = computed(() => {
 
   .account-sidebar {
     width: 100%;
+    position: relative; /* Remove sticky on mobile */
+    top: 0;
+  }
+
+  /* Adjust the margin for mobile when voucher is present */
+  .account-layout.has-voucher {
+    margin-top: 100px;
   }
 }
 </style>

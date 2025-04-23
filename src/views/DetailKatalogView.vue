@@ -1,9 +1,10 @@
 <template>
   <div class="detail-container">
     <!-- Include your existing navbar component here -->
+    <VoucherNotification />
     <Navbar />
 
-    <div class="content-wrapper">
+    <div class="content-wrapper" :class="{ 'has-voucher': hasActiveVouchers }">
       <!-- Breadcrumbs -->
       <div class="breadcrumbs">
         <router-link to="/">Beranda</router-link> &gt; <router-link to="/">Produk</router-link> &gt;
@@ -396,6 +397,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useKatalogStore } from '@/stores/KatalogStore'
+import { useVoucherStore } from '@/stores/VoucherStore' // Add this import
 import {
   collection,
   query,
@@ -412,6 +414,7 @@ import defaultAvatar from '@/assets/default-avatar-wm14gXiP.png'
 import ProductCarousel from '@/components/ProductCarousel.vue'
 import Navbar from '@/components/NavigationBar.vue'
 import Footer from '@/components/FooterComponent.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue' // Add this import
 
 // Initialize router and route
 const router = useRouter()
@@ -419,7 +422,44 @@ const route = useRoute()
 const toast = useToast()
 const katalogStore = useKatalogStore()
 const authStore = useAuthStore()
+const voucherStore = useVoucherStore() // Add this store
 const katalog = ref(null)
+const voucherListener = ref(null) // Add this for cleanup
+
+// Compute if there are active vouchers
+const hasActiveVouchers = computed(() => {
+  return voucherStore.voucherItems.some((voucher) => {
+    const now = new Date()
+    const validUntilDate = new Date(voucher.validUntil)
+    const isNotExpired = validUntilDate > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
+})
+
+// Set up real-time listener for vouchers
+const setupVoucherListener = () => {
+  try {
+    const vouchersRef = collection(db, 'vouchers')
+    const vouchersQuery = query(vouchersRef, where('isActive', '==', true))
+
+    voucherListener.value = onSnapshot(
+      vouchersQuery,
+      (snapshot) => {
+        const vouchers = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        voucherStore.voucherItems = vouchers
+      },
+      (error) => {
+        console.error('Error in voucher listener:', error)
+      },
+    )
+  } catch (error) {
+    console.error('Error setting up voucher listener:', error)
+  }
+}
 
 // Function to format price with comma as thousand separator
 const formatPrice = (price) => {
@@ -469,12 +509,19 @@ onMounted(async () => {
   if (productId) {
     loadReviewsFromFirestore(productId)
   }
+
+  // Fetch vouchers and setup real-time listener
+  await voucherStore.fetchVouchers()
+  setupVoucherListener()
 })
 
 // Clean up on component unmount
 onBeforeUnmount(() => {
   if (unsubscribe.value) {
     unsubscribe.value()
+  }
+  if (voucherListener.value) {
+    voucherListener.value()
   }
 })
 
@@ -723,13 +770,17 @@ const navigateToCustom = () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  padding-top: 75px; /* Add padding-top to create space below navbar */
-  /* margin-top: 20px; Additional margin for better spacing */
+  padding-top: 75px;
+  transition: padding-top 0.3s ease;
+}
+
+.content-wrapper.has-voucher {
+  padding-top: 115px; 
 }
 
 /* Breadcrumbs */
 .breadcrumbs {
-  font-size: 12px;
+  font-size: 13px;
   color: #666;
   margin: 20px 0;
 }
@@ -743,7 +794,6 @@ const navigateToCustom = () => {
   text-decoration: underline;
 }
 
-/* Product Header */
 .product-header {
   display: flex;
   flex-wrap: wrap;

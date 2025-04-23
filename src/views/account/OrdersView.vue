@@ -523,7 +523,7 @@ const closeReviewModal = () => {
 
 .search-wrapper {
   position: relative;
-  width: 100%;
+  width: 90%;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
