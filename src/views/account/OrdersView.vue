@@ -413,7 +413,7 @@ const completeOrder = async (orderId) => {
       orderId: orderId,
       icon: 'fas fa-check-circle',
       color: '#16a34a',
-      link: `/account/orders?highlight=${orderId}`,
+      link: `/my-account/orders?highlight=${orderId}`,
     })
 
     toast.success('Pesanan telah selesai')

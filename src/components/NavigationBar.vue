@@ -695,8 +695,8 @@ nav {
 
 .notification-badge {
   position: absolute;
-  top: -13px;
-  right: -8px;
+  top: -1px;
+  right: -2px;
   background-color: #e8ba38;
   color: white;
   height: 13px;

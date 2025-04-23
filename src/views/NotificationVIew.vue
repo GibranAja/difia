@@ -150,6 +150,7 @@ const handleMarkAllAsRead = async () => {
     await notificationStore.markAllAsRead()
     toast.success('Semua notifikasi telah ditandai sebagai telah dibaca')
   } catch (error) {
+    console.error('Error marking all notifications as read:', error)
     toast.error('Gagal menandai notifikasi sebagai dibaca')
   }
 }

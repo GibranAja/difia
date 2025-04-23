@@ -1,7 +1,7 @@
 // src/stores/NotificationStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { db, rtdb } from '@/config/firebase'
+import { rtdb } from '@/config/firebase'
 import {
   ref as dbRef,
   onValue,
@@ -9,7 +9,6 @@ import {
   serverTimestamp as rtdbServerTimestamp,
   update,
 } from 'firebase/database'
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { useAuthStore } from './AuthStore'
 
 export const useNotificationStore = defineStore('notification', () => {
