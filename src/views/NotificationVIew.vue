@@ -1,51 +1,66 @@
 <template>
   <div class="notification-page">
+    <VoucherNotification />
     <NavigationBar />
 
     <main class="notification-container">
+      <!-- Notification Header -->
       <div class="notification-header">
         <h1>Notifikasi</h1>
-        <button v-if="notifications.length" class="mark-all-btn" @click="markAllAsRead">
-          <i class="fas fa-check-double"></i> Tandai Semua Terbaca
+        <button class="mark-all-btn" @click="handleMarkAllAsRead" :disabled="loading || !hasUnread">
+          <i class="fas fa-check-double"></i>
+          Tandai Semua Dibaca
         </button>
       </div>
 
-      <div v-if="isLoading" class="loading-container">
-        <i class="fas fa-circle-notch fa-spin"></i>
-        <span>Memuat notifikasi...</span>
+      <!-- Loading State -->
+      <div class="loading-container" v-if="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Memuat notifikasi terbaru...</p>
       </div>
 
-      <div v-else-if="notifications.length === 0" class="empty-state">
+      <!-- Empty State -->
+      <div class="empty-state" v-else-if="!userNotifications.length">
         <i class="fas fa-bell-slash"></i>
-        <h3>Belum Ada Notifikasi</h3>
-        <p>Kami akan memberitahu ketika ada berita menarik untuk Anda!</p>
-        <router-link to="/" class="browse-btn">Jelajahi Katalog</router-link>
+        <h3>Tidak Ada Notifikasi</h3>
+        <p>
+          Saat ini Anda belum memiliki notifikasi. Notifikasi akan muncul di sini ketika ada
+          pembaruan pesanan atau promo eksklusif untuk Anda.
+        </p>
+        <router-link to="/" class="browse-btn">Jelajahi Produk</router-link>
       </div>
 
-      <div v-else class="notification-list">
+      <!-- Notification List -->
+      <div class="notification-list" v-else>
         <div
-          v-for="notification in notifications"
+          v-for="notification in userNotifications"
           :key="notification.id"
           class="notification-card"
           :class="{ unread: !notification.read }"
           @click="handleNotificationClick(notification)"
         >
-          <div class="notification-icon" :class="getNotificationClass(notification.type)">
-            <i :class="getNotificationIcon(notification.type)"></i>
+          <div class="notification-icon" :class="getIconClass(notification.type)">
+            <i :class="notification.icon"></i>
           </div>
           <div class="notification-content">
             <h3>{{ notification.title }}</h3>
-            <p v-html="notification.message"></p>
-            <span class="notification-time">{{ formatTime(notification.createdAt) }}</span>
+            <p>{{ notification.message }}</p>
+            <span class="notification-time">{{
+              notificationStore.getTimeElapsed(notification.timestamp)
+            }}</span>
           </div>
-          <i class="fas fa-chevron-right go-icon"></i>
+          <span class="go-icon">
+            <i class="fas fa-chevron-right"></i>
+          </span>
         </div>
-      </div>
 
-      <div v-if="notifications.length > 5" class="view-more-container">
-        <button class="view-more-btn" @click="loadMoreNotifications">
-          Lihat Notifikasi Lainnya
-        </button>
+        <!-- View More Button -->
+        <div class="view-more-container" v-if="canLoadMore">
+          <button class="view-more-btn" @click="loadMoreNotifications" :disabled="loadingMore">
+            <span v-if="loadingMore"> <i class="fas fa-spinner fa-spin"></i> Memuat... </span>
+            <span v-else> Lihat Lebih Banyak </span>
+          </button>
+        </div>
       </div>
     </main>
 
@@ -54,368 +69,131 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  where,
-  doc,
-  updateDoc,
-  addDoc,
-} from 'firebase/firestore'
-import { db } from '@/config/firebase'
-import { useAuthStore } from '@/stores/AuthStore'
-import { useNotificationStore } from '@/stores/NotificationStore'
-import { useToast } from 'vue-toastification'
+import { ref, computed, onMounted } from 'vue'
 import NavigationBar from '@/components/NavigationBar.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue'
+import { useNotificationStore } from '@/stores/NotificationStore'
+import { useAuthStore } from '@/stores/AuthStore'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
+const router = useRouter()
 const toast = useToast()
 
-const notifications = ref([])
-const isLoading = ref(true)
-let unsubscribe = null
-let orderUnsubscribe = null
+const loading = ref(true)
+const loadingMore = ref(false)
 const notificationsLimit = ref(10)
+const canLoadMore = ref(false)
 
-// Update the fetchNotifications function
-const fetchNotifications = async () => {
-  if (!authStore.currentUser?.id) {
-    console.log('No user ID found, skipping notification fetch')
-    isLoading.value = false
-    return
+// Computed properties
+const userNotifications = computed(() => {
+  return notificationStore.userNotifications.slice(0, notificationsLimit.value)
+})
+
+const hasUnread = computed(() => {
+  return notificationStore.getUnreadCount > 0
+})
+
+// Get appropriate icon class based on notification type
+const getIconClass = (type) => {
+  const typeMap = {
+    order: 'icon-order',
+    payment: 'icon-payment',
+    voucher: 'icon-voucher',
+    delivery: 'icon-delivery',
+    system: 'icon-system',
+    promo: 'icon-promo',
   }
+  return typeMap[type] || 'icon-system'
+}
 
+// Handle notification click
+const handleNotificationClick = async (notification) => {
   try {
-    console.log('Fetching notifications for user:', authStore.currentUser.id)
+    // Mark as read if unread
+    if (!notification.read) {
+      try {
+        // First update local state for better UX responsiveness
+        notification.read = true
 
-    const notificationsRef = collection(db, 'notifications')
-    const notificationsQuery = query(
-      notificationsRef,
-      where('userId', '==', authStore.currentUser.id),
-      orderBy('createdAt', 'desc'),
-      limit(notificationsLimit.value),
-    )
-
-    unsubscribe = onSnapshot(
-      notificationsQuery,
-      (snapshot) => {
-        console.log(`Snapshot received with ${snapshot.docs.length} notifications`)
-
-        notifications.value = snapshot.docs.map((doc) => {
-          const data = doc.data()
-          // Ensure createdAt is properly handled
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt, // Keep the Firestore timestamp
-          }
+        // Then try to update in database
+        await notificationStore.markAsRead(notification.id).catch((err) => {
+          console.error('Database error when marking notification as read:', err)
+          // Already updated UI state above, so user won't notice the backend failure
         })
-
-        console.log('Notifications loaded:', notifications.value.length)
-        isLoading.value = false
-      },
-      (error) => {
-        console.error('Error in notification snapshot listener:', error)
-        isLoading.value = false
-      },
-    )
-
-    // Set up order status change listener to create notifications in real-time
-    listenForOrderStatusChanges()
-  } catch (error) {
-    console.error('Error setting up notification listeners:', error)
-    toast.error('Gagal memuat notifikasi')
-    isLoading.value = false
-  }
-}
-
-// Listen for order status changes and create notifications
-const listenForOrderStatusChanges = () => {
-  if (!authStore.currentUser?.id) return
-
-  const ordersRef = collection(db, 'orders')
-  const ordersQuery = query(ordersRef, where('userId', '==', authStore.currentUser.id))
-
-  // Create a map to store the last known status of each order
-  const orderStatusMap = new Map()
-
-  orderUnsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      const order = { id: change.doc.id, ...change.doc.data() }
-
-      // For new orders, just store their initial status
-      if (change.type === 'added') {
-        orderStatusMap.set(order.id, order.status)
-        return
+      } catch (markReadError) {
+        console.error('Error marking notification as read:', markReadError)
+        // UI is already updated, no need to do it again
       }
-
-      // For modified orders, check if status has changed
-      if (change.type === 'modified') {
-        const previousStatus = orderStatusMap.get(order.id)
-
-        // Only create notification if status has actually changed
-        if (previousStatus && previousStatus !== order.status) {
-          console.log(`Order ${order.id} status changed from ${previousStatus} to ${order.status}`)
-
-          // Create notification with the accurate previous status
-          createStatusUpdateNotification(order, previousStatus)
-        }
-
-        // Update status map with the new status
-        orderStatusMap.set(order.id, order.status)
-      }
-    })
-  })
-}
-
-// Create notification for order status changes
-const createStatusUpdateNotification = async (order, oldStatus) => {
-  if (!order || !oldStatus) return
-
-  // Only create notification if the status has actually changed
-  if (oldStatus === order.status) return
-
-  console.log(`Creating notification for order ${order.id}: ${oldStatus} -> ${order.status}`)
-
-  try {
-    // Make sure we're using server timestamp for proper ordering
-    const notificationData = {
-      userId: authStore.currentUser.id,
-      type: getNotificationTypeForStatus(order.status),
-      title: getNotificationTitleForStatus(order.status),
-      message: getNotificationMessageForStatus(order.status, order.id),
-      read: false,
-      createdAt: new Date(), // This should be converted to Firestore timestamp when saved
-      data: {
-        orderId: order.id,
-        oldStatus: oldStatus,
-        newStatus: order.status,
-      },
     }
 
-    // Log the data we're about to save
-    console.log('Creating notification with data:', notificationData)
-
-    const docRef = await addDoc(collection(db, 'notifications'), notificationData)
-    console.log('Notification created with ID:', docRef.id)
-
-    // Increment unread count after successful creation
-    notificationStore.incrementUnreadCount()
+    // Navigate based on notification type
+    if (notification.link) {
+      router.push(notification.link)
+    } else if (notification.type === 'order' && notification.orderId) {
+      router.push(`/my-account/orders?search=${notification.orderId}`)
+    } else if (notification.type === 'voucher') {
+      toast.info('Voucher siap digunakan di halaman checkout!')
+    }
   } catch (error) {
-    console.error('Error creating notification:', error)
+    console.error('Error handling notification click:', error)
+    toast.error('Terjadi kesalahan saat memproses notifikasi')
   }
 }
 
-// Get notification type based on order status
-const getNotificationTypeForStatus = (status) => {
-  switch (status) {
-    case 'process':
-      return 'order'
-    case 'delivery':
-      return 'delivery'
-    case 'complete':
-      return 'order'
-    case 'cancelled':
-      return 'system'
-    default:
-      return 'order'
-  }
-}
-
-// Get notification title based on order status
-const getNotificationTitleForStatus = (status) => {
-  switch (status) {
-    case 'process':
-      return 'Pesanan Diproses! 🎉'
-    case 'delivery':
-      return 'Pesanan Dalam Pengiriman! 🚚'
-    case 'complete':
-      return 'Pesanan Selesai! 🌟'
-    case 'cancelled':
-      return 'Pesanan Dibatalkan'
-    default:
-      return 'Update Pesanan'
-  }
-}
-
-// Get notification message based on order status
-const getNotificationMessageForStatus = (status, orderId) => {
-  switch (status) {
-    case 'process':
-      return `Kabar gembira! Pesanan #${orderId.slice(-5)} sedang diproses dengan penuh perhatian oleh tim kami. Kami akan segera menyiapkan souvenir istimewa Anda!`
-    case 'delivery':
-      return `Pesanan #${orderId.slice(-5)} sedang dalam perjalanan menuju Anda! Bersiaplah untuk mendapatkan souvenir istimewa yang Anda pesan. Kami harap Anda menyukainya! 😊`
-    case 'complete':
-      return `Horee! Pesanan #${orderId.slice(-5)} telah selesai. Terima kasih telah mempercayai kami! Bagaimana kesan Anda? Kami akan senang jika Anda berbagi pengalaman Anda.`
-    case 'cancelled':
-      return `Pesanan #${orderId.slice(-5)} telah dibatalkan. Jangan khawatir, Anda masih bisa memesan souvenir lain yang tak kalah menarik di katalog kami!`
-    default:
-      return `Status pesanan #${orderId.slice(-5)} telah diperbarui. Klik untuk melihat detail.`
+// Mark all as read
+const handleMarkAllAsRead = async () => {
+  try {
+    await notificationStore.markAllAsRead()
+    toast.success('Semua notifikasi telah ditandai sebagai telah dibaca')
+  } catch (error) {
+    toast.error('Gagal menandai notifikasi sebagai dibaca')
   }
 }
 
 // Load more notifications
 const loadMoreNotifications = () => {
+  loadingMore.value = true
+  // Increase the limit
   notificationsLimit.value += 10
-  fetchNotifications()
+
+  // Check if we can load more
+  setTimeout(() => {
+    canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+    loadingMore.value = false
+  }, 500)
 }
 
-// Format timestamp to relative time
-const formatTime = (timestamp) => {
-  if (!timestamp) return ''
+onMounted(async () => {
+  loading.value = true
 
-  const now = new Date()
-  const notificationDate = timestamp.toDate()
-  const diffInSeconds = Math.floor((now - notificationDate) / 1000)
-
-  if (diffInSeconds < 60) {
-    return 'Baru saja'
-  } else if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)} menit yang lalu`
-  } else if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)} jam yang lalu`
-  } else if (diffInSeconds < 604800) {
-    return `${Math.floor(diffInSeconds / 86400)} hari yang lalu`
-  } else {
-    return new Intl.DateTimeFormat('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(notificationDate)
-  }
-}
-
-// Get notification icon based on type
-const getNotificationIcon = (type) => {
-  const icons = {
-    order: 'fas fa-shopping-bag',
-    voucher: 'fas fa-ticket-alt',
-    payment: 'fas fa-credit-card',
-    delivery: 'fas fa-truck',
-    system: 'fas fa-bell',
-    promo: 'fas fa-percent',
-  }
-  return icons[type] || 'fas fa-bell'
-}
-
-// Get notification class based on type
-const getNotificationClass = (type) => {
-  return `icon-${type}`
-}
-
-// Handle notification click
-const handleNotificationClick = async (notification) => {
-  // Mark notification as read
-  if (!notification.read) {
-    await updateDoc(doc(db, 'notifications', notification.id), {
-      read: true,
-    })
-    notificationStore.decrementUnreadCount()
-  }
-
-  // Navigate based on notification type and data
-  if (notification.type === 'order') {
-    if (notification.data?.orderId) {
-      router.push(`/account/orders?highlight=${notification.data.orderId}`)
-    } else {
-      router.push('/account/orders')
-    }
-  } else if (notification.type === 'voucher') {
-    router.push('/')
-  } else if (notification.type === 'payment') {
-    if (notification.data?.orderId) {
-      router.push(`/account/orders?highlight=${notification.data.orderId}`)
-    } else {
-      router.push('/account/orders')
-    }
-  } else if (notification.type === 'delivery') {
-    if (notification.data?.orderId) {
-      router.push(`/account/orders?highlight=${notification.data.orderId}`)
-    } else {
-      router.push('/account/orders')
-    }
-  } else if (notification.type === 'promo') {
-    router.push('/catalog')
-  } else {
-    // Default action for other notification types
-    if (notification.data?.url) {
-      router.push(notification.data.url)
-    } else if (notification.data?.orderId) {
-      router.push(`/account/orders?highlight=${notification.data.orderId}`)
-    }
-  }
-}
-
-// Mark all notifications as read
-const markAllAsRead = async () => {
   try {
-    const batch = db.batch()
-
-    notifications.value.forEach((notification) => {
-      if (!notification.read) {
-        const notificationRef = doc(db, 'notifications', notification.id)
-        batch.update(notificationRef, { read: true })
-      }
-    })
-
-    await batch.commit()
-    notificationStore.resetUnreadCount()
-    toast.success('Semua notifikasi telah ditandai terbaca')
-  } catch (error) {
-    console.error('Error marking notifications as read:', error)
-    toast.error('Gagal menandai notifikasi sebagai terbaca')
-  }
-}
-
-// Debug notification system
-const debugNotificationSystem = () => {
-  console.log('Checking notification system...')
-  console.log('Current user:', authStore.currentUser?.id)
-  console.log('Notifications loaded:', notifications.value.length)
-  console.log('Order listener active:', orderUnsubscribe !== null)
-
-  // Test creating a manual notification
-  if (authStore.isLoggedIn) {
-    const testNotification = {
-      userId: authStore.currentUser.id,
-      type: 'system',
-      title: 'Test Notification',
-      message: 'This is a test notification to verify the system is working.',
-      read: false,
-      createdAt: new Date(),
-      data: {},
+    // Check auth state
+    if (!authStore.currentUser) {
+      await new Promise((resolve) => {
+        const unsubscribe = authStore.$subscribe(() => {
+          if (authStore.currentUser) {
+            unsubscribe()
+            resolve()
+          }
+        })
+      })
     }
 
-    addDoc(collection(db, 'notifications'), testNotification)
-      .then(() => console.log('Test notification created successfully'))
-      .catch((err) => console.error('Failed to create test notification:', err))
-  }
-}
+    // Start listening to notifications
+    notificationStore.listenToNotifications()
 
-onMounted(() => {
-  if (authStore.isLoggedIn) {
-    fetchNotifications()
-    // Uncomment the line below to test the notification system
-    // debugNotificationSystem()
-  } else {
-    isLoading.value = false
-  }
-})
-
-onUnmounted(() => {
-  if (unsubscribe) {
-    unsubscribe()
-  }
-  if (orderUnsubscribe) {
-    orderUnsubscribe()
+    // Check if we can load more
+    setTimeout(() => {
+      canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+      loading.value = false
+    }, 1000)
+  } catch (error) {
+    console.error('Error loading notifications:', error)
+    loading.value = false
   }
 })
 </script>
@@ -426,13 +204,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa;
+  padding-top: 40px;
 }
 
 .notification-container {
   max-width: 800px;
-  margin: 2rem auto;
+  margin: 0 auto;
   padding: 0 1rem;
   flex: 1;
+  padding-top: calc(80px + 2rem);
+  padding-bottom: 4rem;
+  margin-bottom: 2rem;
 }
 
 .notification-header {

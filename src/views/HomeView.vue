@@ -1,6 +1,6 @@
 <template>
   <VoucherNotification />
-  <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout" class="navbar"></NavigationBar>
+  <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout" class="navbar" />
   <header id="home" :class="{ 'header-at-top': isAtTop }">
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
@@ -19,9 +19,11 @@
         ></iframe>
       </div>
       <div class="product-card">
-          <h1><b>PRODUK P<i class="fas fa-crown"></i>PULER</b></h1>
+        <h1>
+          <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
+        </h1>
         <!-- <p v-if="!popularKatalog.length">Produk populer tidak tersedia.</p> -->
-        <CardPopuler/>
+        <CardPopuler />
       </div>
     </section>
     <section class="katalog" id="catalog">
@@ -245,7 +247,9 @@ const hasMoreBlogItems = computed(() => {
 
 const popularKatalog = computed(() => {
   if (!katalogStore.katalogItems.length) return []
-  const sortedKatalog = [...katalogStore.katalogItems].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
+  const sortedKatalog = [...katalogStore.katalogItems].sort(
+    (a, b) => (b.soldCount || 0) - (a.soldCount || 0),
+  )
   return sortedKatalog.slice(0, 3)
 })
 </script>
@@ -342,7 +346,7 @@ header {
   width: 100%;
   height: 100vh;
 }
-.video-ad{
+.video-ad {
   width: 20%;
   display: flex;
   justify-content: center;
@@ -351,7 +355,7 @@ header {
 }
 .product-card {
   display: flex;
-  justify-content:space-around ;
+  justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
   width: 70%;

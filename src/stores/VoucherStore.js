@@ -15,6 +15,7 @@ import {
   updateDoc,
   getDoc,
 } from 'firebase/firestore'
+import { useNotificationStore } from './NotificationStore'
 
 export const useVoucherStore = defineStore('voucher', () => {
   const voucherItems = ref([])
@@ -52,6 +53,8 @@ export const useVoucherStore = defineStore('voucher', () => {
     },
   }
 
+  const notificationStore = useNotificationStore()
+
   // Add new voucher
   const addVoucher = async (voucherData) => {
     try {
@@ -85,6 +88,20 @@ export const useVoucherStore = defineStore('voucher', () => {
 
       // Update cache
       cache.set('vouchers', voucherItems.value)
+
+      // After successfully adding the voucher, create a global notification
+      await notificationStore.createNotification({
+        title: 'Voucher Eksklusif Baru! 🎁',
+        message: `Dapatkan ${
+          voucherData.discountType === 'percentage'
+            ? voucherData.discountValue + '% diskon'
+            : 'Rp ' + voucherData.discountValue.toLocaleString('id-ID') + ' diskon'
+        } dengan kode "${voucherData.code.toUpperCase()}". Segera gunakan sebelum kedaluwarsa!`,
+        type: 'voucher',
+        icon: 'fas fa-ticket-alt',
+        color: '#f59e0b',
+        // Global notification - no userId
+      })
 
       return { success: true, id: docRef.id }
     } catch (err) {

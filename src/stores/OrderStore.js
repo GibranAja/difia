@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { useAuthStore } from './AuthStore'
 import { useToast } from 'vue-toastification'
+import { useNotificationStore } from './NotificationStore'
 
 export const useOrderStore = defineStore('order', () => {
   const currentOrder = ref(null)
@@ -23,6 +24,7 @@ export const useOrderStore = defineStore('order', () => {
   const paymentProof = ref(null)
   const newOrdersCount = ref(0)
   const viewedOrders = ref(new Set()) // Track viewed order IDs
+  const notificationStore = useNotificationStore()
 
   // Set current order from CustomView
   const setCurrentOrder = async (orderData) => {
@@ -102,6 +104,18 @@ export const useOrderStore = defineStore('order', () => {
 
       const docRef = await addDoc(collection(db, 'orders'), newOrder)
 
+      // After successful order creation, create a notification
+      await notificationStore.createNotification({
+        title: 'Pesanan Berhasil Dibuat! ✨',
+        message: `Pesanan #${docRef.id.slice(-6)} telah dibuat dan menunggu konfirmasi. Kami akan segera memprosesnya!`,
+        type: 'order',
+        userId: authStore.currentUser?.id,
+        orderId: docRef.id,
+        icon: 'fas fa-shopping-bag',
+        color: '#16a34a',
+        link: `/account/orders?highlight=${docRef.id}`,
+      })
+
       // Clear current order and payment proof after successful creation
       currentOrder.value = null
       paymentProof.value = null
@@ -115,6 +129,58 @@ export const useOrderStore = defineStore('order', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Add this function to send notifications on order status updates
+  const sendOrderStatusNotification = async (orderId, status, userId) => {
+    let notifData = {
+      userId: userId,
+      orderId: orderId,
+      type: 'order',
+    }
+
+    switch (status) {
+      case 'process':
+        notifData = {
+          ...notifData,
+          title: 'Pesanan Diproses! 🛠️',
+          message: `Pesanan #${orderId.slice(-6)} sedang diproses dengan penuh kehati-hatian. Kami memastikan kualitas terbaik untuk Anda!`,
+          icon: 'fas fa-cog',
+          color: '#0ea5e9',
+        }
+        break
+      case 'delivery':
+        notifData = {
+          ...notifData,
+          title: 'Pesanan Dikirim! 🚚',
+          message: `Kabar gembira! Pesanan #${orderId.slice(-6)} sedang dalam perjalanan ke alamat Anda. Siap-siap untuk menerima produk istimewa kami!`,
+          icon: 'fas fa-truck',
+          color: '#9333ea',
+        }
+        break
+      case 'complete':
+        notifData = {
+          ...notifData,
+          title: 'Pesanan Selesai! 🎉',
+          message: `Terima kasih! Pesanan #${orderId.slice(-6)} telah selesai. Bagaimana pengalaman berbelanja Anda? Kami menunggu pesanan berikutnya!`,
+          icon: 'fas fa-check-circle',
+          color: '#16a34a',
+        }
+        break
+      case 'cancelled':
+        notifData = {
+          ...notifData,
+          title: 'Pesanan Dibatalkan',
+          message: `Pesanan #${orderId.slice(-6)} telah dibatalkan. Jika ini tidak sesuai harapan Anda, mohon hubungi kami untuk klarifikasi.`,
+          icon: 'fas fa-times-circle',
+          color: '#dc2626',
+        }
+        break
+      default:
+        return
+    }
+
+    await notificationStore.createNotification(notifData)
   }
 
   // Get user orders
@@ -220,5 +286,6 @@ export const useOrderStore = defineStore('order', () => {
     setNewOrdersCount,
     markOrderAsViewed,
     resetNewOrdersCount,
+    sendOrderStatusNotification,
   }
 })

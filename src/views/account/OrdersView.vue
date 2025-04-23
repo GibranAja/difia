@@ -28,7 +28,10 @@
           <div
             v-for="status in statusFilters"
             :key="status.value"
-            @click="setFilter(status.value); isFilterOpen = false"
+            @click="
+              setFilter(status.value);
+              isFilterOpen = false
+            "
             :class="['dropdown-item', { active: currentFilter === status.value }]"
           >
             <i :class="['fas', status.icon]"></i>
@@ -204,11 +207,15 @@ import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useInvoiceStore } from '@/stores/InvoiceStore'
+import { useNotificationStore } from '@/stores/NotificationStore'
+import { useRoute } from 'vue-router'
 import ReviewModal from '@/components/ReviewModal.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
 const invoiceStore = useInvoiceStore()
+const notificationStore = useNotificationStore()
+const route = useRoute()
 
 // Reactive state
 const orders = ref([])
@@ -251,6 +258,14 @@ const getActiveFilterLabel = () => {
 
 // Get orders from Firestore
 onMounted(async () => {
+  const searchParam = route.query.search
+  if (searchParam) {
+    // Set the search input value to the query parameter
+    searchQuery.value = searchParam
+    // Optionally, trigger the search immediately
+    // filterOrders() or whatever search function you have
+  }
+
   if (!authStore.isLoggedIn) {
     return
   }
@@ -374,9 +389,33 @@ const toggleOrder = (orderId) => {
 
 const completeOrder = async (orderId) => {
   try {
-    await updateDoc(doc(db, 'orders', orderId), {
+    const orderRef = doc(db, 'orders', orderId)
+    const orderDoc = await getDoc(orderRef)
+
+    if (!orderDoc.exists()) {
+      toast.error('Pesanan tidak ditemukan')
+      return
+    }
+
+    const orderData = orderDoc.data()
+
+    // Update order status
+    await updateDoc(orderRef, {
       status: 'complete',
     })
+
+    // Create a completion notification
+    await notificationStore.createNotification({
+      title: 'Pesanan Selesai! 🎉',
+      message: `Terima kasih! Pesanan #${orderId.slice(-6)} untuk ${orderData.productName} telah dikonfirmasi selesai. Semoga Anda puas dengan produk kami!`,
+      type: 'order',
+      userId: authStore.currentUser?.id,
+      orderId: orderId,
+      icon: 'fas fa-check-circle',
+      color: '#16a34a',
+      link: `/account/orders?highlight=${orderId}`,
+    })
+
     toast.success('Pesanan telah selesai')
   } catch (error) {
     console.error('Error completing order:', error)

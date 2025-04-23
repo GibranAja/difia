@@ -107,6 +107,7 @@ import { db } from '@/config/firebase'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
 import LoadComponent from '@/components/LoadComponent.vue'
 import { useToast } from 'vue-toastification'
+import { useOrderStore } from '@/stores/OrderStore'
 
 // Import new components
 import OrderControls from '@/components/admin/orders/OrderControls.vue'
@@ -129,6 +130,7 @@ const paymentProofImage = ref('')
 const activeOrderType = ref('regular')
 const selectedStatuses = ref([])
 const searchQuery = ref('')
+const orderStore = useOrderStore()
 
 defineProps({
   isSidebarOpen: {
@@ -249,6 +251,20 @@ const closePaymentProofModal = () => {
   paymentProofImage.value = ''
 }
 
+// Convert status code to human-readable label
+const getStatusLabel = (status) => {
+  const statusLabels = {
+    'pending': 'Menunggu Pembayaran',
+    'processing': 'Diproses',
+    'shipped': 'Dikirim',
+    'delivered': 'Diterima',
+    'cancelled': 'Dibatalkan',
+    'completed': 'Selesai',
+    'refunded': 'Dikembalikan'
+  }
+  return statusLabels[status] || status
+}
+
 // Update order status
 const updateOrderStatus = async () => {
   if (!selectedOrder.value || !newStatus.value) return
@@ -274,11 +290,18 @@ const updateOrderStatus = async () => {
       }
     }
 
-    toast.success('Order status updated successfully')
+    // Send notification to the customer
+    await orderStore.sendOrderStatusNotification(
+      selectedOrder.value.id,
+      newStatus.value,
+      selectedOrder.value.userId,
+    )
+
     closeStatusModal()
+    toast.success(`Status pesanan berhasil diubah menjadi ${getStatusLabel(newStatus.value)}`)
   } catch (error) {
-    toast.error('Failed to update order status')
     console.error('Error updating order status:', error)
+    toast.error('Gagal mengubah status pesanan')
   }
 }
 
