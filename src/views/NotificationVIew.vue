@@ -1,879 +1,480 @@
 <template>
-  <div class="container">
-    <div class="header">
-      <router-link to="/" class="back-btn">
-        <i class="fas fa-chevron-left"></i>
-      </router-link>
-      <h1>Riwayat Pesanan</h1>
-    </div>
+  <div class="notification-page">
+    <VoucherNotification />
+    <NavigationBar />
 
-    <!-- Search Bar -->
-    <div class="search-container">
-      <div class="search-wrapper">
-        <i class="fas fa-search search-icon"></i>
-        <input
-          type="text"
-          placeholder="Cari pesanan berdasarkan ID atau status..."
-          v-model="searchQuery"
-        />
+    <main class="notification-container">
+      <!-- Notification Header -->
+      <div class="notification-header">
+        <h1>Notifikasi</h1>
+        <button class="mark-all-btn" @click="handleMarkAllAsRead" :disabled="loading || !hasUnread">
+          <i class="fas fa-check-double"></i>
+          Tandai Semua Dibaca
+        </button>
       </div>
-    </div>
 
-    <!-- Order List -->
-    <div class="order-list">
-      <div v-for="order in filteredOrders" :key="order.id" class="order-card">
-        <div class="order-header" @click="toggleOrder(order.id)">
-          <div class="order-main-info">
-            <div class="order-id">#{{ order.id }}</div>
-            <div class="order-date">{{ formatDate(order.createdAt) }}</div>
-            <div class="order-amount">Total: Rp {{ formatPrice(order.totalAmount) }}</div>
-          </div>
-          <div class="order-status">
-            <span :class="['status-badge', getStatusClass(order.status)]">
-              {{ getStatusLabel(order.status) }}
-            </span>
-            <i :class="['fas', expandedOrders[order.id] ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
-          </div>
-        </div>
-
-        <!-- Expanded Order Details -->
-        <Transition name="slide">
-          <div v-if="expandedOrders[order.id]" class="order-expanded">
-            <!-- Move cancellation reason to appear first when status is cancelled -->
-            <div
-              v-if="order.status === 'cancelled' && order.cancelReason"
-              class="cancellation-reason"
-            >
-              <div class="reason-header">
-                <i class="fas fa-exclamation-circle"></i>
-                <h3>Alasan Pembatalan</h3>
-              </div>
-              <p>{{ order.cancelReason }}</p>
-            </div>
-
-            <div class="order-grid">
-              <!-- Product Details -->
-              <div class="detail-section">
-                <h3>Detail Produk</h3>
-                <div class="product-info">
-                  <!-- Main Product Image (Catalog) -->
-                  <img
-                    :src="getProductImage(order)"
-                    :alt="order.productName"
-                    class="product-image"
-                    @error="handleImageError"
-                  />
-                  <div class="product-details">
-                    <div class="product-header">
-                      <h4>{{ order.productName }}</h4>
-                      <!-- Tambahkan container baru untuk design logo -->
-                      <div
-                        class="custom-design-container"
-                        v-if="
-                          order.customOptions?.purchaseType === 'Souvenir' &&
-                          order.customOptions?.uploadedImage
-                        "
-                      >
-                        <span class="design-logo-label">Design Logo</span>
-                        <div class="custom-design-thumbnail">
-                          <img :src="order.customOptions.uploadedImage" alt="Design Logo" />
-                        </div>
-                      </div>
-                    </div>
-                    <p>Tipe: {{ order.customOptions.purchaseType }}</p>
-                    <p>Harga: {{ order.customOptions.priceType }}</p>
-                    <p>Jumlah: {{ order.quantity }} pcs</p>
-                    <p>Bahan Luar: {{ order.customOptions.bahanLuar }}</p>
-                    <p>Bahan Dalam: {{ order.customOptions.bahanDalam }}</p>
-                    <p>Aksesoris: {{ order.customOptions.aksesoris.join(', ') }}</p>
-                    <p v-if="order.customOptions.note">Catatan: {{ order.customOptions.note }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Shipping Details -->
-              <div class="detail-section">
-                <h3>Informasi Pengiriman</h3>
-                <div class="shipping-info">
-                  <p><strong>Penerima:</strong> {{ order.shippingDetails.name }}</p>
-                  <p><strong>Email:</strong> {{ order.shippingDetails.email }}</p>
-                  <p><strong>Telepon:</strong> {{ order.shippingDetails.phone }}</p>
-                  <p><strong>Alamat:</strong> {{ order.shippingDetails.address }}</p>
-                  <p><strong>Kota:</strong> {{ order.shippingDetails.city }}</p>
-                  <p><strong>Provinsi:</strong> {{ order.shippingDetails.province }}</p>
-                  <p><strong>Kode Pos:</strong> {{ order.shippingDetails.zip }}</p>
-                </div>
-              </div>
-
-              <!-- Action Buttons -->
-              <div class="action-section">
-                <!-- Add download invoice button for orders in process -->
-                <button
-                  v-if="order.status === 'process'"
-                  class="invoice-btn"
-                  @click="downloadOrderInvoice(order.id)"
-                  :disabled="processingInvoice === order.id || cooldowns[order.id] > 0"
-                >
-                  <i class="fas fa-file-invoice"></i>
-                  <span v-if="processingInvoice === order.id">Processing...</span>
-                  <span v-else-if="cooldowns[order.id] > 0">
-                    Tunggu ({{ cooldowns[order.id] }}s)
-                  </span>
-                  <span v-else>Lihat Invoice</span>
-                </button>
-
-                <button
-                  v-if="order.status === 'delivery'"
-                  class="complete-btn"
-                  @click="completeOrder(order.id)"
-                >
-                  Pesanan Diterima
-                </button>
-
-                <div v-if="order.status === 'complete'" class="completed-actions">
-                  <router-link
-                    :to="{
-                      path: '/checkout',
-                      query: { reorder: true, orderId: order.id },
-                    }"
-                    class="buy-again-btn"
-                    @click="handleReorder(order)"
-                  >
-                    Beli Lagi
-                  </router-link>
-                  <button class="review-btn" @click="openReviewModal(order)">Tulis Ulasan</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Transition>
+      <!-- Loading State -->
+      <div class="loading-container" v-if="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Memuat notifikasi terbaru...</p>
       </div>
 
       <!-- Empty State -->
-      <div v-if="filteredOrders.length === 0" class="empty-state">
-        Tidak ada pesanan yang ditemukan
+      <div class="empty-state" v-else-if="!userNotifications.length">
+        <i class="fas fa-bell-slash"></i>
+        <h3>Tidak Ada Notifikasi</h3>
+        <p>
+          Saat ini Anda belum memiliki notifikasi. Notifikasi akan muncul di sini ketika ada
+          pembaruan pesanan atau promo eksklusif untuk Anda.
+        </p>
+        <router-link to="/" class="browse-btn">Jelajahi Produk</router-link>
       </div>
-    </div>
-    <ReviewModal v-if="showReviewModal" :order="selectedOrder" @close="closeReviewModal" />
+
+      <!-- Notification List -->
+      <div class="notification-list" v-else>
+        <div
+          v-for="notification in userNotifications"
+          :key="notification.id"
+          class="notification-card"
+          :class="{ unread: !notification.read }"
+          @click="handleNotificationClick(notification)"
+        >
+          <div class="notification-icon" :class="getIconClass(notification.type)">
+            <i :class="notification.icon"></i>
+          </div>
+          <div class="notification-content">
+            <h3>{{ notification.title }}</h3>
+            <p>{{ notification.message }}</p>
+            <span class="notification-time">{{
+              notificationStore.getTimeElapsed(notification.timestamp)
+            }}</span>
+          </div>
+          <span class="go-icon">
+            <i class="fas fa-chevron-right"></i>
+          </span>
+        </div>
+
+        <!-- View More Button -->
+        <div class="view-more-container" v-if="canLoadMore">
+          <button class="view-more-btn" @click="loadMoreNotifications" :disabled="loadingMore">
+            <span v-if="loadingMore"> <i class="fas fa-spinner fa-spin"></i> Memuat... </span>
+            <span v-else> Lihat Lebih Banyak </span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <FooterComponent />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore'
-import { db } from '@/config/firebase'
-import { useAuthStore } from '@/stores/AuthStore'
-import { useToast } from 'vue-toastification'
-import { updateDoc } from 'firebase/firestore'
+import { ref, computed, onMounted } from 'vue'
+import NavigationBar from '@/components/NavigationBar.vue'
+import FooterComponent from '@/components/FooterComponent.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue'
 import { useNotificationStore } from '@/stores/NotificationStore'
-import { useInvoiceStore } from '@/stores/InvoiceStore' // Add this import
-import ReviewModal from '@/components/ReviewModal.vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 
-const authStore = useAuthStore()
-const toast = useToast()
-const searchQuery = ref('')
-const expandedOrders = ref({})
-const orders = ref([])
-let unsubscribe = null
 const notificationStore = useNotificationStore()
-const invoiceStore = useInvoiceStore() // Add this
-// Add these with other refs
-const processingInvoice = ref(null) // Tracks which invoice is being processed
-const cooldowns = ref({}) // Tracks cooldown timers for each invoice
-const showReviewModal = ref(false)
-const selectedOrder = ref(null)
+const authStore = useAuthStore()
+const router = useRouter()
+const toast = useToast()
 
-// Handle image error
-const handleImageError = (e) => {
-  console.warn('Image failed to load:', e.target.src)
-  e.target.src = '/src/assets/default-avatar-wm14gXiP.png'
-}
+const loading = ref(true)
+const loadingMore = ref(false)
+const notificationsLimit = ref(10)
+const canLoadMore = ref(false)
 
-// Update the getProductImage function
-const getProductImage = (order) => {
-  // For catalog product image (both standard and souvenir)
-  if (order.productId && order.productImage) {
-    return order.productImage
-  }
-
-  // Fallback to custom uploaded image for souvenir if no catalog image
-  if (order.customOptions?.purchaseType === 'Souvenir' && order.customOptions?.uploadedImage) {
-    return order.customOptions.uploadedImage
-  }
-
-  // Other fallbacks
-  return (
-    order.customOptions?.productImage || order.image || '/src/assets/default-avatar-wm14gXiP.png'
-  )
-}
-
-// Fetch orders on component mount
-onMounted(async () => {
-  if (!authStore.currentUser?.id) return
-
-  try {
-    const ordersRef = collection(db, 'orders')
-    const ordersQuery = query(
-      ordersRef,
-      where('userId', '==', authStore.currentUser.id),
-      orderBy('createdAt', 'desc'),
-    )
-
-    unsubscribe = onSnapshot(
-      ordersQuery,
-      async (snapshot) => {
-        const orderDocs = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-
-        // Fetch catalog images for each order
-        const ordersWithImages = await Promise.all(
-          orderDocs.map(async (order) => {
-            if (order.productId) {
-              try {
-                const catalogRef = doc(db, 'katalog', order.productId)
-                const catalogDoc = await getDoc(catalogRef)
-                if (catalogDoc.exists()) {
-                  const catalogData = catalogDoc.data()
-                  return {
-                    ...order,
-                    productImage: catalogData.images?.[0] || null,
-                    customOptions: {
-                      ...order.customOptions,
-                      productImage: catalogData.images?.[0] || order.customOptions?.productImage,
-                    },
-                  }
-                }
-              } catch (err) {
-                console.error('Error fetching catalog:', err)
-              }
-            }
-            return order
-          }),
-        )
-
-        orders.value = ordersWithImages
-      },
-      (error) => {
-        console.error('Error fetching orders:', error)
-        toast.error('Gagal memuat pesanan')
-      },
-    )
-  } catch (error) {
-    console.error('Error setting up orders listener:', error)
-    toast.error('Gagal memuat pesanan')
-  }
+// Computed properties
+const userNotifications = computed(() => {
+  return notificationStore.userNotifications.slice(0, notificationsLimit.value)
 })
 
-onUnmounted(() => {
-  if (unsubscribe) {
-    unsubscribe()
-  }
+const hasUnread = computed(() => {
+  return notificationStore.getUnreadCount > 0
 })
 
-const filteredOrders = computed(() => {
-  const query = searchQuery.value.toLowerCase()
-  return orders.value.filter(
-    (order) => order.id.toLowerCase().includes(query) || order.status.toLowerCase().includes(query),
-  )
-})
-
-const formatDate = (timestamp) => {
-  if (!timestamp) return ''
-  const date = timestamp.toDate()
-  return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
-}
-
-const formatPrice = (price) => {
-  return price.toLocaleString('id-ID')
-}
-
-const getStatusClass = (status) => {
-  const classes = {
-    pending: 'status-pending',
-    process: 'status-process',
-    delivery: 'status-delivery',
-    complete: 'status-success',
-    cancelled: 'status-canceled',
+// Get appropriate icon class based on notification type
+const getIconClass = (type) => {
+  const typeMap = {
+    order: 'icon-order',
+    payment: 'icon-payment',
+    voucher: 'icon-voucher',
+    delivery: 'icon-delivery',
+    system: 'icon-system',
+    promo: 'icon-promo',
   }
-  return classes[status] || 'status-default'
+  return typeMap[type] || 'icon-system'
 }
 
-const getStatusLabel = (status) => {
-  const labels = {
-    pending: 'Menunggu Konfirmasi',
-    process: 'Diproses',
-    delivery: 'Dalam Pengiriman',
-    complete: 'Selesai',
-    cancelled: 'Dibatalkan',
-  }
-  return labels[status] || status
-}
-
-const toggleOrder = (orderId) => {
-  expandedOrders.value = {
-    ...expandedOrders.value,
-    [orderId]: !expandedOrders.value[orderId],
-  }
-  notificationStore.markAsViewed(orderId)
-}
-
-const completeOrder = async (orderId) => {
+// Handle notification click
+const handleNotificationClick = async (notification) => {
   try {
-    await updateDoc(doc(db, 'orders', orderId), {
-      status: 'complete',
-    })
-    toast.success('Pesanan telah selesai')
-  } catch (error) {
-    console.error('Error completing order:', error)
-    toast.error('Gagal menyelesaikan pesanan')
-  }
-}
+    // Mark as read if unread
+    if (!notification.read) {
+      try {
+        // First update local state for better UX responsiveness
+        notification.read = true
 
-// Add this function
-const downloadOrderInvoice = async (orderId) => {
-  if (processingInvoice.value === orderId || cooldowns.value[orderId] > 0) return
-
-  try {
-    processingInvoice.value = orderId
-    const result = await invoiceStore.downloadInvoice(orderId)
-
-    if (!result.success) {
-      throw new Error(result.error)
+        // Then try to update in database
+        await notificationStore.markAsRead(notification.id).catch((err) => {
+          console.error('Database error when marking notification as read:', err)
+          // Already updated UI state above, so user won't notice the backend failure
+        })
+      } catch (markReadError) {
+        console.error('Error marking notification as read:', markReadError)
+        // UI is already updated, no need to do it again
+      }
     }
 
-    // Start cooldown after successful download
-    cooldowns.value[orderId] = 10
-    const timer = setInterval(() => {
-      cooldowns.value[orderId]--
-      if (cooldowns.value[orderId] <= 0) {
-        clearInterval(timer)
-        delete cooldowns.value[orderId]
-      }
+    // Navigate based on notification type
+    if (notification.link) {
+      router.push(notification.link)
+    } else if (notification.type === 'order' && notification.orderId) {
+      router.push(`/my-account/orders?search=${notification.orderId}`)
+    } else if (notification.type === 'voucher') {
+      toast.info('Voucher siap digunakan di halaman checkout!')
+    }
+  } catch (error) {
+    console.error('Error handling notification click:', error)
+    toast.error('Terjadi kesalahan saat memproses notifikasi')
+  }
+}
+
+// Mark all as read
+const handleMarkAllAsRead = async () => {
+  try {
+    await notificationStore.markAllAsRead()
+    toast.success('Semua notifikasi telah ditandai sebagai telah dibaca')
+  } catch (error) {
+    toast.error('Gagal menandai notifikasi sebagai dibaca')
+  }
+}
+
+// Load more notifications
+const loadMoreNotifications = () => {
+  loadingMore.value = true
+  // Increase the limit
+  notificationsLimit.value += 10
+
+  // Check if we can load more
+  setTimeout(() => {
+    canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+    loadingMore.value = false
+  }, 500)
+}
+
+onMounted(async () => {
+  loading.value = true
+
+  try {
+    // Check auth state
+    if (!authStore.currentUser) {
+      await new Promise((resolve) => {
+        const unsubscribe = authStore.$subscribe(() => {
+          if (authStore.currentUser) {
+            unsubscribe()
+            resolve()
+          }
+        })
+      })
+    }
+
+    // Start listening to notifications
+    notificationStore.listenToNotifications()
+
+    // Check if we can load more
+    setTimeout(() => {
+      canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+      loading.value = false
     }, 1000)
   } catch (error) {
-    console.error('Error downloading invoice:', error)
-    toast.error('Gagal mengunduh invoice: ' + error.message)
-  } finally {
-    processingInvoice.value = null
+    console.error('Error loading notifications:', error)
+    loading.value = false
   }
-}
-
-// Add this function
-const handleReorder = (order) => {
-  // Prepare order data for checkout
-  const reorderData = {
-    id: Date.now().toString(), // Generate new ID
-    productId: order.productId,
-    name: order.productName,
-    price: order.price,
-    quantity: order.quantity,
-    image: order.customOptions.productImage,
-    customOptions: order.customOptions,
-    shippingDetails: order.shippingDetails,
-  }
-
-  // Save to localStorage for checkout
-  localStorage.setItem('reorder_data', JSON.stringify(reorderData))
-}
-
-const openReviewModal = (order) => {
-  selectedOrder.value = order
-  showReviewModal.value = true
-}
-
-const closeReviewModal = () => {
-  showReviewModal.value = false
-  selectedOrder.value = null
-}
+})
 </script>
 
 <style scoped>
-.container {
-  max-width: 128rem;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: #f8f9fa;
+.notification-page {
   min-height: 100vh;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  background: white;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: #f8f9fa;
-  color: #02163b;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.back-btn:hover {
-  background: #e8ba38;
-  color: white;
-}
-
-h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #02163b;
-  margin: 0;
-}
-
-.search-container {
-  width: 95.5%;
-  margin-bottom: 2rem;
-}
-
-.search-wrapper {
-  position: relative;
-  width: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #02163b;
-  opacity: 0.5;
-}
-
-input {
-  width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  font-family: 'Montserrat', sans-serif;
-}
-
-input:focus {
-  outline: none;
-  border-color: #e8ba38;
-  box-shadow: 0 0 0 4px rgba(232, 186, 56, 0.1);
-}
-
-.order-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  background-color: #f8f9fa;
+  padding-top: 40px;
 }
 
-.order-card {
-  border: none;
-  border-radius: 12px;
-  overflow: hidden;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease;
+.notification-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  flex: 1;
+  padding-top: calc(80px + 2rem);
+  padding-bottom: 4rem;
+  margin-bottom: 2rem;
 }
 
-.order-card:hover {
-  transform: translateY(-2px);
-}
-
-.order-header {
-  padding: 1.25rem;
-  cursor: pointer;
+.notification-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  transition: background-color 0.2s ease;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
-.order-header:hover {
-  background-color: #ececec;
-}
-
-.order-main-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.order-id {
-  font-weight: 600;
+.notification-header h1 {
+  font-size: 1.75rem;
   color: #02163b;
+  margin: 0;
+  font-weight: 600;
   font-family: 'Montserrat', sans-serif;
 }
 
-.order-details p {
-  margin: 0.25rem 0;
-  color: #666;
-}
-
-.order-status {
+.mark-all-btn {
+  background: transparent;
+  border: none;
+  color: #e8ba38;
+  font-weight: 500;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
 }
 
-.status-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  min-width: 120px;
-  text-align: center;
-  font-family: 'Montserrat', sans-serif;
+.mark-all-btn:hover {
+  color: #d5a832;
+  background-color: rgba(232, 186, 56, 0.1);
 }
 
-.status-success {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.status-progress {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.status-canceled {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.order-expanded {
-  border-top: 1px solid #f1f1f1;
-  padding: 1.25rem;
-  background: #f8f9fa;
-  overflow: hidden; /* Add this to contain the sliding animation */
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  color: #666;
-  font-size: 1.1rem;
-  font-family: 'Montserrat', sans-serif;
-}
-
-/* Slide Animation */
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.3s ease-out;
-  max-height: 300px; /* Adjust based on your content */
-  opacity: 1;
-  overflow: hidden;
-}
-
-.slide-enter-from,
-.slide-leave-to {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-}
-
-/* Add styles for order items to make them look better */
-.order-items {
+.notification-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-top: 1rem;
 }
 
-.order-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  background: white;
-  border-radius: 8px;
-}
-
-.order-item span:last-child {
-  font-weight: 500;
-  color: #02163b;
-}
-
-@media (max-width: 640px) {
-  .container {
-    padding: 1rem;
-  }
-
-  .header {
-    margin-bottom: 1.5rem;
-  }
-
-  .status-badge {
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .order-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .order-status {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .status-badge {
-    min-width: unset;
-  }
-}
-
-.order-grid {
-  display: grid;
-  gap: 1.5rem;
-  padding: 1.25rem;
-}
-
-.detail-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.product-info {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.product-image {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-/* New styles for product header with custom design */
-.product-header {
+.notification-card {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between; /* Pastikan space-between untuk memisahkan konten */
-  margin-bottom: 0.75rem;
-  position: relative; /* Add this to help with absolute positioning */
-  width: 100%;
+  background-color: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
 }
 
-.custom-design-container {
-  position: absolute; /* Change to absolute positioning */
-  right: -19rem;
-  top: 0;
+.notification-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.unread {
+  background-color: rgba(232, 186, 56, 0.05);
+  border-left: 4px solid #e8ba38;
+}
+
+.unread::after {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background-color: #e8ba38;
+  border-radius: 50%;
+}
+
+.notification-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-order {
+  background-color: #ebf7ee;
+  color: #16a34a;
+}
+
+.icon-voucher {
+  background-color: #fff0e1;
+  color: #f59e0b;
+}
+
+.icon-payment {
+  background-color: #e0f2fe;
+  color: #0ea5e9;
+}
+
+.icon-delivery {
+  background-color: #f3e8ff;
+  color: #9333ea;
+}
+
+.icon-system {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.icon-promo {
+  background-color: #ffe4e6;
+  color: #e11d48;
+}
+
+.notification-content {
+  flex: 1;
+  padding-right: 1.5rem;
+}
+
+.notification-content h3 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem 0;
+  color: #02163b;
+  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.notification-content p {
+  margin: 0 0 0.5rem 0;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.notification-time {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.go-icon {
+  color: #ccc;
+  margin-left: auto;
+  align-self: center;
+  transition: transform 0.2s;
+}
+
+.notification-card:hover .go-icon {
+  transform: translateX(4px);
+  color: #e8ba38;
+}
+
+.view-more-container {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.view-more-btn {
+  background: transparent;
+  border: 1px solid #e8ba38;
+  color: #e8ba38;
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-more-btn:hover {
+  background-color: #e8ba38;
+  color: white;
+}
+
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-right: -20px; /* Push it further right */
+  justify-content: center;
+  padding: 4rem 2rem;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  text-align: center;
 }
 
-.design-logo-label {
-  font-size: 0.875rem;
-  font-weight: 600; /* Increased weight */
-  color: #666;
-  margin: 0;
-  white-space: nowrap; /* Prevent text wrapping */
+.empty-state i {
+  font-size: 3rem;
+  color: #e8ba38;
+  margin-bottom: 1rem;
 }
 
-/* Increase thumbnail size */
-.custom-design-thumbnail {
-  flex-shrink: 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid #e5e7eb;
-  width: 120px; /* Increased from 80px to 120px */
-  height: 120px; /* Increased from 80px to 120px */
-}
-
-.custom-design-thumbnail img {
-  width: 120px; /* Increased from 80px to 120px */
-  height: 120px; /* Increased from 80px to 120px */
-  object-fit: cover;
-  display: block;
-}
-
-/* Ensure the product name takes appropriate space */
-.product-header h4 {
-  margin: 0;
-  flex: 1;
-  margin-right: 140px; /* Increased from 100px to 140px */
-}
-
-.action-section {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.complete-btn,
-.buy-again-btn,
-.review-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
+.empty-state h3 {
+  font-size: 1.25rem;
+  color: #02163b;
+  margin: 0 0 0.5rem 0;
   font-family: 'Montserrat', sans-serif;
 }
 
-.complete-btn {
-  background: #02163b;
-  color: white;
+.empty-state p {
+  color: #666;
+  margin-bottom: 1.5rem;
 }
 
-.completed-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.buy-again-btn {
-  background: #e8ba38;
+.browse-btn {
+  background-color: #e8ba38;
   color: white;
   text-decoration: none;
-}
-
-.review-btn {
-  background: #f8f9fa;
-  color: #02163b;
-  border: 1px solid #02163b;
-}
-
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-.status-process {
-  background: #cce5ff;
-  color: #004085;
-}
-.status-delivery {
-  background: #d4edda;
-  color: #155724;
-}
-.status-canceled {
-  background: #f8d7da;
-  color: #842029;
-}
-
-/* Responsive adjustments for custom design */
-@media (max-width: 640px) {
-  .product-header {
-    flex-direction: row; /* Ubah ke row untuk tetap sejajar */
-    align-items: center;
-  }
-
-  .custom-design-container {
-    position: relative; /* Reset position for mobile */
-    margin-right: 0; /* Reset margin for mobile */
-  }
-
-  .product-header h4 {
-    margin-right: 0; /* Reset margin for mobile */
-  }
-}
-
-@media (min-width: 768px) {
-  .order-grid {
-    grid-template-columns: 2fr 1fr;
-  }
-
-  .action-section {
-    grid-column: 1 / -1;
-  }
-}
-
-/* Add these styles */
-.invoice-btn {
-  font-family: 'Montserrat', sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 500;
   transition: background-color 0.2s;
 }
 
-.invoice-btn:hover {
-  background-color: #45a049;
+.browse-btn:hover {
+  background-color: #d5a832;
 }
 
-.invoice-btn i {
-  font-size: 1rem;
-}
-
-.invoice-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.invoice-btn:disabled:hover {
-  background-color: #cccccc;
-}
-
-/* Cancellation reason styling */
-.cancellation-reason {
-  margin-left: 1.2rem;
-  width: fit-content;
-  padding: 1rem;
-  background-color: #fff8f8;
-  border-left: 4px solid #f44336;
-  border-radius: 4px;
-  font-family: 'Montserrat', sans-serif;
-}
-
-.reason-header {
+.loading-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  justify-content: center;
+  padding: 4rem;
+  color: #888;
+  gap: 1rem;
 }
 
-.reason-header i {
-  color: #f44336;
-  font-size: 1.1rem;
+.loading-container i {
+  font-size: 2rem;
+  color: #e8ba38;
 }
 
-.reason-header h3 {
-  font-size: 1rem;
-  color: #842029;
-  margin: 0;
-  font-weight: 600;
-}
+@media (max-width: 640px) {
+  .notification-container {
+    margin-top: 1rem;
+  }
 
-.cancellation-reason p {
-  margin: 0;
-  color: #555;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  white-space: pre-line;
+  .notification-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .notification-card {
+    padding: 0.75rem;
+  }
+
+  .notification-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .notification-content h3 {
+    font-size: 0.95rem;
+  }
+
+  .notification-content p {
+    font-size: 0.85rem;
+  }
 }
 </style>

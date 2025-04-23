@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="voucher-notification-container"
-    v-if="!voucherStore.isLoading && activeVouchers.length > 0"
-  >
+  <div class="voucher-notification-container" v-if="activeVouchers.length > 0">
     <div class="voucher-notification" @click="toggleVoucherModal">
       <div class="notification-content">
         <i class="fas fa-ticket-alt"></i>
@@ -43,7 +40,7 @@
               </div>
             </div>
 
-            <!-- Terms and Conditions Section remains the same -->
+            <!-- Terms and Conditions Section -->
             <div class="terms-section">
               <div class="terms-header" @click="toggleTerms">
                 <h3>Syarat & Ketentuan</h3>
@@ -85,95 +82,97 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useVoucherStore } from '@/stores/VoucherStore'
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore'
+import { collection, query, onSnapshot, orderBy, where, Timestamp } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 
 const voucherStore = useVoucherStore()
 const showVoucherModal = ref(false)
 const copiedCode = ref('')
 const unsubscribeListener = ref(null)
-const isInitialLoad = ref(true)
+const isTermsOpen = ref(false)
 
-// Set up real-time listener for vouchers
-const setupVoucherListener = () => {
-  console.log('Setting up real-time voucher listener')
-
-  // Create a query for all vouchers ordered by creation date
-  const vouchersRef = collection(db, 'vouchers')
-  const vouchersQuery = query(vouchersRef, orderBy('createdAt', 'desc'))
-
-  // Set up the real-time listener
-  unsubscribeListener.value = onSnapshot(
-    vouchersQuery,
-    (snapshot) => {
-      console.log('Voucher snapshot received:', snapshot.size)
-
-      // Handle loading state
-      voucherStore.isLoading = false
-
-      // Process each document and update the store's voucher items
-      const vouchers = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-
-      // Update the voucher store directly
-      voucherStore.voucherItems = vouchers
-
-      // Log information
-      console.log('Vouchers updated at:', new Date().toLocaleTimeString())
-      console.log('Total vouchers:', voucherStore.voucherItems.length)
-      console.log('Active vouchers:', activeVouchers.value.length)
-
-      isInitialLoad.value = false
-    },
-    (error) => {
-      console.error('Error listening to vouchers:', error)
-      voucherStore.isLoading = false
-    },
-  )
-}
-
-// Set up real-time listener when component is mounted
-onMounted(() => {
-  console.log('VoucherNotification component mounted')
-  voucherStore.isLoading = true
-  setupVoucherListener()
-})
-
-// Clean up when component is unmounted
-onUnmounted(() => {
-  if (unsubscribeListener.value) {
-    console.log('Unsubscribing from voucher updates')
-    unsubscribeListener.value()
-  }
-})
-
-// Filter active vouchers
+// Computed property for active vouchers
 const activeVouchers = computed(() => {
   return voucherStore.voucherItems.filter((voucher) => {
+    // Handle Firestore Timestamp or regular date string
+    let validUntilDate
+    if (voucher.validUntil instanceof Timestamp) {
+      validUntilDate = voucher.validUntil.toDate()
+    } else {
+      validUntilDate = new Date(voucher.validUntil)
+    }
+
     const now = new Date()
-    const isNotExpired = new Date(voucher.validUntil) > now
+    const isNotExpired = validUntilDate > now
     const hasRemainingUses = voucher.currentUses < voucher.maxUses
     return voucher.isActive && isNotExpired && hasRemainingUses
   })
 })
 
-// Add watch to debug when voucher items change
-watch(
-  () => voucherStore.voucherItems,
-  (newItems) => {
-    console.log('Voucher items updated:', newItems.length)
-    console.log('Active vouchers after update:', activeVouchers.value.length)
-  },
-  { deep: true },
-)
+// Set up real-time listener for vouchers with improved error handling
+const setupVoucherListener = () => {
+  try {
+    // Create a query for active vouchers that are not expired
+    const vouchersRef = collection(db, 'vouchers')
+    const vouchersQuery = query(
+      vouchersRef,
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc'),
+    )
+
+    // Set up real-time listener
+    unsubscribeListener.value = onSnapshot(
+      vouchersQuery,
+      (snapshot) => {
+        // Handle data changes
+        const vouchers = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+
+        // Update store directly - no localStorage
+        voucherStore.voucherItems = vouchers
+      },
+      (error) => {
+        console.error('Error in voucher listener:', error)
+      },
+    )
+  } catch (error) {
+    console.error('Error setting up voucher listener:', error)
+  }
+}
+
+// Copy voucher code to clipboard with improved feedback
+const copyVoucherCode = (code) => {
+  navigator.clipboard
+    .writeText(code)
+    .then(() => {
+      copiedCode.value = code
+      alert(`Kode voucher ${code} berhasil disalin!`)
+
+      // Reset copied status after 3 seconds
+      setTimeout(() => {
+        if (copiedCode.value === code) {
+          copiedCode.value = ''
+        }
+      }, 3000)
+    })
+    .catch((err) => {
+      console.error('Gagal menyalin kode voucher:', err)
+      alert('Gagal menyalin kode voucher')
+    })
+}
 
 // Toggle voucher modal
 const toggleVoucherModal = () => {
   showVoucherModal.value = !showVoucherModal.value
+}
+
+// Toggle terms section
+const toggleTerms = () => {
+  isTermsOpen.value = !isTermsOpen.value
 }
 
 // Format discount for display
@@ -186,8 +185,15 @@ const formatDiscount = (voucher) => {
 }
 
 // Format date for display
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
+const formatDate = (dateVal) => {
+  // Handle Firestore Timestamp or regular date string
+  let date
+  if (dateVal instanceof Timestamp) {
+    date = dateVal.toDate()
+  } else {
+    date = new Date(dateVal)
+  }
+
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -195,26 +201,21 @@ const formatDate = (dateString) => {
   }).format(date)
 }
 
-// Copy voucher code to clipboard
-const copyVoucherCode = (code) => {
-  navigator.clipboard
-    .writeText(code)
-    .then(() => {
-      copiedCode.value = code
-      alert(`Kode voucher ${code} berhasil disalin!`)
-    })
-    .catch((err) => {
-      console.error('Gagal menyalin kode voucher:', err)
-      alert('Gagal menyalin kode voucher')
-    })
-}
+// Set up when component is mounted
+onMounted(() => {
+  // Force fetch vouchers first to ensure data is loaded immediately
+  voucherStore.fetchVouchers().then(() => {
+    // Then set up the real-time listener for updates
+    setupVoucherListener()
+  })
+})
 
-// Add to existing script
-const isTermsOpen = ref(false)
-
-const toggleTerms = () => {
-  isTermsOpen.value = !isTermsOpen.value
-}
+// Clean up when component is unmounted
+onUnmounted(() => {
+  if (unsubscribeListener.value) {
+    unsubscribeListener.value()
+  }
+})
 </script>
 
 <style scoped>

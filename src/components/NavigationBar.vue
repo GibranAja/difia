@@ -1,153 +1,144 @@
 <template>
-  <div
-    class="navbar-wrapper"
-    :class="{
-      'navbar-hidden': shouldHideNav,
-      'no-voucher-offset': !hasActiveVouchers,
-    }"
-  >
-    <nav :class="{ 'nav-scrolled': isScrolled, 'nav-expanded': isMobileMenuOpen }">
-      <!-- Main navigation container -->
-      <div class="nav-container">
-        <!-- Left side - Logo -->
-        <div class="nav-logo">
-          <img src="../assets/Logo_Difia_Haki.png" alt="Difia Logo" class="logo-image" />
-        </div>
-
-        <!-- Center - Navigation links with improved interaction -->
-        <div class="nav-links-container">
-          <div class="nav-links-backdrop" :class="{ active: isMobileMenuOpen }"></div>
-          <ul class="nav-links" :class="{ 'menu-active': isMobileMenuOpen }">
-            <li v-for="(item, index) in navItems" :key="index" class="nav-item">
-              <a
-                @click.prevent="navigateTo(item.path, item.section)"
-                :href="item.href"
-                class="nav-link"
-                :class="{ active: isActiveLink(item.section) }"
-              >
-                <span class="nav-link-text">{{ item.text }}</span>
-              </a>
-            </li>
-            <li v-if="authStore.currentUser?.isAdmin" class="nav-item admin-item">
-              <router-link to="/admin" class="nav-link admin-link">
-                <i class="fas fa-chart-line admin-icon"></i>
-                <span class="nav-link-text">Dashboard</span>
-              </router-link>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Right side - user actions with improved accessibility -->
-        <div class="user-actions">
-          <!-- Notification bell with improved animation -->
-          <button
-            v-if="authStore.isLoggedIn"
-            class="action-button notification-button"
-            @click="handleNotificationClick"
-            aria-label="Notifications"
-          >
-            <div class="button-content">
-              <i class="fas fa-history"></i>
-              <div v-if="notificationStore.notificationCount > 0" class="notification-badge pulse">
-                {{
-                  notificationStore.notificationCount > 99
-                    ? '99+'
-                    : notificationStore.notificationCount
-                }}
-              </div>
-            </div>
-          </button>
-
-          <!-- Shopping cart with improved visual feedback -->
-          <button
-            class="action-button cart-button"
-            @click="navigateToCart"
-            aria-label="Shopping Cart"
-          >
-            <div class="button-content">
-              <i class="fas fa-shopping-cart"></i>
-              <div v-if="cartItemCount > 0" class="cart-badge">
-                {{ cartItemCount > 99 ? '99+' : cartItemCount }}
-              </div>
-            </div>
-          </button>
-
-          <!-- User account section with dropdown menu -->
-          <div class="user-section">
-            <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
-              <span class="login-text">Login</span>
-              <i class="fas fa-arrow-right login-arrow"></i>
-            </button>
-
-            <div v-else class="user-profile">
-              <div
-                class="profile-container"
-                @click="toggleProfileDropdown"
-                :style="{ backgroundImage: `url(${userProfilePhoto})` }"
-                aria-label="User Profile"
-                role="button"
-              >
-                <div class="profile-accent"></div>
-              </div>
-
-              <!-- Profile Dropdown Menu -->
-              <div v-if="showProfileDropdown" class="profile-dropdown">
-                <div class="dropdown-user-info">
-                  <div
-                    class="dropdown-avatar"
-                    :style="{ backgroundImage: `url(${userProfilePhoto})` }"
-                  ></div>
-                  <div class="dropdown-user-details">
-                    <p class="dropdown-username">{{ authStore.currentUser?.name }}</p>
-                    <p class="dropdown-email">{{ authStore.currentUser?.email }}</p>
-                  </div>
-                </div>
-                <div class="dropdown-divider"></div>
-                <ul class="dropdown-menu">
-                  <li @click="navigateToAccount('orders')">
-                    <i class="fas fa-shopping-bag"></i> Pesanan
-                    <i class="fas fa-chevron-right menu-arrow"></i>
-                  </li>
-                  <li @click="navigateToAccount('profile')">
-                    <i class="fas fa-user"></i> Profil
-                    <i class="fas fa-chevron-right menu-arrow"></i>
-                  </li>
-                  <li @click="navigateToAccount('address')">
-                    <i class="fas fa-map-marker-alt"></i> Alamat
-                    <i class="fas fa-chevron-right menu-arrow"></i>
-                  </li>
-                  <li @click="showLogoutModal = true">
-                    <i class="fas fa-sign-out-alt"></i> Keluar Akun
-                    <i class="fas fa-chevron-right menu-arrow"></i>
-                  </li>
-                </ul>
-              </div>
-            </div>
+  <div class="navigation-container">
+    <div
+      class="navbar-wrapper"
+      :class="{
+        'navbar-hidden': shouldHideNav,
+        'no-voucher-offset': !hasActiveVouchers,
+      }"
+    >
+      <nav :class="{ 'nav-scrolled': isScrolled, 'nav-expanded': isMobileMenuOpen }">
+        <!-- Main navigation container -->
+        <div class="nav-container">
+          <!-- Left side - Logo -->
+          <div class="nav-logo">
+            <img src="../assets/Logo_Difia_Haki.png" alt="Difia Logo" class="logo-image" />
           </div>
 
-          <!-- Mobile menu toggle with improved animations -->
-          <button class="menu-toggle" @click="toggleMobileMenu" aria-label="Toggle Menu">
-            <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </button>
-        </div>
-      </div>
-    </nav>
-  </div>
+          <!-- Center - Navigation links with improved interaction -->
+          <div class="nav-links-container">
+            <div class="nav-links-backdrop" :class="{ active: isMobileMenuOpen }"></div>
+            <ul class="nav-links" :class="{ 'menu-active': isMobileMenuOpen }">
+              <li v-for="(item, index) in navItems" :key="index" class="nav-item">
+                <a
+                  @click.prevent="navigateTo(item.path, item.section)"
+                  :href="item.href"
+                  class="nav-link"
+                  :class="{ active: isActiveLink(item.section) }"
+                >
+                  <span class="nav-link-text">{{ item.text }}</span>
+                </a>
+              </li>
+              <li v-if="authStore.currentUser?.isAdmin" class="nav-item admin-item">
+                <router-link to="/admin" class="nav-link admin-link">
+                  <i class="fas fa-chart-line admin-icon"></i>
+                  <span class="nav-link-text">Dashboard</span>
+                </router-link>
+              </li>
+            </ul>
+          </div>
 
-  <!-- Modals -->
-  <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
-  <NegativeModal
-    v-if="showLogoutModal"
-    title="Konfirmasi Logout"
-    message="Apakah Anda yakin ingin keluar?"
-    :loading="isLoggingOut"
-    @close="showLogoutModal = false"
-    @confirm="handleLogout"
-  />
+          <!-- Right side - user actions with improved accessibility -->
+          <div class="user-actions">
+            <!-- Notification bell with improved animation -->
+            <div class="notification-icon" @click="handleNotificationClick">
+              <i class="fas fa-bell"></i>
+              <span v-if="notificationStore.unreadCount > 0" class="notification-badge">
+                {{ notificationStore.unreadCount }}
+              </span>
+            </div>
+
+            <!-- Shopping cart with improved visual feedback -->
+            <button
+              class="action-button cart-button"
+              @click="navigateToCart"
+              aria-label="Shopping Cart"
+            >
+              <div class="button-content">
+                <i class="fas fa-shopping-cart"></i>
+                <div v-if="cartItemCount > 0" class="cart-badge">
+                  {{ cartItemCount > 99 ? '99+' : cartItemCount }}
+                </div>
+              </div>
+            </button>
+
+            <!-- User account section with dropdown menu -->
+            <div class="user-section">
+              <button v-if="!authStore.isLoggedIn" class="login-button" @click="navigateToLogin">
+                <span class="login-text">Login</span>
+                <i class="fas fa-arrow-right login-arrow"></i>
+              </button>
+
+              <div v-else class="user-profile">
+                <div
+                  class="profile-container"
+                  @click="toggleProfileDropdown"
+                  :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+                  aria-label="User Profile"
+                  role="button"
+                >
+                  <div class="profile-accent"></div>
+                </div>
+
+                <!-- Profile Dropdown Menu -->
+                <div v-if="showProfileDropdown" class="profile-dropdown">
+                  <div class="dropdown-user-info">
+                    <div
+                      class="dropdown-avatar"
+                      :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+                    ></div>
+                    <div class="dropdown-user-details">
+                      <p class="dropdown-username">{{ authStore.currentUser?.name }}</p>
+                      <p class="dropdown-email">{{ authStore.currentUser?.email }}</p>
+                    </div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <ul class="dropdown-menu">
+                    <li @click="navigateToAccount('orders')">
+                      <i class="fas fa-shopping-bag"></i> Pesanan
+                      <i class="fas fa-chevron-right menu-arrow"></i>
+                    </li>
+                    <li @click="navigateToAccount('profile')">
+                      <i class="fas fa-user"></i> Profil
+                      <i class="fas fa-chevron-right menu-arrow"></i>
+                    </li>
+                    <li @click="navigateToAccount('address')">
+                      <i class="fas fa-map-marker-alt"></i> Alamat
+                      <i class="fas fa-chevron-right menu-arrow"></i>
+                    </li>
+                    <li @click="showLogoutModal = true">
+                      <i class="fas fa-sign-out-alt"></i> Keluar Akun
+                      <i class="fas fa-chevron-right menu-arrow"></i>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mobile menu toggle with improved animations -->
+            <button class="menu-toggle" @click="toggleMobileMenu" aria-label="Toggle Menu">
+              <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Modals -->
+    <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
+    <NegativeModal
+      v-if="showLogoutModal"
+      title="Konfirmasi Logout"
+      message="Apakah Anda yakin ingin keluar?"
+      :loading="isLoggingOut"
+      @close="showLogoutModal = false"
+      @confirm="handleLogout"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -160,6 +151,16 @@ import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
+
+// Define props and emits
+defineProps({
+  showLogout: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+defineEmits(['logout'])
 
 // Stores and routing
 const router = useRouter()
@@ -318,7 +319,10 @@ const navigateToCart = () => {
 }
 
 const handleNotificationClick = () => {
-  notificationStore.resetCount()
+  // Fix: Replace resetCount with markAllAsRead
+  if (notificationStore.unreadCount > 0) {
+    notificationStore.markAllAsRead()
+  }
   router.push('/notification')
 }
 
@@ -342,15 +346,6 @@ const navigateToAccount = (section) => {
   router.push(`/my-account/${section}`)
   showProfileDropdown.value = false
 }
-
-// Update existing methods
-// const goToOrders = () => {
-//   navigateToAccount('orders')
-// }
-
-// const openProfileModal = () => {
-//   navigateToAccount('profile')
-// }
 
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
@@ -391,9 +386,9 @@ onMounted(() => {
   if (authStore.isLoggedIn) {
     cartStore.fetchCartItems()
 
+    // Fix: Replace trackStatusUpdates with listenToNotifications
     if (authStore.currentUser?.id) {
-      const unsubscribe = notificationStore.trackStatusUpdates(authStore.currentUser.id)
-      onUnmounted(() => unsubscribe && unsubscribe())
+      notificationStore.listenToNotifications()
     }
   }
 
@@ -694,6 +689,22 @@ nav {
   transition:
     transform 0.2s ease,
     background-color 0.2s ease;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -13px;
+  right: -8px;
+  background-color: #e8ba38;
+  color: white;
+  height: 13px;
+  width: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  animation: pulse 2s infinite;
 }
 
 .action-button:hover .notification-badge,
@@ -1180,5 +1191,24 @@ nav {
 }
 .nav-links.menu-active .nav-item:nth-child(5) {
   animation-delay: 0.5s;
+}
+
+/* Notification icon styles */
+.notification-icon {
+  position: relative;
+  cursor: pointer;
+  margin-right: 15px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>
