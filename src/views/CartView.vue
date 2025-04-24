@@ -1,6 +1,7 @@
 <template>
+  <VoucherNotification />
   <Navbar />
-  <main class="cart-view">
+  <main class="cart-view" :class="{ 'has-voucher': hasActiveVouchers }">
     <router-link to="/" class="back-button">
       <i class="fas fa-arrow-left"></i>
     </router-link>
@@ -132,33 +133,66 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, onUnmounted } from 'vue'
 import { useCartStore } from '@/stores/CartStore'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useVoucherStore } from '@/stores/VoucherStore'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/NavigationBar.vue'
+import VoucherNotification from '@/components/VoucherNotification.vue'
+import { collection, query, onSnapshot, where, orderBy } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { useToast } from 'vue-toastification'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const voucherStore = useVoucherStore()
 const router = useRouter()
 const toast = useToast()
 const shippingCost = 0
 const isLoading = ref(false)
 const selectedItems = ref([])
 const selectAll = ref(false)
+const unsubscribeListener = ref(null)
 
-// Computed property to check if all items are selected
-const isAllSelected = computed(() => {
-  return cartStore.cartItems.length > 0 && selectedItems.value.length === cartStore.cartItems.length
+// Compute if there are active vouchers
+const hasActiveVouchers = computed(() => {
+  return voucherStore.voucherItems.some((voucher) => {
+    const now = new Date()
+    const validUntilDate = new Date(voucher.validUntil)
+    const isNotExpired = validUntilDate > now
+    const hasRemainingUses = voucher.currentUses < voucher.maxUses
+    return voucher.isActive && isNotExpired && hasRemainingUses
+  })
 })
 
-// Computed property to get total of selected items
-const getSelectedItemsTotal = computed(() => {
-  return cartStore.cartItems
-    .filter((item) => selectedItems.value.includes(item.id))
-    .reduce((total, item) => total + item.price * item.quantity, 0)
-})
+// Set up real-time listener for vouchers
+const setupVoucherListener = () => {
+  try {
+    const vouchersRef = collection(db, 'vouchers')
+    const vouchersQuery = query(
+      vouchersRef,
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc'),
+    )
+
+    unsubscribeListener.value = onSnapshot(
+      vouchersQuery,
+      (snapshot) => {
+        const vouchers = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        voucherStore.voucherItems = vouchers
+      },
+      (error) => {
+        console.error('Error in voucher listener:', error)
+      },
+    )
+  } catch (error) {
+    console.error('Error setting up voucher listener:', error)
+  }
+}
 
 // Watch for changes in cart items to update selection state
 watch(
@@ -265,28 +299,39 @@ const getCartFromCache = () => {
   }
 }
 
-// Modify onMounted to use cache
+// Modify onMounted to use cache and setup voucher listener
 onMounted(async () => {
   if (!authStore.isLoggedIn) return
 
   isLoading.value = true
   try {
-    // Try to load from cache first
+    // Try to load cart from cache first
     const cachedCart = getCartFromCache()
     if (cachedCart) {
       cartStore.cartItems = cachedCart
     }
 
-    // Fetch fresh data in background
+    // Fetch fresh cart data in background
     const freshData = await cartStore.fetchCartItems()
     if (freshData) {
       saveCartToCache(cartStore.cartItems)
     }
+
+    // Fetch vouchers and setup real-time listener
+    await voucherStore.fetchVouchers()
+    setupVoucherListener()
   } catch (error) {
     console.error('Error loading cart:', error)
     toast.error('Gagal memuat keranjang')
   } finally {
     isLoading.value = false
+  }
+})
+
+// Clean up listener when component unmounts
+onUnmounted(() => {
+  if (unsubscribeListener.value) {
+    unsubscribeListener.value()
   }
 })
 
@@ -341,6 +386,40 @@ const formatPrice = (price) => {
   max-width: 1200px;
   margin: 4rem auto;
   padding: 2rem;
+  transition: margin-top 0.3s ease;
+}
+
+.cart-view.has-voucher {
+  margin-top: 6rem; /* Additional margin to account for voucher notification */
+}
+
+.back-button {
+  position: absolute;
+  left: 2rem;
+  top: 6rem;
+  transition: top 0.3s ease;
+}
+
+.has-voucher .back-button {
+  top: 8rem; /* Move back button down when voucher notification is visible */
+}
+
+/* Adjust page title spacing too */
+.has-voucher .page-title {
+  margin-top: 4rem;
+}
+
+/* Rest of your existing styles... */
+
+/* Update media queries for responsive design */
+@media (max-width: 768px) {
+  .cart-view.has-voucher {
+    margin-top: 5rem;
+  }
+
+  .has-voucher .back-button {
+    top: 6rem;
+  }
 }
 
 .cart-container {

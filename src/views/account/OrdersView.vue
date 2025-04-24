@@ -413,7 +413,7 @@ const completeOrder = async (orderId) => {
       orderId: orderId,
       icon: 'fas fa-check-circle',
       color: '#16a34a',
-      link: `/account/orders?highlight=${orderId}`,
+      link: `/my-account/orders?highlight=${orderId}`,
     })
 
     toast.success('Pesanan telah selesai')
@@ -523,7 +523,7 @@ const closeReviewModal = () => {
 
 .search-wrapper {
   position: relative;
-  width: 100%;
+  width: 90%;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);

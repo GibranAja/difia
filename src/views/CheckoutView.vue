@@ -57,96 +57,57 @@
         </div>
       </section>
 
+      <!-- New Shipping Address Section -->
       <section class="checkout-section customer-info">
-        <h2 class="section-title">Informasi Pemesanan</h2>
-        <form class="form-grid">
-          <div class="form-group">
-            <label for="name">Nama</label>
-            <input type="text" id="name" v-model="formData.name" placeholder="Masukkan nama" />
+        <h2 class="section-title">Alamat Pengiriman</h2>
+
+        <!-- Loading state -->
+        <div v-if="addressStore.loading" class="address-loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Memuat alamat...</p>
+        </div>
+
+        <!-- No addresses state -->
+        <div v-else-if="addressStore.addresses.length === 0" class="no-address">
+          <div class="empty-address">
+            <i class="fas fa-map-marker-alt empty-icon"></i>
+            <p>Anda belum memiliki alamat pengiriman</p>
+            <button class="add-address-btn" @click="showAddressModal = true">
+              <i class="fas fa-plus"></i> Buat Alamat
+            </button>
           </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" v-model="formData.email" placeholder="Masukkan email" />
-          </div>
-          <div class="form-group">
-            <label for="phone">No Telp</label>
-            <input
-              type="text"
-              v-model="formData.phone"
-              placeholder="Masukkan nomor telepon"
-              maxlength="13"
-              class="no-spinner"
-              @input="validatePhone"
-            />
-          </div>
-          <div class="form-group">
-            <label for="address">Alamat Lengkap</label>
-            <textarea
-              id="address"
-              v-model="formData.address"
-              rows="3"
-              placeholder="Masukkan alamat lengkap"
-            ></textarea>
-          </div>
-          <div class="form-group">
-            <label for="province">Provinsi</label>
-            <select
-              id="province"
-              v-model="selectedProvince"
-              @change="loadCities(selectedProvince)"
-              :disabled="isLoadingProvinces"
-            >
-              <option value="">
-                {{ isLoadingProvinces ? 'Loading provinsi...' : 'Pilih Provinsi' }}
-              </option>
-              <option
-                v-for="province in provinces"
-                :key="province.province_id"
-                :value="province.province"
-              >
-                {{ province.province }}
-              </option>
-            </select>
+        </div>
+
+        <!-- Address selection -->
+        <div v-else class="address-selection">
+          <div
+            v-for="address in addressStore.addresses"
+            :key="address.id"
+            :class="['address-card', { active: selectedAddressId === address.id }]"
+            @click="selectAddress(address)"
+          >
+            <div class="address-label">
+              <i :class="getLabelIcon(address.label)"></i>
+              <span>{{ address.label }}</span>
+              <span v-if="address.isPrimary" class="primary-badge">Utama</span>
+            </div>
+            <div class="address-details">
+              <p class="recipient">{{ address.name }}</p>
+              <p class="phone">{{ address.phone }}</p>
+              <p class="full-address">
+                {{ address.address }}, {{ address.city }}, {{ address.province }}, {{ address.zip }}
+              </p>
+            </div>
+            <div class="address-actions">
+              <button class="edit-address-btn" @click.stop="editAddress(address)">
+                <i class="fas fa-pen"></i>
+              </button>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="town">Kota</label>
-            <select
-              id="town"
-              v-model="selectedCity"
-              @change="calculateShipping"
-              :disabled="!selectedProvince || isLoadingCities"
-            >
-              <option value="">
-                {{
-                  isLoadingCities
-                    ? 'Loading kota...'
-                    : !selectedProvince
-                      ? 'Pilih provinsi terlebih dahulu'
-                      : 'Pilih Kota'
-                }}
-              </option>
-              <option
-                v-for="city in cities"
-                :key="city.city_id"
-                :value="`${city.type} ${city.city_name}`"
-              >
-                {{ city.type }} {{ city.city_name }}
-              </option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="zip">Kode Pos</label>
-            <input type="text" id="zip" v-model="formData.zip" placeholder="Kode pos" />
-          </div>
-        </form>
-
-        <div class="shipping-info">
-          <i class="fas fa-truck-fast"></i>
-          <div>
-            <h3>Pengiriman via</h3>
-            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
-          </div>
+          <button class="add-another-address-btn" @click="showAddressModal = true">
+            <i class="fas fa-plus"></i> Tambah Alamat Baru
+          </button>
         </div>
       </section>
 
@@ -253,7 +214,7 @@
 
         <button
           class="checkout-button"
-          :disabled="!selectedCity || isLoadingShipping || isProcessing || !acceptedTerms"
+          :disabled="!isCheckoutEnabled || isProcessing"
           @click="handleSubmitOrder"
         >
           <span v-if="isProcessing">Process<span class="loading-dots">...</span></span>
@@ -263,64 +224,284 @@
         <p class="terms-notice" v-if="!acceptedTerms">
           Anda harus menyetujui syarat & ketentuan untuk melanjutkan
         </p>
+
+        <p class="terms-notice" v-if="!selectedAddressId && addressStore.addresses.length > 0">
+          Pilih alamat pengiriman untuk melanjutkan
+        </p>
       </section>
     </div>
     <div v-else>
       <p>Tidak ada data order. Kembali ke <router-link to="/">home</router-link></p>
     </div>
+
+    <!-- Address Modal -->
+    <div v-if="showAddressModal" class="modal-overlay" @click="closeAddressModal">
+      <div class="modal-content" @click.stop>
+        <h2 class="modal-title">{{ isEditingAddress ? 'Edit Alamat' : 'Tambah Alamat Baru' }}</h2>
+
+        <form @submit.prevent="saveAddress" class="address-form">
+          <!-- Name -->
+          <div class="form-group">
+            <label for="address-name">Nama Penerima</label>
+            <input
+              type="text"
+              id="address-name"
+              v-model="addressForm.name"
+              required
+              placeholder="Nama Penerima"
+            />
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="address-email">Email</label>
+            <input
+              type="email"
+              id="address-email"
+              v-model="addressForm.email"
+              required
+              placeholder="Email"
+            />
+          </div>
+
+          <!-- Phone -->
+          <div class="form-group">
+            <label for="address-phone">No. Telepon</label>
+            <input
+              type="text"
+              id="address-phone"
+              v-model="addressForm.phone"
+              required
+              placeholder="No. Telepon"
+              maxlength="13"
+              @input="validateAddressPhone"
+              class="no-spinner"
+            />
+          </div>
+
+          <!-- Label -->
+          <div class="form-group">
+            <label>Label Alamat</label>
+            <div class="address-labels">
+              <label
+                v-for="(option, idx) in addressLabelOptions"
+                :key="idx"
+                :class="['label-option', { active: addressForm.label === option.value }]"
+              >
+                <input type="radio" :value="option.value" v-model="addressForm.label" hidden />
+                <i :class="option.icon"></i>
+                <span>{{ option.name }}</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Province -->
+          <div class="form-group">
+            <label for="address-province">Provinsi</label>
+            <select
+              id="address-province"
+              v-model="addressForm.province"
+              @change="loadAddressCities(addressForm.province)"
+              :disabled="isLoadingProvinces"
+              required
+            >
+              <option value="">
+                {{ isLoadingProvinces ? 'Loading provinsi...' : 'Pilih Provinsi' }}
+              </option>
+              <option
+                v-for="province in provinces"
+                :key="province.province_id"
+                :value="province.province"
+              >
+                {{ province.province }}
+              </option>
+            </select>
+          </div>
+
+          <!-- City -->
+          <div class="form-group">
+            <label for="address-city">Kota/Kabupaten</label>
+            <select
+              id="address-city"
+              v-model="addressForm.city"
+              :disabled="!addressForm.province || isLoadingCities"
+              required
+            >
+              <option value="">
+                {{
+                  isLoadingCities
+                    ? 'Loading kota...'
+                    : !addressForm.province
+                      ? 'Pilih provinsi terlebih dahulu'
+                      : 'Pilih Kota'
+                }}
+              </option>
+              <option
+                v-for="city in cities"
+                :key="city.city_id"
+                :value="`${city.type} ${city.city_name}`"
+              >
+                {{ city.type }} {{ city.city_name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Full Address -->
+          <div class="form-group">
+            <label for="address-full">Alamat Lengkap</label>
+            <textarea
+              id="address-full"
+              v-model="addressForm.address"
+              rows="3"
+              required
+              placeholder="Alamat Lengkap (Jalan, RT/RW, Kelurahan, Kecamatan)"
+            ></textarea>
+          </div>
+
+          <!-- ZIP Code -->
+          <div class="form-group">
+            <label for="address-zip">Kode Pos</label>
+            <input
+              type="text"
+              id="address-zip"
+              v-model="addressForm.zip"
+              required
+              placeholder="Kode Pos"
+              maxlength="5"
+            />
+          </div>
+
+          <!-- Primary Address Checkbox -->
+          <div class="form-group">
+            <label class="custom-checkbox" :class="{ disabled: isFirstAddress }">
+              <input type="checkbox" v-model="addressForm.isPrimary" :disabled="isFirstAddress" />
+              <span class="checkmark"></span>
+              <span class="terms-text">Jadikan sebagai alamat utama</span>
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="cancel-btn" @click="closeAddressModal">Batal</button>
+            <button type="submit" class="submit-btn" :disabled="isSavingAddress">
+              {{ isSavingAddress ? 'Menyimpan...' : 'Simpan' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Address Confirmation Modal -->
+    <div v-if="showConfirmationModal" class="modal-overlay" @click="showConfirmationModal = false">
+      <div class="modal-content" @click.stop>
+        <h2 class="modal-title">Konfirmasi Alamat Pengiriman</h2>
+
+        <div class="address-confirmation">
+          <p class="confirmation-text">Silahkan periksa kembali alamat pengiriman Anda:</p>
+
+          <div class="confirmation-address" v-if="selectedAddress">
+            <div class="address-label">
+              <i :class="getLabelIcon(selectedAddress.label)"></i>
+              <span>{{ selectedAddress.label }}</span>
+              <span v-if="selectedAddress.isPrimary" class="primary-badge">Utama</span>
+            </div>
+            <div class="address-details">
+              <p class="recipient">{{ selectedAddress.name }}</p>
+              <p class="phone">{{ selectedAddress.phone }}</p>
+              <p class="full-address">
+                {{ selectedAddress.address }}, {{ selectedAddress.city }},
+                {{ selectedAddress.province }}, {{ selectedAddress.zip }}
+              </p>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="cancel-btn" @click="showConfirmationModal = false">
+              Batal
+            </button>
+            <button type="button" class="submit-btn" @click="processOrderAfterConfirmation">
+              {{ isProcessing ? 'Memproses...' : 'Konfirmasi & Bayar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeMount, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-// import { doc, getDoc } from 'firebase/firestore'
-// import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useOrderStore } from '@/stores/OrderStore'
-import { useRouter, useRoute } from 'vue-router'
+import { useAddressStore } from '@/stores/AddressStore'
+import { useRouter } from 'vue-router'
 import rajaOngkir from '@/api/RajaOngkir'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
 
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
+const addressStore = useAddressStore()
 const router = useRouter()
-const route = useRoute()
+// const route = useRoute()
 const voucherStore = useVoucherStore()
 const toast = useToast()
 
-const formData = ref({
-  name: '',
-  email: '',
-  phone: '',
-  address: '',
-  town: '',
-  province: '',
-  zip: '',
-})
-
 const provinces = ref([])
 const cities = ref([])
-const selectedProvince = ref('')
-const selectedCity = ref('')
 const shippingCost = ref(0)
 const courier = ref('jne') // Default courier
 const isLoadingShipping = ref(false)
-
-// Add these with your other refs
 const isLoadingProvinces = ref(false)
 const isLoadingCities = ref(false)
-
-const isProcessing = ref(false) // Add this with other refs
-
-// Add these refs with your existing refs
-const cartItems = ref([])
-
-// Add near other refs
+const isProcessing = ref(false)
+// const cartItems = ref([])
 const acceptedTerms = ref(false)
 
-// Update loadProvinces function
+// Address selection
+const selectedAddressId = ref(null)
+
+// Address modal
+const showAddressModal = ref(false)
+const isEditingAddress = ref(false)
+const isSavingAddress = ref(false)
+const addressForm = ref({
+  name: '',
+  email: '',
+  phone: '',
+  label: 'home',
+  province: '',
+  city: '',
+  address: '',
+  zip: '',
+  isPrimary: false,
+})
+
+// Address confirmation modal
+const showConfirmationModal = ref(false)
+const selectedAddress = ref(null)
+
+// Address label options
+const addressLabelOptions = [
+  { value: 'home', name: 'Rumah', icon: 'fas fa-home' },
+  { value: 'office', name: 'Kantor', icon: 'fas fa-building' },
+  { value: 'school', name: 'Sekolah', icon: 'fas fa-school' },
+  { value: 'apartment', name: 'Apartemen', icon: 'fas fa-city' },
+  { value: 'other', name: 'Lainnya', icon: 'fas fa-map-marker-alt' },
+]
+
+// Check if this is the first address
+const isFirstAddress = computed(() => {
+  return addressStore.addresses.length === 0
+})
+
+// Get icon based on address label
+const getLabelIcon = (label) => {
+  const option = addressLabelOptions.find((opt) => opt.value === label)
+  return option ? option.icon : 'fas fa-map-marker-alt'
+}
+
+// Load all provinces
 const loadProvinces = async () => {
   try {
     isLoadingProvinces.value = true
@@ -332,7 +513,7 @@ const loadProvinces = async () => {
   }
 }
 
-// Update loadCities function
+// Load cities based on selected province
 const loadCities = async (provinceName) => {
   if (!provinceName) return
 
@@ -351,18 +532,43 @@ const loadCities = async (provinceName) => {
   }
 }
 
-const calculateShipping = async () => {
-  if (!selectedCity.value) return
+// Load cities for address form
+const loadAddressCities = async (provinceName) => {
+  await loadCities(provinceName)
+  addressForm.value.city = '' // Reset city when province changes
+}
+
+// Calculate shipping cost
+const calculateShipping = async (address) => {
+  if (!address?.city) return
 
   try {
     isLoadingShipping.value = true
+
+    // Extract city name from address
+    const cityMatch = address.city.match(/([A-Za-z]+)\s+(.+)/)
+    if (!cityMatch) {
+      console.error('Invalid city format:', address.city)
+      return
+    }
+
+    const cityType = cityMatch[1]
+    const cityName = cityMatch[2]
+
     // Find city ID from cities list
-    const city = cities.value.find((c) => `${c.type} ${c.city_name}` === selectedCity.value)
+    const city = cities.value.find(
+      (c) =>
+        c.type.toLowerCase() === cityType.toLowerCase() &&
+        c.city_name.toLowerCase() === cityName.toLowerCase(),
+    )
 
     if (city) {
       const weight = orderStore.currentOrder?.quantity * 1000 || 1000 // Assume 1kg per item
       const costs = await rajaOngkir.calculateShipping(city.city_id, weight, courier.value)
       shippingCost.value = costs[0]?.cost[0]?.value || 0
+    } else {
+      console.error('City not found:', address.city)
+      shippingCost.value = 0
     }
   } catch (error) {
     console.error('Error calculating shipping:', error)
@@ -372,137 +578,24 @@ const calculateShipping = async () => {
   }
 }
 
-// const totalPrice = computed(() => {
-//   return getSubtotal.value + shippingCost.value
-// })
-
-const loadShippingDetails = async () => {
-  try {
-    // Check if there are shipping details in route query
-    if (route.query.shippingDetails) {
-      const shippingDetails = JSON.parse(route.query.shippingDetails)
-
-      // Pre-fill form data
-      formData.value = {
-        name: shippingDetails.name || '',
-        email: shippingDetails.email || '',
-        phone: shippingDetails.phone || '',
-        address: shippingDetails.address || '',
-        zip: shippingDetails.zip || '',
-      }
-
-      // Set province and city
-      selectedProvince.value = shippingDetails.province || ''
-
-      // Load cities first then set selected city
-      if (shippingDetails.province) {
-        await loadCities(shippingDetails.province)
-        selectedCity.value = shippingDetails.city || ''
-
-        // Calculate shipping after city is selected
-        if (shippingDetails.city) {
-          await calculateShipping()
-        }
-      }
-    } else {
-      // Fallback to user data if available
-      if (authStore.currentUser) {
-        formData.value.name = authStore.currentUser.name || ''
-        formData.value.email = authStore.currentUser.email || ''
-      }
-    }
-  } catch (error) {
-    console.error('Error loading shipping details:', error)
-    toast.error('Gagal memuat data pengiriman')
-  }
-}
-
-onMounted(async () => {
-  try {
-    await loadProvinces() // Load provinces first
-    await loadShippingDetails() // Then load shipping details
-  } catch (error) {
-    console.error('Error in onMounted:', error)
-  }
-})
-
+// Format price display
 const formatPrice = (price) => {
   return price.toLocaleString('id-ID')
 }
 
+// Calculate subtotal
 const getSubtotal = computed(() => {
   const order = orderStore.currentOrder || getOrderFromLocal()
   if (!order) return 0
   return order.price * order.quantity
 })
 
-// Fungsi untuk menyimpan order ke localStorage
-const saveOrderToLocal = (orderData) => {
-  if (!orderData) return
-
-  // Bersihkan data yang tidak perlu
-  const cleanOrder = {
-    id: orderData.id,
-    productId: orderData.productId,
-    name: orderData.name,
-    price: orderData.price,
-    quantity: orderData.quantity,
-    image: orderData.image,
-    customOptions: {
-      purchaseType: orderData.customOptions.purchaseType,
-      priceType: orderData.customOptions.priceType,
-      bahanLuar: orderData.customOptions.bahanLuar,
-      bahanDalam: orderData.customOptions.bahanDalam,
-      aksesoris: orderData.customOptions.aksesoris,
-      note: orderData.customOptions.note,
-      uploadedImage: orderData.customOptions.uploadedImage,
-    },
-  }
-
-  try {
-    // Coba simpan ke localStorage
-    const orderString = JSON.stringify(cleanOrder)
-    localStorage.setItem('currentOrder', orderString)
-  } catch (error) {
-    console.error('Error saving to localStorage:', error)
-    // Jika quota terlampaui, bersihkan localStorage dan coba lagi
-    if (error.name === 'QuotaExceededError') {
-      try {
-        localStorage.clear()
-        localStorage.setItem('currentOrder', JSON.stringify(cleanOrder))
-      } catch (retryError) {
-        console.error('Failed to save after clearing storage:', retryError)
-      }
-    }
-  }
-}
-
-// Fungsi untuk mendapatkan order dari localStorage
+// Get order from localStorage
 const getOrderFromLocal = () => {
   try {
     const savedOrder = localStorage.getItem('currentOrder')
     if (savedOrder) {
-      const parsedOrder = JSON.parse(savedOrder)
-      // Check if order has shipping details
-      if (parsedOrder.shippingDetails) {
-        formData.value = {
-          name: parsedOrder.shippingDetails.name || '',
-          email: parsedOrder.shippingDetails.email || '',
-          phone: parsedOrder.shippingDetails.phone || '',
-          address: parsedOrder.shippingDetails.address || '',
-          zip: parsedOrder.shippingDetails.zip || '',
-        }
-        selectedProvince.value = parsedOrder.shippingDetails.province || ''
-        if (parsedOrder.shippingDetails.province) {
-          loadCities(parsedOrder.shippingDetails.province).then(() => {
-            selectedCity.value = parsedOrder.shippingDetails.city || ''
-            if (parsedOrder.shippingDetails.city) {
-              calculateShipping()
-            }
-          })
-        }
-      }
-      return parsedOrder
+      return JSON.parse(savedOrder)
     }
     return null
   } catch (error) {
@@ -511,130 +604,119 @@ const getOrderFromLocal = () => {
   }
 }
 
-// Modifikasi onBeforeMount
-const loadCartItems = () => {
+// Select address
+const selectAddress = async (address) => {
+  selectedAddressId.value = address.id
+  await calculateShipping(address)
+}
+
+// Initialize edit address
+const editAddress = (address) => {
+  isEditingAddress.value = true
+  addressForm.value = { ...address }
+  showAddressModal.value = true
+}
+
+// Open address modal for new address
+const openAddressModal = () => {
+  isEditingAddress.value = false
+  addressForm.value = {
+    name: authStore.currentUser?.name || '',
+    email: authStore.currentUser?.email || '',
+    phone: authStore.currentUser?.phone || '',
+    label: 'home',
+    province: '',
+    city: '',
+    address: '',
+    zip: '',
+    isPrimary: isFirstAddress.value,
+  }
+  showAddressModal.value = true
+}
+
+// Close address modal
+const closeAddressModal = () => {
+  showAddressModal.value = false
+}
+
+// Save address form
+const saveAddress = async () => {
   try {
-    const savedCheckout = localStorage.getItem('checkout_items')
-    if (!savedCheckout) {
+    isSavingAddress.value = true
+
+    const addressData = { ...addressForm.value }
+
+    // Validate phone
+    if (!/^(62|0)\d{9,12}$/.test(addressData.phone)) {
+      toast.error('Format nomor telepon tidak valid')
       return
     }
 
-    const { items, timestamp, userId } = JSON.parse(savedCheckout)
-
-    // Validate checkout data
-    if (userId !== authStore.currentUser?.id) {
+    // Validate zip code
+    if (!/^\d{5}$/.test(addressData.zip)) {
+      toast.error('Kode pos harus 5 digit')
       return
     }
 
-    // Check if checkout is expired (30 minutes)
-    if (Date.now() - timestamp > 30 * 60 * 1000) {
-      localStorage.removeItem('checkout_items')
-      return
+    let result
+
+    if (isEditingAddress.value) {
+      result = await addressStore.updateAddress(addressForm.value.id, addressData)
+    } else {
+      result = await addressStore.addAddress(addressData)
     }
 
-    cartItems.value = items
+    if (result.success) {
+      // If this is the first address or the updated address was selected, update the shipping calculation
+      if (isFirstAddress.value || result.address?.id === selectedAddressId.value) {
+        const addressToUse = isEditingAddress.value
+          ? addressStore.addresses.find((a) => a.id === addressForm.value.id)
+          : result.address
 
-    // Update your order store with cart data
-    const firstItem = items[0] // For single item checkout
-    orderStore.setCurrentOrder({
-      id: firstItem.id,
-      productId: firstItem.productId,
-      name: firstItem.name,
-      price: firstItem.price,
-      quantity: firstItem.quantity,
-      image: firstItem.image,
-      customOptions: firstItem.customOptions,
-    })
+        if (addressToUse) {
+          selectedAddressId.value = addressToUse.id
+          await calculateShipping(addressToUse)
+        }
+      }
+
+      // For first address, auto-select it
+      if (isFirstAddress.value && result.address) {
+        selectedAddressId.value = result.address.id
+        await calculateShipping(result.address)
+      }
+
+      closeAddressModal()
+    }
   } catch (error) {
-    console.error('Error loading checkout items:', error)
+    console.error('Error saving address:', error)
+    toast.error('Gagal menyimpan alamat')
+  } finally {
+    isSavingAddress.value = false
   }
 }
 
-onBeforeMount(async () => {
-  try {
-    // Check reorder first
-    const reorderData = localStorage.getItem('reorder_data')
-    if (reorderData) {
-      const parsedReorderData = JSON.parse(reorderData)
-      await orderStore.setCurrentOrder({
-        id: parsedReorderData.id,
-        productId: parsedReorderData.productId,
-        name: parsedReorderData.name,
-        price: parsedReorderData.price,
-        quantity: parsedReorderData.quantity,
-        image: parsedReorderData.image,
-        customOptions: parsedReorderData.customOptions,
-      })
+// Validate phone in address form
+const validateAddressPhone = (event) => {
+  // Allow only digits
+  addressForm.value.phone = event.target.value.replace(/\D/g, '')
+}
 
-      // Pre-fill shipping details
-      if (parsedReorderData.shippingDetails) {
-        formData.value = {
-          name: parsedReorderData.shippingDetails.name,
-          email: parsedReorderData.shippingDetails.email,
-          phone: parsedReorderData.shippingDetails.phone,
-          address: parsedReorderData.shippingDetails.address,
-          zip: parsedReorderData.shippingDetails.zip,
-        }
-
-        selectedProvince.value = parsedReorderData.shippingDetails.province
-
-        // Load cities then set selected city
-        if (parsedReorderData.shippingDetails.province) {
-          await loadCities(parsedReorderData.shippingDetails.province)
-          selectedCity.value = parsedReorderData.shippingDetails.city
-          if (parsedReorderData.shippingDetails.city) {
-            await calculateShipping()
-          }
-        }
-      }
-
-      // Clear reorder data from localStorage
-      localStorage.removeItem('reorder_data')
-      return
-    }
-
-    // Rest of existing code...
-    await loadCartItems()
-
-    if (!orderStore.currentOrder) {
-      const savedOrder = localStorage.getItem('currentOrder')
-      if (savedOrder) {
-        const parsedOrder = JSON.parse(savedOrder)
-        if (Date.now() - parsedOrder.timestamp < 30 * 60 * 1000) {
-          await orderStore.setCurrentOrder(parsedOrder)
-          return
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error in onBeforeMount:', error)
-    toast.error('Gagal memuat data pesanan')
-  }
+// Check if checkout can proceed
+const isCheckoutEnabled = computed(() => {
+  return (
+    selectedAddressId.value &&
+    acceptedTerms.value &&
+    !isLoadingShipping.value &&
+    orderStore.paymentProof
+  )
 })
 
-// Watch untuk perubahan order
-watch(
-  () => orderStore.currentOrder,
-  (newOrder) => {
-    if (newOrder) {
-      saveOrderToLocal(newOrder)
-    }
-  },
-  { deep: true },
-)
-
-onBeforeUnmount(() => {
-  // Bersihkan localStorage saat checkout selesai
-  // Uncomment jika ingin membersihkan data setelah checkout
-  localStorage.removeItem('currentOrder')
-})
-
-// Voucher related code
+// Voucher code
 const voucherCode = ref('')
 const appliedVoucher = ref(null)
 const isApplyingVoucher = ref(false)
 
-// Add computed for discount and final total
+// Discount calculation
 const discountAmount = computed(() => {
   if (!appliedVoucher.value) return 0
 
@@ -645,11 +727,12 @@ const discountAmount = computed(() => {
   return Math.min(appliedVoucher.value.discountValue, subtotal)
 })
 
+// Total amount calculation
 const finalTotal = computed(() => {
   return getSubtotal.value + shippingCost.value - discountAmount.value
 })
 
-// Add voucher functions
+// Apply voucher
 const applyVoucher = async () => {
   if (!voucherCode.value) return
 
@@ -659,8 +742,6 @@ const applyVoucher = async () => {
     // Get purchase type from current order
     const purchaseType = orderStore.currentOrder.customOptions.purchaseType
     const userId = authStore.currentUser?.id
-
-    console.log('Applying voucher for purchase type:', purchaseType) // Debug log
 
     if (!userId) {
       toast.error('Anda harus login untuk menggunakan voucher')
@@ -674,7 +755,7 @@ const applyVoucher = async () => {
       return
     }
 
-    // Check real-time usage limits
+    // Check usage limits
     if (result.voucher.currentUses >= result.voucher.maxUses) {
       toast.error('Voucher sudah mencapai batas penggunaan')
       return
@@ -691,28 +772,28 @@ const applyVoucher = async () => {
   }
 }
 
+// Remove voucher
 const removeVoucher = () => {
   appliedVoucher.value = null
   toast.info('Voucher dihapus')
 }
 
-// Add to existing script section
-const paymentFile = ref(null)
+// Add these constants at the top of your script section with other constants
+const MAX_DIMENSION = 1200 // Maximum dimension for resized images
+const COMPRESSION_QUALITY = 0.6 // Image compression quality (0.6 = 60%)
 
-// Add this compression function to your script section
-const compressPaymentProof = (file) => {
+// Add this resizeImage function before handlePaymentProofUpload
+const resizeImage = (file) => {
   return new Promise((resolve, reject) => {
-    const MAX_DIMENSION = 1200
-    const COMPRESSION_QUALITY = 0.7
+    const image = new Image()
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    const image = new Image()
 
     image.onload = () => {
       let width = image.width
       let height = image.height
 
-      // Calculate new dimensions - more aggressive resizing
+      // Calculate new dimensions while maintaining aspect ratio
       if (width > height) {
         if (width > MAX_DIMENSION) {
           height = Math.round((height * MAX_DIMENSION) / width)
@@ -727,29 +808,18 @@ const compressPaymentProof = (file) => {
 
       canvas.width = width
       canvas.height = height
-
-      // Use canvas to resize
       ctx.drawImage(image, 0, 0, width, height)
 
-      // Convert to a more compressed JPEG
+      // Use canvas to compress the image
       canvas.toBlob(
         (blob) => {
-          // Convert the blob to a base64 string for preview
+          // Convert blob to base64 for preview
           const reader = new FileReader()
-          reader.onloadend = () => {
-            // Create a compressed file
-            const fileName = file.name.split('.')[0] + '.jpg'
-            const compressedFile = new File([blob], fileName, { type: 'image/jpeg' })
-            
-            resolve({
-              dataUrl: reader.result,
-              compressedFile: compressedFile
-            })
-          }
+          reader.onloadend = () => resolve(reader.result)
           reader.readAsDataURL(blob)
         },
         'image/jpeg',
-        COMPRESSION_QUALITY
+        COMPRESSION_QUALITY,
       )
     }
 
@@ -758,43 +828,42 @@ const compressPaymentProof = (file) => {
   })
 }
 
-// Replace your existing handlePaymentProofUpload with this updated version
+// Replace your current handlePaymentProofUpload function with this one
 const handlePaymentProofUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB initial check before compression
 
   if (file.size > MAX_FILE_SIZE) {
-    toast.error(`Ukuran file tidak boleh lebih dari ${MAX_FILE_SIZE / 1024 / 1024}MB`)
-    return
+    toast.warning(
+      `Gambar terlalu besar (${(file.size / 1024 / 1024).toFixed(2)}MB), akan dikompres`,
+    )
   }
 
   try {
-    // Show loading indicator
     isProcessing.value = true
-    
-    // Compress the image
-    const result = await compressPaymentProof(file)
-    
-    // Get compressed file and check its size
-    const compressedFile = result.compressedFile
-    
-    console.log(`Original size: ${(file.size / 1024).toFixed(2)}KB, Compressed size: ${(compressedFile.size / 1024).toFixed(2)}KB`)
-    
-    // Set the payment proof using the compressed file
-    await orderStore.setPaymentProof(compressedFile)
-    paymentFile.value = compressedFile
-    
+
+    // Check if file is an image
+    if (!file.type.match('image.*')) {
+      toast.error('Hanya file gambar yang diperbolehkan')
+      return
+    }
+
+    // Compress the image using our resize function
+    const compressedImage = await resizeImage(file)
+    orderStore.paymentProof = compressedImage
+
     toast.success('Bukti pembayaran berhasil diunggah')
   } catch (error) {
-    console.error('Error uploading payment proof:', error)
-    toast.error('Gagal mengunggah bukti pembayaran')
+    console.error('Error processing image:', error)
+    toast.error('Gagal memproses gambar, silakan coba lagi')
   } finally {
     isProcessing.value = false
   }
 }
 
+// Process voucher usage
 const processVoucherUsage = async () => {
   if (appliedVoucher.value) {
     const result = await voucherStore.updateVoucherUsage(
@@ -810,104 +879,68 @@ const processVoucherUsage = async () => {
   return true
 }
 
-// Tambahkan fungsi helper untuk scroll smooth
-const scrollToElement = (elementId) => {
-  const element = document.getElementById(elementId)
-  if (element) {
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    })
-    // Tambahkan highlight effect
-    element.classList.add('highlight-error')
-    setTimeout(() => {
-      element.classList.remove('highlight-error')
-    }, 2000)
+// Submit order
+const handleSubmitOrder = async () => {
+  // Check if address is selected
+  if (!selectedAddressId.value) {
+    toast.error('Pilih alamat pengiriman terlebih dahulu')
+    return
   }
+
+  // Check terms acceptance
+  if (!acceptedTerms.value) {
+    toast.error('Mohon setujui syarat & ketentuan')
+    return
+  }
+
+  // Check payment proof
+  if (!orderStore.paymentProof) {
+    toast.error('Mohon upload bukti pembayaran')
+    return
+  }
+
+  // Get selected address
+  selectedAddress.value = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
+
+  if (!selectedAddress.value) {
+    toast.error('Alamat pengiriman tidak valid')
+    return
+  }
+
+  // Show confirmation modal instead of processing immediately
+  showConfirmationModal.value = true
 }
 
-// Modifikasi handleSubmitOrder
-const handleSubmitOrder = async () => {
+// Process order after confirmation
+const processOrderAfterConfirmation = async () => {
   try {
     isProcessing.value = true
 
-    // Check terms acceptance
-    if (!acceptedTerms.value) {
-      toast.error('Mohon setujui syarat & ketentuan')
-      scrollToElement('termsCheckbox')
-      return
-    }
-
-    // Check bukti pembayaran
-    if (!orderStore.paymentProof) {
-      toast.error('Mohon upload bukti pembayaran')
-      scrollToElement('paymentProof')
-      return
-    }
-
-    // Cek field satu per satu
-    if (!formData.value.name) {
-      toast.error('Mohon isi nama penerima')
-      scrollToElement('name')
-      return
-    }
-
-    if (!formData.value.email) {
-      toast.error('Mohon isi email')
-      scrollToElement('email')
-      return
-    }
-
-    if (!formData.value.phone) {
-      toast.error('Mohon isi nomor telepon')
-      scrollToElement('phone')
-      return
-    }
-
-    if (!formData.value.address) {
-      toast.error('Mohon isi alamat lengkap')
-      scrollToElement('address')
-      return
-    }
-
-    if (!selectedProvince.value) {
-      toast.error('Mohon pilih provinsi')
-      scrollToElement('province')
-      return
-    }
-
-    if (!selectedCity.value) {
-      toast.error('Mohon pilih kota')
-      scrollToElement('town')
-      return
-    }
-
-    if (!formData.value.zip) {
-      toast.error('Mohon isi kode pos')
-      scrollToElement('zip')
-      return
-    }
-
-    // Lanjutkan dengan proses checkout jika semua field terisi
+    // Process voucher if applied
     const voucherProcessed = await processVoucherUsage()
     if (!voucherProcessed) return
 
+    // Prepare order details
     const orderDetails = {
-      name: formData.value.name,
-      email: formData.value.email,
-      phone: formData.value.phone,
-      address: formData.value.address,
-      province: selectedProvince.value,
-      city: selectedCity.value,
-      zip: formData.value.zip,
+      name: selectedAddress.value.name,
+      email: selectedAddress.value.email,
+      phone: selectedAddress.value.phone,
+      address: selectedAddress.value.address,
+      province: selectedAddress.value.province,
+      city: selectedAddress.value.city,
+      zip: selectedAddress.value.zip,
       shippingCost: shippingCost.value,
       finalTotal: finalTotal.value,
       voucher: appliedVoucher.value,
       discountAmount: discountAmount.value,
     }
 
+    // Create order
     const result = await orderStore.createOrder(orderDetails)
     if (result.success) {
+      // Hide the modal
+      showConfirmationModal.value = false
+
       // Clear checkout data
       localStorage.removeItem('checkout_items')
       router.push('/notification')
@@ -920,19 +953,39 @@ const handleSubmitOrder = async () => {
   }
 }
 
-// Tambahkan watch untuk memvalidasi nomor telepon
-const validatePhone = (event) => {
-  // Hanya izinkan angka
-  const value = event.target.value.replace(/\D/g, '')
+// Initial data loading
+onMounted(async () => {
+  try {
+    // Load provinces first (needed for both address selection and creation)
+    await loadProvinces()
 
-  // Batasi panjang maksimal 13 digit
-  formData.value.phone = value.slice(0, 13)
-}
+    // Load user addresses
+    await addressStore.fetchUserAddresses()
 
-// Add route navigation guard
+    // If user has a primary address, select it
+    if (addressStore.primaryAddress) {
+      selectedAddressId.value = addressStore.primaryAddress.id
+
+      // First load cities for the selected address's province
+      if (addressStore.primaryAddress.province) {
+        await loadCities(addressStore.primaryAddress.province)
+      }
+
+      // Then calculate shipping
+      await calculateShipping(addressStore.primaryAddress)
+    }
+    // If no addresses, show the modal
+    else if (addressStore.addresses.length === 0) {
+      openAddressModal()
+    }
+  } catch (error) {
+    console.error('Error in onMounted:', error)
+  }
+})
+
+// Handle navigation guard
 onBeforeRouteLeave((to, from, next) => {
-  // Skip confirmation if order is already processed or if going to notification page
-  // (notification page is where users are redirected after successful checkout)
+  // Skip confirmation if order is processed or going to notification page
   if (isProcessing.value || to.path === '/notification') {
     next()
     return
@@ -943,7 +996,7 @@ onBeforeRouteLeave((to, from, next) => {
   )
 
   if (confirmLeave) {
-    // Clear checkout data from localStorage
+    // Clear checkout data
     localStorage.removeItem('checkout_items')
     localStorage.removeItem('currentOrder')
     next()
@@ -952,120 +1005,147 @@ onBeforeRouteLeave((to, from, next) => {
   }
 })
 
-// Handle browser close/refresh
+// Handle beforeunload event
 const handleBeforeUnload = (e) => {
-  // Skip confirmation if order is already processed
+  // Skip confirmation if order is processed
   if (isProcessing.value) return
 
-  // This will only run if the user tries to close/refresh the browser
+  // Confirmation when closing/refreshing browser
   e.preventDefault()
   e.returnValue = 'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.'
 }
 
-// Add event listener when component mounts
+// Add beforeunload listener
 onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
-// Remove event listener when component unmounts
+// Remove beforeunload listener
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
 <style scoped>
-.fas {
-  display: inline-block !important;
-  font-family: 'Font Awesome 6 Free' !important;
-  font-weight: 900 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Montserrat', sans-serif;
-}
-
+/* Base Layout & Container */
 .checkout-container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: #f5f5f5;
+  margin: 2rem auto 4rem;
+  padding: 0 1.5rem;
+  font-family: 'Montserrat', sans-serif;
+  color: #333;
 }
 
 .checkout-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2.5rem;
+  position: relative;
 }
 
 .back-button {
-  color: #333;
-  text-decoration: none;
-  font-size: 1.5rem;
+  position: absolute;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #02163b;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .header-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
+  margin: 0 auto;
 }
 
 .header-title i {
-  color: #e8ba38;
   font-size: 1.5rem;
+  color: #e8ba38;
 }
 
 .header-title h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #02163b;
   margin: 0;
 }
 
+/* Section Styling */
 .checkout-content {
   display: grid;
-  gap: 1.5rem;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
 }
 
 .checkout-section {
-  background-color: white;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.checkout-section:hover {
+  transform: translateY(-3px);
 }
 
 .section-title {
+  color: #02163b;
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(232, 186, 56, 0.3);
+  position: relative;
 }
 
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background-color: #e8ba38;
+}
+
+/* Order Details */
 .order-card {
   display: flex;
-  gap: 1.5rem;
-  padding: 1rem;
-  background-color: #f8f8f8;
-  border-radius: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f9f9f9;
+  transition: all 0.3s;
+}
+
+.order-card:hover {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
 }
 
 .order-image {
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
 }
 
 .order-info {
+  padding: 1rem;
   flex: 1;
 }
 
@@ -1073,645 +1153,580 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .order-header h3 {
+  margin: 0 0 0.25rem;
+  color: #02163b;
   font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0;
 }
 
 .order-price {
   font-weight: 600;
   color: #e8ba38;
+  margin: 0;
 }
 
 .order-specs {
   display: grid;
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  font-size: 0.9rem;
 }
 
 .spec-item {
   display: flex;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  flex-direction: column;
 }
 
 .spec-label {
   font-weight: 500;
   color: #666;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr; /* Single column */
-  gap: 1rem;
-  width: 100%; /* Set width to 50% */
-  margin: 0; /* Remove auto margin to align left */
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.upload-proof-title {
-  margin-bottom: 1rem;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background-color: #f8f8f8;
-  font-size: 0.9rem;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #e8ba38;
-  box-shadow: 0 0 0 2px rgba(232, 186, 56, 0.1);
-}
-
-.shipping-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: rgba(0, 247, 255, 0.1);
-  border-radius: 8px;
-}
-
-.shipping-info i {
-  font-size: 2rem;
-  color: #00b4d8;
-}
-
-.shipping-info h3 {
-  font-size: 1rem;
   margin-bottom: 0.25rem;
 }
 
-.shipping-info p {
-  font-size: 0.9rem;
+/* Address Selection */
+.address-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
   color: #666;
+  background: #f9f9f9;
+  border-radius: 10px;
+  border: 1px dashed #ddd;
+}
+
+.address-loading i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #e8ba38;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.no-address {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.empty-address {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 400px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 2.5rem;
+  border: 1px dashed #ddd;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  color: #ccc;
+  margin-bottom: 1.25rem;
+}
+
+.add-address-btn {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1.75rem;
+  background-color: #e8ba38;
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 10px rgba(232, 186, 56, 0.3);
+}
+
+.add-address-btn:hover {
+  background-color: #d5a832;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(232, 186, 56, 0.4);
+}
+
+.address-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.address-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 2px solid #f0f0f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.address-card:hover {
+  border-color: #e8ba38;
+  box-shadow: 0 6px 16px rgba(232, 186, 56, 0.12);
+  transform: translateY(-3px);
+}
+
+.address-card.active {
+  border: 2px solid #e8ba38;
+  background-color: rgba(232, 186, 56, 0.05);
+}
+
+.address-card.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border: 2px solid #e8ba38;
+  border-radius: 10px;
+  animation: pulse 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+.address-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.address-label i {
+  color: #e8ba38;
+  font-size: 1.1rem;
+}
+
+.primary-badge {
+  background-color: #e8ba38;
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
+  box-shadow: 0 2px 5px rgba(232, 186, 56, 0.2);
+}
+
+.address-details {
+  margin-bottom: 0.5rem;
+}
+
+.recipient {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.phone {
+  color: #666;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.phone::before {
+  content: '\f095';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.full-address {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #555;
+  padding-left: 0.2rem;
+  border-left: 2px solid rgba(232, 186, 56, 0.3);
+}
+
+.address-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.edit-address-btn {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-address-btn:hover {
+  color: #e8ba38;
+  background: rgba(232, 186, 56, 0.1);
+}
+
+.add-another-address-btn {
+  align-self: flex-start;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: 1px dashed #ccc;
+  border-radius: 50px;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.add-another-address-btn:hover {
+  border-color: #e8ba38;
+  color: #e8ba38;
+  background: rgba(232, 186, 56, 0.03);
+}
+
+/* Payment Section */
+.payment-method {
+  position: relative;
+  overflow: hidden;
 }
 
 .payment-options {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.payment-options::before {
+  content: 'QRIS';
+  position: absolute;
+  font-size: 6rem;
+  font-weight: 800;
+  color: rgba(232, 186, 56, 0.05);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.7;
 }
 
 .qris-option {
   width: 100%;
-  text-align: center;
-}
-
-.payment-button {
-  display: inline-block;
-  padding: 0.75rem 2rem;
-  background-color: #f8f8f8;
-  border-radius: 6px;
-  color: #333;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.payment-button.active {
-  background-color: #e8ba38;
-  color: white;
+  display: flex;
+  justify-content: center;
 }
 
 .qr-code {
-  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  max-width: 220px;
+  position: relative;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
+  border: 1px solid rgba(232, 186, 56, 0.2);
+}
+
+.qr-code:hover {
+  transform: scale(1.03);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+}
+
+.qr-code::after {
+  content: 'Scan untuk membayar';
+  position: absolute;
+  bottom: -1.5rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
 }
 
 .qr-code img {
-  max-width: 200px;
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
 }
 
 .upload-section {
-  margin-top: 1.5rem;
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.upload-proof-title {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.upload-proof-title i {
+  color: #e8ba38;
 }
 
 .upload-area {
-  position: relative;
-  width: 100%;
-  min-height: 200px;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
+  width: 93%;
+  min-height: 180px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
   cursor: pointer;
   transition: all 0.3s;
+  padding: 1.5rem;
+  background: #f9f9f9;
+  position: relative;
+  overflow: hidden;
 }
 
 .upload-area:hover {
-  border-color: #666;
+  border-color: #e8ba38;
+  background: rgba(232, 186, 56, 0.03);
 }
 
-.upload-area.has-file {
-  border-style: solid;
+.upload-area i {
+  font-size: 3rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+  transition: transform 0.3s;
+}
+
+.upload-area:hover i {
+  transform: translateY(-5px);
+  color: #e8ba38;
+}
+
+.upload-area span {
+  color: #666;
+  text-align: center;
 }
 
 .preview-image {
-  max-width: 100%;
-  max-height: 200px;
+  width: 100%;
+  height: auto;
+  max-height: 250px;
   object-fit: contain;
+  border-radius: 8px;
+}
+
+.upload-area.has-file {
+  border: none;
+  padding: 0;
+  background: none;
+}
+
+/* Voucher Section */
+.voucher-section {
+  position: relative;
 }
 
 .voucher-input {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .voucher-input input {
   flex: 1;
-}
-
-.voucher-input button {
-  padding: 0.75rem 1.5rem;
-  background-color: #e8ba38;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.voucher-input button:hover {
-  background-color: #d5a832;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.summary-item.total {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.checkout-button {
-  width: 100%;
-  padding: 1rem;
-  margin-top: 1.5rem;
-  background-color: #e8ba38;
-  border: none;
+  height: 48px;
+  padding: 0 1.25rem;
+  border: 2px solid #e0e0e0;
   border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  font-size: 0.95rem;
+  transition: all 0.3s;
 }
 
-.checkout-button:hover {
-  background-color: #d5a832;
-}
-
-.terms {
-  margin-top: 1rem;
-  font-size: 0.8rem;
-  color: #666;
-  text-align: center;
-}
-
-@media (max-width: 768px) {
-  .checkout-container {
-    padding: 1rem;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .order-card {
-    flex-direction: column;
-  }
-
-  .order-image {
-    width: 100%;
-    height: 200px;
-  }
-
-  .order-header {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .shipping-info {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .checkout-button {
-    padding: 1.25rem;
-    font-size: 1.1rem;
-  }
-}
-
-/* Additional improvements for better visual hierarchy */
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #999;
-}
-
-.form-group input[type='number']::-webkit-inner-spin-button,
-.form-group input[type='number']::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.form-group input[type='number'] {
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-select {
-  appearance: none;
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-  background-repeat: no-repeat;
-  background-position: right 0.7rem top 50%;
-  background-size: 0.65rem auto;
-  padding-right: 2rem;
-}
-
-/* Improved focus states for accessibility */
-input:focus,
-select:focus,
-textarea:focus,
-button:focus {
+.voucher-input input:focus {
   outline: none;
   border-color: #e8ba38;
-  box-shadow: 0 0 0 3px rgba(232, 186, 56, 0.2);
+  box-shadow: 0 0 0 3px rgba(232, 186, 56, 0.15);
 }
 
-/* Enhanced button states */
-.checkout-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(232, 186, 56, 0.3);
-}
-
-.checkout-button:active {
-  transform: translateY(1px);
-}
-
-/* Improved spacing for nested elements */
-.order-specs .spec-item:last-child {
-  margin-bottom: 0;
-}
-
-.shipping-info div h3 {
-  color: #333;
-  margin-bottom: 0.25rem;
-}
-
-/* Better visual separation */
-.checkout-section + .checkout-section {
-  margin-top: 1.5rem;
-}
-
-/* Enhanced form validation states */
-input:invalid,
-select:invalid,
-textarea:invalid {
-  border-color: #ff4646;
-}
-
-/* Improved upload area interaction */
-.upload-area:active {
-  transform: scale(0.99);
-}
-
-/* Better spacing for payment section */
-.payment-options {
-  margin-bottom: 2rem;
-}
-
-/* Enhanced QR code container */
-.qr-code {
-  padding: 1.5rem;
-  background-color: white;
+.voucher-button {
+  padding: 0 1.5rem;
+  background-color: #02163b;
+  color: white;
+  border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Improved voucher section */
-.voucher-section .voucher-input {
-  max-width: 100%;
-}
-
-/* Additional helper classes */
-.text-error {
-  color: #ff4646;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-}
-
-.text-success {
-  color: #00c853;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-}
-
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
-/* High contrast mode improvements */
-@media (prefers-contrast: high) {
-  .checkout-button,
-  .payment-button.active {
-    border: 2px solid #000;
-  }
-}
-
-/* Print styles */
-@media print {
-  .checkout-container {
-    padding: 0;
-    box-shadow: none;
-  }
-
-  .checkout-button,
-  .upload-area,
-  .back-button {
-    display: none;
-  }
-}
-
-select:disabled {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-  color: #666;
-}
-
-select:disabled option {
-  color: #666;
-}
-
-/* Optional: Add a loading indicator style */
-.loading-select {
-  position: relative;
-}
-
-.loading-select::after {
-  content: '';
-  position: absolute;
-  right: 2.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid #e8ba38;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: rotate 0.8s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: translateY(-50%) rotate(0deg);
-  }
-  to {
-    transform: translateY(-50%) rotate(360deg);
-  }
-}
-
-.checkout-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.terms-link {
-  color: #e8ba38;
-  text-decoration: none;
+  cursor: pointer;
   font-weight: 500;
-  transition: color 0.2s;
+  transition: all 0.3s;
+  min-width: 120px;
 }
 
-.terms-link:hover {
-  color: #02163b;
-  text-decoration: underline;
+.voucher-button:hover:not(:disabled) {
+  background-color: #062a5e;
+  box-shadow: 0 4px 8px rgba(2, 22, 59, 0.2);
 }
 
-.loading {
-  opacity: 0.7;
-  cursor: wait;
+.voucher-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .applied-voucher {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background-color: #f8f8f8;
-  border-radius: 6px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(232, 186, 56, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #e8ba38;
+  margin-top: 1rem;
+  transition: all 0.3s;
+}
+
+.applied-voucher:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(232, 186, 56, 0.15);
 }
 
 .voucher-info {
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 1rem;
 }
 
 .voucher-code {
   font-weight: 600;
-  color: #333;
+  color: #02163b;
+  background: rgba(2, 22, 59, 0.05);
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
 }
 
 .voucher-discount {
-  color: #00c853;
-  font-weight: 500;
+  font-weight: 600;
+  color: #e8ba38;
 }
 
 .remove-voucher {
   background: none;
   border: none;
-  color: #ff4646;
+  color: #666;
   cursor: pointer;
-  padding: 0.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
 .remove-voucher:hover {
-  color: #ff1a1a;
+  background: rgba(0, 0, 0, 0.05);
+  color: #f44336;
+}
+
+/* Order Summary */
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  background: #fff;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 1.75rem;
+  scrollbar-width: none;
+}
+
+.order-summary::-webkit-scrollbar {
+  display: none;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+  color: #555;
+}
+
+.summary-item:not(:last-child) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-item.total {
+  margin-top: 0.5rem;
+  padding: 1.25rem 0;
+  border-top: 2px solid #f0f0f0;
+  border-bottom: none;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #02163b;
 }
 
 .summary-item.discount {
-  color: #00c853;
+  color: #e8ba38;
 }
 
 .discount-amount {
-  font-weight: 500;
-}
-
-/* Add loading dots animation */
-.loading-dots {
-  display: inline-block;
-  animation: loadingDots 1.5s infinite;
-  min-width: 24px;
-}
-
-@keyframes loadingDots {
-  0% {
-    content: '.';
-  }
-  33% {
-    content: '..';
-  }
-  66% {
-    content: '...';
-  }
-  100% {
-    content: '.';
-  }
-}
-
-/* Update button styles */
-.checkout-button,
-.voucher-button {
-  position: relative;
-  overflow: hidden;
-}
-
-.checkout-button:disabled,
-.voucher-button:disabled {
-  background-color: #cccccc;
-  cursor: wait;
-}
-
-/* Add subtle loading background animation */
-.checkout-button:disabled::before,
-.voucher-button:disabled::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 200%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    transparent 100%
-  );
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(50%);
-  }
-}
-
-/* Menghilangkan panah di input number */
-.no-spinner::-webkit-inner-spin-button,
-.no-spinner::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.no-spinner {
-  appearance: textfield; /* Safari */
-  -moz-appearance: textfield; /* Firefox */
-}
-
-/* Update button styles untuk hover */
-.checkout-button:hover:not(:disabled),
-.voucher-button:hover:not(:disabled) {
-  background-color: #d5a832;
-  cursor: pointer;
-}
-
-.checkout-button:disabled,
-.voucher-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-/* Tambahkan di bagian <style> */
-@keyframes highlightField {
-  0% {
-    background-color: rgba(255, 70, 70, 0.2);
-    border-color: #ff4646;
-  }
-  100% {
-    background-color: #f8f8f8;
-    border-color: #e0e0e0;
-  }
-}
-
-.highlight-error {
-  animation: highlightField 2s ease;
-}
-
-/* Tambahkan smooth scroll untuk semua */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Pastikan elemen yang akan discroll memiliki padding/margin agar tidak terlalu mepet */
-.form-group {
-  scroll-margin-top: 20px;
-}
-
-.upload-area {
-  scroll-margin-top: 20px;
+  font-weight: 600;
 }
 
 .terms-checkbox {
-  margin: 1rem 0;
+  margin: 1.75rem 0;
 }
 
 .custom-checkbox {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   cursor: pointer;
-  position: relative;
-  padding-left: 30px;
+  user-select: none;
+  gap: 0.75rem;
 }
 
 .custom-checkbox input {
@@ -1723,58 +1738,457 @@ html {
 }
 
 .checkmark {
-  position: absolute;
-  left: 0;
-  height: 20px;
-  width: 20px;
-  border: 2px solid #e8ba38;
+  position: relative;
+  height: 22px;
+  width: 22px;
+  background-color: #f5f5f5;
+  border: 2px solid #e0e0e0;
   border-radius: 4px;
   transition: all 0.2s;
 }
 
-.custom-checkbox:hover input ~ .checkmark {
-  background-color: rgba(232, 186, 56, 0.1);
+.custom-checkbox:hover .checkmark {
+  background-color: #e8f4fe;
+  border-color: #02163b;
 }
 
 .custom-checkbox input:checked ~ .checkmark {
-  background-color: #e8ba38;
+  background-color: #02163b;
+  border-color: #02163b;
 }
 
 .checkmark:after {
   content: '';
   position: absolute;
   display: none;
+  left: 7px;
+  top: 3px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .custom-checkbox input:checked ~ .checkmark:after {
   display: block;
 }
 
-.custom-checkbox .checkmark:after {
-  left: 6px;
-  top: 2px;
-  width: 4px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
 .terms-text {
   font-size: 0.9rem;
+  line-height: 1.6;
   color: #666;
 }
 
+.terms-link {
+  color: #02163b;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.terms-link:hover {
+  color: #e8ba38;
+}
+
+.checkout-button {
+  width: 100%;
+  padding: 1.25rem;
+  background-color: #e8ba38;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.checkout-button:hover:not(:disabled) {
+  background-color: #d5a832;
+  box-shadow: 0 8px 20px rgba(232, 186, 56, 0.25);
+  transform: translateY(-2px);
+}
+
+.checkout-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.checkout-button::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.3);
+  top: -80px;
+  left: -100px;
+  transform: rotate(20deg);
+  transition: 0.6s;
+  opacity: 0;
+}
+
+.checkout-button:hover:not(:disabled)::after {
+  left: 120%;
+  opacity: 0.7;
+}
+
+.loading-dots {
+  position: relative;
+}
+
+.loading-dots::after {
+  content: '...';
+  position: absolute;
+  animation: dots 1.5s infinite;
+  width: 18px;
+  display: inline-block;
+}
+
+@keyframes dots {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+}
+
 .terms-notice {
-  margin-top: 0.5rem;
-  color: #ff4646;
-  font-size: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: rgba(244, 67, 54, 0.08);
+  border-radius: 6px;
+  color: #f44336;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.terms-notice::before {
+  content: '\f071';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2.5rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.4s;
+  position: relative;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #02163b;
+  text-align: center;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.modal-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background-color: #e8ba38;
+  border-radius: 3px;
+}
+
+.address-form {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #444;
+}
+
+.form-group input[type='text'],
+.form-group input[type='email'],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #333;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #e8ba38;
+  box-shadow: 0 0 0 3px rgba(232, 186, 56, 0.15);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #aaa;
+}
+
+.form-group select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23666' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 20px;
+  padding-right: 35px;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.address-labels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.label-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0.5rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
   text-align: center;
 }
 
-#address {
-  resize: vertical;
-  min-height: 100px;
-  max-height: 200px;
+.label-option:hover {
+  border-color: #02163b;
+  background: rgba(2, 22, 59, 0.02);
+}
+
+.label-option.active {
+  border-color: #e8ba38;
+  background-color: rgba(232, 186, 56, 0.1);
+  box-shadow: 0 5px 10px rgba(232, 186, 56, 0.1);
+}
+
+.label-option i {
+  font-size: 1.5rem;
+  color: #777;
+  transition: all 0.3s;
+}
+
+.label-option.active i {
+  color: #e8ba38;
+  transform: scale(1.1);
+}
+
+.label-option span {
+  font-size: 0.85rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.cancel-btn {
+  padding: 0.85rem 1.75rem;
+  background-color: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.submit-btn {
+  padding: 0.85rem 2rem;
+  background-color: #e8ba38;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 140px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #d5a832;
+  box-shadow: 0 5px 15px rgba(232, 186, 56, 0.2);
+}
+
+.submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.custom-checkbox.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Address Confirmation */
+.address-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.confirmation-text {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-address {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #e8ba38;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .checkout-content {
+    grid-template-columns: 1fr;
+  }
+
+  .order-summary {
+    position: relative;
+    grid-column: 1;
+    top: 0;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .checkout-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .header-title h1 {
+    font-size: 1.5rem;
+  }
+
+  .order-card {
+    flex-direction: column;
+  }
+
+  .order-image {
+    width: 100%;
+    height: 200px;
+  }
+
+  .order-specs {
+    grid-template-columns: 1fr;
+  }
+
+  .address-labels {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .checkout-container {
+    margin: 1rem auto 3rem;
+    padding: 0 1rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+  }
+
+  .modal-title {
+    font-size: 1.3rem;
+  }
+
+  .upload-area {
+    min-height: 150px;
+  }
 }
 </style>
