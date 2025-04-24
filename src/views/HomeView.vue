@@ -6,7 +6,7 @@
   </header>
   <main>
     <section class="popular">
-      <div class="video-ad">
+      <!-- <div class="video-ad">
         <iframe
           width="560"
           height="315"
@@ -17,8 +17,9 @@
           referrerpolicy="strict-origin-when-cross-origin"
           allowfullscreen
         ></iframe>
-      </div>
+      </div> -->
       <div class="product-card">
+        <span class="straight"></span>
         <h1>
           <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
         </h1>
@@ -245,13 +246,13 @@ const hasMoreBlogItems = computed(() => {
   return blogDisplayCount.value < blogStore.blogItems.length
 })
 
-const popularKatalog = computed(() => {
-  if (!katalogStore.katalogItems.length) return []
-  const sortedKatalog = [...katalogStore.katalogItems].sort(
-    (a, b) => (b.soldCount || 0) - (a.soldCount || 0),
-  )
-  return sortedKatalog.slice(0, 3)
-})
+// const popularKatalog = computed(() => {
+//   if (!katalogStore.katalogItems.length) return []
+//   const sortedKatalog = [...katalogStore.katalogItems].sort(
+//     (a, b) => (b.soldCount || 0) - (a.soldCount || 0),
+//   )
+//   return sortedKatalog.slice(0, 3)
+// })
 </script>
 
 <style scoped>
@@ -341,25 +342,26 @@ header {
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 10px;
+  /* padding: 10px; */
   position: relative;
   width: 100%;
-  height: 100vh;
+  /* height: 100vh */
 }
-.video-ad {
+/* .video-ad {
   width: 20%;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-}
+} */
 .product-card {
   display: flex;
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  width: 70%;
-  height: 100vh;
+  width: 100%;
+  position: relative;
+  /* height: 100vh; */
 }
 .product-card h1 {
   font-size: 4rem;
@@ -369,6 +371,16 @@ header {
 }
 .product-card h1 i {
   color: #e8ba38;
+}
+.product-card .straight {
+  width: 90%;
+  height: 150px;
+  top: 50%;
+  left: 0;
+  background-color: #02163b;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  position: absolute;
 }
 
 .katalog {
