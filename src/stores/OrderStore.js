@@ -113,7 +113,7 @@ export const useOrderStore = defineStore('order', () => {
         orderId: docRef.id,
         icon: 'fas fa-shopping-bag',
         color: '#16a34a',
-        link: `/my-account/orders?highlight=${docRef.id}`,
+        link: `/my-account/orders?search=${docRef.id}`,
       })
 
       // Clear current order and payment proof after successful creation

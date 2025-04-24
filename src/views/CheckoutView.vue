@@ -235,160 +235,15 @@
     </div>
 
     <!-- Address Modal -->
-    <div v-if="showAddressModal" class="modal-overlay" @click="closeAddressModal">
-      <div class="modal-content" @click.stop>
-        <h2 class="modal-title">{{ isEditingAddress ? 'Edit Alamat' : 'Tambah Alamat Baru' }}</h2>
-
-        <form @submit.prevent="saveAddress" class="address-form">
-          <!-- Name -->
-          <div class="form-group">
-            <label for="address-name">Nama Penerima</label>
-            <input
-              type="text"
-              id="address-name"
-              v-model="addressForm.name"
-              required
-              placeholder="Nama Penerima"
-            />
-          </div>
-
-          <!-- Email -->
-          <div class="form-group">
-            <label for="address-email">Email</label>
-            <input
-              type="email"
-              id="address-email"
-              v-model="addressForm.email"
-              required
-              placeholder="Email"
-            />
-          </div>
-
-          <!-- Phone -->
-          <div class="form-group">
-            <label for="address-phone">No. Telepon</label>
-            <input
-              type="text"
-              id="address-phone"
-              v-model="addressForm.phone"
-              required
-              placeholder="No. Telepon"
-              maxlength="13"
-              @input="validateAddressPhone"
-              class="no-spinner"
-            />
-          </div>
-
-          <!-- Label -->
-          <div class="form-group">
-            <label>Label Alamat</label>
-            <div class="address-labels">
-              <label
-                v-for="(option, idx) in addressLabelOptions"
-                :key="idx"
-                :class="['label-option', { active: addressForm.label === option.value }]"
-              >
-                <input type="radio" :value="option.value" v-model="addressForm.label" hidden />
-                <i :class="option.icon"></i>
-                <span>{{ option.name }}</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Province -->
-          <div class="form-group">
-            <label for="address-province">Provinsi</label>
-            <select
-              id="address-province"
-              v-model="addressForm.province"
-              @change="loadAddressCities(addressForm.province)"
-              :disabled="isLoadingProvinces"
-              required
-            >
-              <option value="">
-                {{ isLoadingProvinces ? 'Loading provinsi...' : 'Pilih Provinsi' }}
-              </option>
-              <option
-                v-for="province in provinces"
-                :key="province.province_id"
-                :value="province.province"
-              >
-                {{ province.province }}
-              </option>
-            </select>
-          </div>
-
-          <!-- City -->
-          <div class="form-group">
-            <label for="address-city">Kota/Kabupaten</label>
-            <select
-              id="address-city"
-              v-model="addressForm.city"
-              :disabled="!addressForm.province || isLoadingCities"
-              required
-            >
-              <option value="">
-                {{
-                  isLoadingCities
-                    ? 'Loading kota...'
-                    : !addressForm.province
-                      ? 'Pilih provinsi terlebih dahulu'
-                      : 'Pilih Kota'
-                }}
-              </option>
-              <option
-                v-for="city in cities"
-                :key="city.city_id"
-                :value="`${city.type} ${city.city_name}`"
-              >
-                {{ city.type }} {{ city.city_name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Full Address -->
-          <div class="form-group">
-            <label for="address-full">Alamat Lengkap</label>
-            <textarea
-              id="address-full"
-              v-model="addressForm.address"
-              rows="3"
-              required
-              placeholder="Alamat Lengkap (Jalan, RT/RW, Kelurahan, Kecamatan)"
-            ></textarea>
-          </div>
-
-          <!-- ZIP Code -->
-          <div class="form-group">
-            <label for="address-zip">Kode Pos</label>
-            <input
-              type="text"
-              id="address-zip"
-              v-model="addressForm.zip"
-              required
-              placeholder="Kode Pos"
-              maxlength="5"
-            />
-          </div>
-
-          <!-- Primary Address Checkbox -->
-          <div class="form-group">
-            <label class="custom-checkbox" :class="{ disabled: isFirstAddress }">
-              <input type="checkbox" v-model="addressForm.isPrimary" :disabled="isFirstAddress" />
-              <span class="checkmark"></span>
-              <span class="terms-text">Jadikan sebagai alamat utama</span>
-            </label>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="cancel-btn" @click="closeAddressModal">Batal</button>
-            <button type="submit" class="submit-btn" :disabled="isSavingAddress">
-              {{ isSavingAddress ? 'Menyimpan...' : 'Simpan' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <AddressModalComponent
+      v-if="showAddressModal"
+      :is-editing="isEditingAddress"
+      :initial-data="addressForm"
+      :is-first-address="isFirstAddress"
+      @close="closeAddressModal"
+      @save="saveAddress"
+      @error="(message) => toast.error(message)"
+    />
 
     <!-- Address Confirmation Modal -->
     <div v-if="showConfirmationModal" class="modal-overlay" @click="showConfirmationModal = false">
@@ -438,12 +293,12 @@ import { useRouter } from 'vue-router'
 import rajaOngkir from '@/api/RajaOngkir'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
+import AddressModalComponent from '@/components/AddressModalComponent.vue' // Add this import
 
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
 const addressStore = useAddressStore()
 const router = useRouter()
-// const route = useRoute()
 const voucherStore = useVoucherStore()
 const toast = useToast()
 
@@ -455,7 +310,6 @@ const isLoadingShipping = ref(false)
 const isLoadingProvinces = ref(false)
 const isLoadingCities = ref(false)
 const isProcessing = ref(false)
-// const cartItems = ref([])
 const acceptedTerms = ref(false)
 
 // Address selection
@@ -607,7 +461,22 @@ const getOrderFromLocal = () => {
 // Select address
 const selectAddress = async (address) => {
   selectedAddressId.value = address.id
-  await calculateShipping(address)
+
+  isLoadingShipping.value = true
+
+  try {
+    if(address.province) {
+    await loadCities(address.province)
+  }
+  await calculateShipping(address)  
+  } catch (error) {
+    console.error('Error selecting address:', error)
+    toast.error('Gagal memuat alamat')
+  } finally {
+    isLoadingShipping.value = false
+  }
+
+  
 }
 
 // Initialize edit address
@@ -640,28 +509,14 @@ const closeAddressModal = () => {
 }
 
 // Save address form
-const saveAddress = async () => {
+const saveAddress = async (addressData) => {
   try {
     isSavingAddress.value = true
-
-    const addressData = { ...addressForm.value }
-
-    // Validate phone
-    if (!/^(62|0)\d{9,12}$/.test(addressData.phone)) {
-      toast.error('Format nomor telepon tidak valid')
-      return
-    }
-
-    // Validate zip code
-    if (!/^\d{5}$/.test(addressData.zip)) {
-      toast.error('Kode pos harus 5 digit')
-      return
-    }
 
     let result
 
     if (isEditingAddress.value) {
-      result = await addressStore.updateAddress(addressForm.value.id, addressData)
+      result = await addressStore.updateAddress(addressData.id, addressData)
     } else {
       result = await addressStore.addAddress(addressData)
     }
@@ -670,7 +525,7 @@ const saveAddress = async () => {
       // If this is the first address or the updated address was selected, update the shipping calculation
       if (isFirstAddress.value || result.address?.id === selectedAddressId.value) {
         const addressToUse = isEditingAddress.value
-          ? addressStore.addresses.find((a) => a.id === addressForm.value.id)
+          ? addressStore.addresses.find((a) => a.id === addressData.id)
           : result.address
 
         if (addressToUse) {
@@ -686,6 +541,9 @@ const saveAddress = async () => {
       }
 
       closeAddressModal()
+      toast.success(
+        isEditingAddress.value ? 'Alamat berhasil diperbarui' : 'Alamat berhasil ditambahkan',
+      )
     }
   } catch (error) {
     console.error('Error saving address:', error)

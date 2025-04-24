@@ -7,10 +7,29 @@
       <!-- Notification Header -->
       <div class="notification-header">
         <h1>Notifikasi</h1>
-        <button class="mark-all-btn" @click="handleMarkAllAsRead" :disabled="loading || !hasUnread">
-          <i class="fas fa-check-double"></i>
-          Tandai Semua Dibaca
-        </button>
+        <div class="header-actions">
+          <!-- Delete button - only visible when notifications are selected -->
+          <button
+            v-if="selectedNotifications.length > 0"
+            class="delete-btn"
+            @click="handleDeleteSelected"
+            :disabled="isDeleting"
+          >
+            <i class="fas fa-trash"></i>
+            Hapus {{ selectedNotifications.length }} Notifikasi
+          </button>
+
+          <!-- Mark all as read button - only visible when there are unread notifications -->
+          <button
+            v-if="hasUnread"
+            class="mark-all-btn"
+            @click="handleMarkAllAsRead"
+            :disabled="loading"
+          >
+            <i class="fas fa-check-double"></i>
+            Tandai Semua Dibaca
+          </button>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -30,28 +49,54 @@
         <router-link to="/" class="browse-btn">Jelajahi Produk</router-link>
       </div>
 
+      <!-- Select All Option -->
+      <div v-else-if="userNotifications.length > 0" class="select-all-container">
+        <label class="custom-checkbox">
+          <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+          <span class="checkmark"></span>
+          <span>{{ isAllSelected ? 'Batalkan Semua' : 'Pilih Semua' }}</span>
+        </label>
+      </div>
+
       <!-- Notification List -->
-      <div class="notification-list" v-else>
+      <div class="notification-list" v-if="userNotifications.length > 0">
         <div
           v-for="notification in userNotifications"
           :key="notification.id"
           class="notification-card"
-          :class="{ unread: !notification.read }"
-          @click="handleNotificationClick(notification)"
+          :class="{
+            unread: !notification.read,
+            selected: isSelected(notification.id),
+          }"
         >
-          <div class="notification-icon" :class="getIconClass(notification.type)">
-            <i :class="notification.icon"></i>
+          <!-- Checkbox for selection -->
+          <div class="select-notification" @click.stop>
+            <label class="custom-checkbox">
+              <input
+                type="checkbox"
+                :checked="isSelected(notification.id)"
+                @change="toggleSelect(notification.id)"
+              />
+              <span class="checkmark"></span>
+            </label>
           </div>
-          <div class="notification-content">
-            <h3>{{ notification.title }}</h3>
-            <p>{{ notification.message }}</p>
-            <span class="notification-time">{{
-              notificationStore.getTimeElapsed(notification.timestamp)
-            }}</span>
+
+          <!-- Notification content -->
+          <div class="notification-content-wrapper" @click="handleNotificationClick(notification)">
+            <div class="notification-icon" :class="getIconClass(notification.type)">
+              <i :class="notification.icon"></i>
+            </div>
+            <div class="notification-content">
+              <h3>{{ notification.title }}</h3>
+              <p>{{ notification.message }}</p>
+              <span class="notification-time">{{
+                notificationStore.getTimeElapsed(notification.timestamp)
+              }}</span>
+            </div>
+            <span class="go-icon">
+              <i class="fas fa-chevron-right"></i>
+            </span>
           </div>
-          <span class="go-icon">
-            <i class="fas fa-chevron-right"></i>
-          </span>
         </div>
 
         <!-- View More Button -->
@@ -87,6 +132,9 @@ const loading = ref(true)
 const loadingMore = ref(false)
 const notificationsLimit = ref(10)
 const canLoadMore = ref(false)
+const selectedNotifications = ref([])
+const isDeleting = ref(false)
+const dataLoaded = ref(false) // Flag to track if data was loaded
 
 // Computed properties
 const userNotifications = computed(() => {
@@ -96,6 +144,60 @@ const userNotifications = computed(() => {
 const hasUnread = computed(() => {
   return notificationStore.getUnreadCount > 0
 })
+
+const isAllSelected = computed(() => {
+  return (
+    userNotifications.value.length > 0 &&
+    selectedNotifications.value.length === userNotifications.value.length
+  )
+})
+
+// Check if a notification is selected
+const isSelected = (id) => {
+  return selectedNotifications.value.includes(id)
+}
+
+// Toggle selection of a single notification
+const toggleSelect = (id) => {
+  if (isSelected(id)) {
+    selectedNotifications.value = selectedNotifications.value.filter((notifId) => notifId !== id)
+  } else {
+    selectedNotifications.value.push(id)
+  }
+}
+
+// Toggle select all notifications
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedNotifications.value = []
+  } else {
+    selectedNotifications.value = userNotifications.value.map((notification) => notification.id)
+  }
+}
+
+// Handle deletion of selected notifications
+const handleDeleteSelected = async () => {
+  if (!selectedNotifications.value.length) return
+
+  try {
+    isDeleting.value = true
+
+    // Call an API to delete notifications (you'll need to implement this in your NotificationStore)
+    const result = await notificationStore.deleteNotifications(selectedNotifications.value)
+
+    if (result.success) {
+      toast.success(`${selectedNotifications.value.length} notifikasi berhasil dihapus`)
+      selectedNotifications.value = [] // Clear selection after deletion
+    } else {
+      throw new Error(result.error)
+    }
+  } catch (error) {
+    console.error('Error deleting notifications:', error)
+    toast.error('Gagal menghapus notifikasi')
+  } finally {
+    isDeleting.value = false
+  }
+}
 
 // Get appropriate icon class based on notification type
 const getIconClass = (type) => {
@@ -170,14 +272,16 @@ const loadMoreNotifications = () => {
 
 onMounted(async () => {
   loading.value = true
+  let timeoutId = null
+  let unsubscribe = null
 
   try {
     // Check auth state
     if (!authStore.currentUser) {
       await new Promise((resolve) => {
-        const unsubscribe = authStore.$subscribe(() => {
+        const authUnsubscribe = authStore.$subscribe(() => {
           if (authStore.currentUser) {
-            unsubscribe()
+            authUnsubscribe()
             resolve()
           }
         })
@@ -185,16 +289,42 @@ onMounted(async () => {
     }
 
     // Start listening to notifications
-    notificationStore.listenToNotifications()
+    await notificationStore.listenToNotifications()
 
-    // Check if we can load more
-    setTimeout(() => {
+    // Check if data is already available (immediate check)
+    if (notificationStore.userNotifications.length > 0) {
       canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
       loading.value = false
-    }, 1000)
+      return // Skip subscription if we already have data
+    }
+
+    // Set up data subscription to track when data loads
+    unsubscribe = notificationStore.$subscribe(() => {
+      if (notificationStore.userNotifications.length > 0) {
+        // If data arrives before timeout, stop loading immediately
+        if (timeoutId) clearTimeout(timeoutId)
+        canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+        loading.value = false
+
+        // Clean up subscription since we got data
+        if (unsubscribe) unsubscribe()
+      }
+    })
+
+    // Set a maximum timeout of 5 seconds for loading
+    timeoutId = setTimeout(() => {
+      // If we reach timeout, stop loading regardless
+      canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+      loading.value = false
+
+      // Clean up subscription after timeout
+      if (unsubscribe) unsubscribe()
+    }, 5000)
   } catch (error) {
     console.error('Error loading notifications:', error)
     loading.value = false
+    if (timeoutId) clearTimeout(timeoutId)
+    if (unsubscribe) unsubscribe()
   }
 })
 </script>
@@ -233,6 +363,12 @@ onMounted(async () => {
   font-family: 'Montserrat', sans-serif;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .mark-all-btn {
   background: transparent;
   border: none;
@@ -253,6 +389,97 @@ onMounted(async () => {
   background-color: rgba(232, 186, 56, 0.1);
 }
 
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+.delete-btn:disabled {
+  background-color: #ffcdd2;
+  cursor: not-allowed;
+}
+
+.select-all-container {
+  padding: 12px 16px;
+  background-color: white;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 30px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  user-select: none;
+  color: #555;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: #f5f5f5;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+  border-color: #ccc;
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+  background-color: #e8ba38;
+  border-color: #e8ba38;
+}
+
+.checkmark:after {
+  content: '';
+  position: absolute;
+  display: none;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+  display: block;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 .notification-list {
   display: flex;
   flex-direction: column;
@@ -261,14 +488,18 @@ onMounted(async () => {
 
 .notification-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   background-color: white;
   border-radius: 10px;
-  padding: 1rem;
+  padding: 0.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
-  cursor: pointer;
   position: relative;
+}
+
+.notification-card.selected {
+  background-color: rgba(232, 186, 56, 0.1);
+  border: 1px solid #e8ba38;
 }
 
 .notification-card:hover {
@@ -276,8 +507,21 @@ onMounted(async () => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
+.notification-content-wrapper {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.select-notification {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+
 .unread {
-  background-color: rgba(232, 186, 56, 0.05);
   border-left: 4px solid #e8ba38;
 }
 
@@ -365,7 +609,7 @@ onMounted(async () => {
   transition: transform 0.2s;
 }
 
-.notification-card:hover .go-icon {
+.notification-content-wrapper:hover .go-icon {
   transform: translateX(4px);
   color: #e8ba38;
 }
@@ -461,8 +705,13 @@ onMounted(async () => {
     gap: 1rem;
   }
 
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .notification-card {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
 
   .notification-icon {

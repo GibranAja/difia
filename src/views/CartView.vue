@@ -166,6 +166,17 @@ const hasActiveVouchers = computed(() => {
   })
 })
 
+// Add these two missing computed properties after your other computed properties
+const isAllSelected = computed(() => {
+  return cartStore.cartItems.length > 0 && selectedItems.value.length === cartStore.cartItems.length
+})
+
+const getSelectedItemsTotal = computed(() => {
+  return cartStore.cartItems
+    .filter((item) => selectedItems.value.includes(item.id))
+    .reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0)
+})
+
 // Set up real-time listener for vouchers
 const setupVoucherListener = () => {
   try {
@@ -375,8 +386,11 @@ const removeItem = async (itemId) => {
   }
 }
 
-// Format price
+// Fix the formatPrice function to handle undefined values
 const formatPrice = (price) => {
+  if (price === undefined || price === null) {
+    return '0'
+  }
   return price.toLocaleString('id-ID')
 }
 </script>

@@ -41,8 +41,13 @@
       </div>
     </div>
 
-    <!-- Order List -->
-    <div class="order-list" v-if="filteredOrders.length > 0">
+    <!-- Loading Component -->
+    <div v-if="loading">
+      <LoadComponent />
+    </div>
+
+    <!-- Order List - only show when not loading and has orders -->
+    <div v-else-if="filteredOrders.length > 0" class="order-list">
       <div v-for="order in filteredOrders" :key="order.id" class="order-card">
         <div class="order-header" @click="toggleOrder(order.id)">
           <div class="order-main-info">
@@ -210,6 +215,7 @@ import { useInvoiceStore } from '@/stores/InvoiceStore'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useRoute } from 'vue-router'
 import ReviewModal from '@/components/ReviewModal.vue'
+import LoadComponent from '@/components/LoadComponent.vue' // Add this import
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -226,7 +232,8 @@ const cooldowns = ref({})
 const showReviewModal = ref(false)
 const selectedOrder = ref(null)
 const currentFilter = ref('all')
-const isFilterOpen = ref(false) // New ref for dropdown state
+const isFilterOpen = ref(false)
+const loading = ref(true) // New loading state
 let unsubscribe = null
 
 // Status filter options
@@ -258,15 +265,23 @@ const getActiveFilterLabel = () => {
 
 // Get orders from Firestore
 onMounted(async () => {
+  loading.value = true // Set loading to true at the start
+
+  // Add a timeout to show "no data" after 5 seconds
+  const timeoutId = setTimeout(() => {
+    if (loading.value) {
+      loading.value = false
+    }
+  }, 5000)
+
   const searchParam = route.query.search
   if (searchParam) {
-    // Set the search input value to the query parameter
     searchQuery.value = searchParam
-    // Optionally, trigger the search immediately
-    // filterOrders() or whatever search function you have
   }
 
   if (!authStore.isLoggedIn) {
+    loading.value = false // Turn off loading if not logged in
+    clearTimeout(timeoutId) // Clear the timeout
     return
   }
 
@@ -279,43 +294,56 @@ onMounted(async () => {
       orderBy('createdAt', 'desc'),
     )
 
-    unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
-      const orderDocs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
+    unsubscribe = onSnapshot(
+      ordersQuery,
+      async (snapshot) => {
+        const orderDocs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
 
-      // Fetch catalog images for each order
-      const ordersWithImages = await Promise.all(
-        orderDocs.map(async (order) => {
-          if (order.productId) {
-            try {
-              const catalogRef = doc(db, 'katalog', order.productId)
-              const catalogDoc = await getDoc(catalogRef)
-              if (catalogDoc.exists()) {
-                const catalogData = catalogDoc.data()
-                return {
-                  ...order,
-                  productImage: catalogData.images?.[0] || null,
-                  customOptions: {
-                    ...order.customOptions,
-                    productImage: catalogData.images?.[0] || order.customOptions?.productImage,
-                  },
+        // Fetch catalog images for each order
+        const ordersWithImages = await Promise.all(
+          orderDocs.map(async (order) => {
+            if (order.productId) {
+              try {
+                const catalogRef = doc(db, 'katalog', order.productId)
+                const catalogDoc = await getDoc(catalogRef)
+                if (catalogDoc.exists()) {
+                  const catalogData = catalogDoc.data()
+                  return {
+                    ...order,
+                    productImage: catalogData.images?.[0] || null,
+                    customOptions: {
+                      ...order.customOptions,
+                      productImage: catalogData.images?.[0] || order.customOptions?.productImage,
+                    },
+                  }
                 }
+              } catch (err) {
+                console.error('Error fetching catalog:', err)
               }
-            } catch (err) {
-              console.error('Error fetching catalog:', err)
             }
-          }
-          return order
-        }),
-      )
+            return order
+          }),
+        )
 
-      orders.value = ordersWithImages
-    })
+        orders.value = ordersWithImages
+        loading.value = false // Turn off loading after data is loaded
+        clearTimeout(timeoutId) // Clear the timeout since data loaded successfully
+      },
+      (error) => {
+        console.error('Error in orders snapshot:', error)
+        toast.error('Gagal memuat pesanan')
+        loading.value = false // Turn off loading on error
+        clearTimeout(timeoutId) // Clear the timeout
+      },
+    )
   } catch (error) {
     console.error('Error setting up orders listener:', error)
     toast.error('Gagal memuat pesanan')
+    loading.value = false // Turn off loading on error
+    clearTimeout(timeoutId) // Clear the timeout
   }
 })
 
@@ -413,7 +441,7 @@ const completeOrder = async (orderId) => {
       orderId: orderId,
       icon: 'fas fa-check-circle',
       color: '#16a34a',
-      link: `/my-account/orders?highlight=${orderId}`,
+      link: `/my-account/orders?search=${orderId}`,
     })
 
     toast.success('Pesanan telah selesai')

@@ -8,6 +8,7 @@ import {
   push,
   serverTimestamp as rtdbServerTimestamp,
   update,
+  remove,
 } from 'firebase/database'
 import { useAuthStore } from './AuthStore'
 
@@ -186,6 +187,33 @@ export const useNotificationStore = defineStore('notification', () => {
     return notifTime.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
+  // Delete notifications
+  const deleteNotifications = async (notificationIds) => {
+    if (!notificationIds || notificationIds.length === 0) {
+      return { success: false, error: 'No notifications selected' }
+    }
+
+    try {
+      // Delete notifications from Firebase Realtime Database
+      const deletePromises = notificationIds.map((id) => {
+        const notificationRef = dbRef(rtdb, `notifications/${id}`)
+        return remove(notificationRef)
+      })
+
+      await Promise.all(deletePromises)
+
+      // Update local state by removing deleted notifications
+      notifications.value = notifications.value.filter(
+        (notification) => !notificationIds.includes(notification.id),
+      )
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error deleting notifications:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
   return {
     notifications,
     unreadCount,
@@ -198,5 +226,6 @@ export const useNotificationStore = defineStore('notification', () => {
     listenToNotifications,
     getTimeElapsed,
     getUnreadCount,
+    deleteNotifications, // Add this new method
   }
 })
