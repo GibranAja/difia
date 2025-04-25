@@ -156,6 +156,32 @@
                   Pesanan Diterima
                 </button>
 
+                <!-- Cancel button (for pending orders) -->
+                <button
+                  v-if="order.status === 'pending'"
+                  class="cancel-btn"
+                  @click="openCancelModal(order)"
+                >
+                  <i class="fas fa-times-circle"></i>
+                  Batalkan Pesanan
+                </button>
+
+                <!-- Refund button (for cancelled orders) -->
+                <button
+                  v-if="order.status === 'cancelled' && !order.refundRequest"
+                  class="refund-btn"
+                  @click="openRefundModal(order)"
+                >
+                  <i class="fas fa-money-bill-wave"></i>
+                  Ajukan Refund
+                </button>
+
+                <!-- Refund status indicator (if refund request exists) -->
+                <div v-if="order.refundRequest" class="refund-status">
+                  <i :class="['fas', getRefundStatusIcon(order.refundRequest.status)]"></i>
+                  <span>Refund: {{ getRefundStatusLabel(order.refundRequest.status) }}</span>
+                </div>
+
                 <!-- Actions for completed orders -->
                 <div v-if="order.status === 'complete'" class="completed-actions">
                   <router-link
@@ -193,6 +219,14 @@
 
     <!-- Review Modal -->
     <ReviewModal v-if="showReviewModal" :order="selectedOrder" @close="closeReviewModal" />
+
+    <!-- Refund Modal - will be shown for both refunds and cancellations -->
+    <RefundModal 
+      v-if="showRefundModal" 
+      :order="selectedOrder" 
+      :is-cancellation="isCancellation"
+      @close="closeRefundModal" 
+    />
   </div>
 </template>
 
@@ -215,7 +249,8 @@ import { useInvoiceStore } from '@/stores/InvoiceStore'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useRoute } from 'vue-router'
 import ReviewModal from '@/components/ReviewModal.vue'
-import LoadComponent from '@/components/LoadComponent.vue' // Add this import
+import RefundModal from '@/components/RefundModal.vue'
+import LoadComponent from '@/components/LoadComponent.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -234,6 +269,8 @@ const selectedOrder = ref(null)
 const currentFilter = ref('all')
 const isFilterOpen = ref(false)
 const loading = ref(true) // New loading state
+const showRefundModal = ref(false) // Refund modal state
+const isCancellation = ref(false) // Track whether it's a cancellation or refund
 let unsubscribe = null
 
 // Status filter options
@@ -516,6 +553,42 @@ const openReviewModal = (order) => {
 const closeReviewModal = () => {
   showReviewModal.value = false
   selectedOrder.value = null
+}
+
+const openRefundModal = (order) => {
+  selectedOrder.value = order
+  showRefundModal.value = true
+  isCancellation.value = false // This is a refund request, not a cancellation
+}
+
+const openCancelModal = (order) => {
+  selectedOrder.value = order
+  showRefundModal.value = true
+  isCancellation.value = true // This is a cancellation request
+}
+
+const closeRefundModal = () => {
+  showRefundModal.value = false
+  selectedOrder.value = null
+  isCancellation.value = false
+}
+
+const getRefundStatusIcon = (status) => {
+  const icons = {
+    pending: 'fa-clock',
+    processed: 'fa-check-circle',
+    rejected: 'fa-times-circle',
+  }
+  return icons[status] || 'fa-question-circle'
+}
+
+const getRefundStatusLabel = (status) => {
+  const labels = {
+    pending: 'Sedang Diproses',
+    processed: 'Berhasil',
+    rejected: 'Ditolak',
+  }
+  return labels[status] || 'Tidak Diketahui'
 }
 </script>
 
@@ -932,6 +1005,75 @@ input:focus {
 
 .review-btn:hover {
   background: #eef1f3;
+}
+
+/* Refund button styles */
+.refund-btn {
+  background-color: #9333ea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.refund-btn:hover {
+  background-color: #7e22ce;
+}
+
+/* Cancel button styles */
+.cancel-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.cancel-btn:hover {
+  background-color: #dc2626;
+}
+
+/* Refund status indicator */
+.refund-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #f4f4f4;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #444;
+}
+
+.refund-status i {
+  font-size: 1rem;
+}
+
+.refund-status i.fa-clock {
+  color: #f59e0b;
+}
+
+.refund-status i.fa-check-circle {
+  color: #10b981;
+}
+
+.refund-status i.fa-times-circle {
+  color: #ef4444;
 }
 
 /* Cancellation reason */

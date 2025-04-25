@@ -5,7 +5,7 @@
     <!-- Logo Section -->
     <div class="logo">
       <div class="logo-content">
-        <img src="../../assets/difia.jpg" alt="DIFIA" class="logo-image" />
+        <img src="../../assets/Logo_Difia_Haki.png" alt="DIFIA" class="logo-image" />
       </div>
     </div>
 

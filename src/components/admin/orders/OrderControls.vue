@@ -16,6 +16,15 @@
         <i class="fas fa-gift"></i>
         Souvenir
       </button>
+
+      <!-- New Refund Button with different style -->
+      <button
+        :class="['refund-btn', { active: activeOrderType === 'refund' }]"
+        @click="$emit('update:activeOrderType', 'refund')"
+      >
+        <i class="fas fa-undo-alt"></i>
+        Refund
+      </button>
     </div>
 
     <!-- Search input -->
@@ -34,19 +43,12 @@
     <div class="status-filter">
       <div class="dropdown-select" @click="toggleDropdown" ref="dropdownRef">
         <div class="selected-text">
-          {{
-            selectedStatuses.length ? `${selectedStatuses.length} selected` : 'Filter Status'
-          }}
+          {{ selectedStatuses.length ? `${selectedStatuses.length} selected` : 'Filter Status' }}
         </div>
         <div class="dropdown-menu" v-if="isDropdownOpen">
-          <label
-            v-for="status in statusOptions"
-            :key="status"
-            class="dropdown-item"
-            @click.stop
-          >
-            <input 
-              type="checkbox" 
+          <label v-for="status in statusOptions" :key="status" class="dropdown-item" @click.stop>
+            <input
+              type="checkbox"
               :checked="selectedStatuses.includes(status)"
               @change="toggleStatus(status)"
             />
@@ -59,65 +61,65 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   activeOrderType: {
     type: String,
-    required: true
+    required: true,
   },
   searchQuery: {
     type: String,
-    required: true
+    required: true,
   },
   selectedStatuses: {
     type: Array,
-    required: true
+    required: true,
   },
   statusOptions: {
     type: Array,
-    default: () => ['pending', 'process', 'delivery', 'complete', 'cancelled']
-  }
-});
+    default: () => ['pending', 'process', 'delivery', 'complete', 'cancelled'],
+  },
+})
 
 const emit = defineEmits([
-  'update:activeOrderType', 
-  'update:searchQuery', 
-  'update:selectedStatuses'
-]);
+  'update:activeOrderType',
+  'update:searchQuery',
+  'update:selectedStatuses',
+])
 
-const isDropdownOpen = ref(false);
-const dropdownRef = ref(null);
+const isDropdownOpen = ref(false)
+const dropdownRef = ref(null)
 
 const toggleDropdown = () => {
-  isDropdownOpen.value = !isDropdownOpen.value;
-};
+  isDropdownOpen.value = !isDropdownOpen.value
+}
 
 const toggleStatus = (status) => {
-  const newSelectedStatuses = [...props.selectedStatuses];
-  
+  const newSelectedStatuses = [...props.selectedStatuses]
+
   if (newSelectedStatuses.includes(status)) {
-    const index = newSelectedStatuses.indexOf(status);
-    newSelectedStatuses.splice(index, 1);
+    const index = newSelectedStatuses.indexOf(status)
+    newSelectedStatuses.splice(index, 1)
   } else {
-    newSelectedStatuses.push(status);
+    newSelectedStatuses.push(status)
   }
-  
-  emit('update:selectedStatuses', newSelectedStatuses);
-};
+
+  emit('update:selectedStatuses', newSelectedStatuses)
+}
 
 // Add click outside handler
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
-});
+  document.addEventListener('click', handleClickOutside)
+})
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
+  document.removeEventListener('click', handleClickOutside)
+})
 
 function handleClickOutside(e) {
   if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
-    isDropdownOpen.value = false;
+    isDropdownOpen.value = false
   }
 }
 </script>
@@ -166,12 +168,43 @@ function handleClickOutside(e) {
   background-color: rgba(2, 22, 59, 0.1);
 }
 
+/* Refund button styles */
+.refund-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid #e74c3c;
+  border-radius: 4px;
+  background: none;
+  color: #e74c3c;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 10px; /* Add some separation from the other buttons */
+}
+
+.refund-btn i {
+  font-size: 1em;
+}
+
+.refund-btn.active {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.refund-btn:hover:not(.active) {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
 /* Search styles */
 .search-container {
   position: relative;
   flex: 1;
-  max-width: 400px;
+  max-width: 200px;
   margin: 0 15px;
+  margin-left: 14rem;
 }
 
 .search-input {
