@@ -448,20 +448,20 @@ const loadCities = async (provinceName) => {
 }
 
 // Set primary address
-const setPrimaryAddress = async (addressId) => {
-  try {
-    const address = addresses.value.find((addr) => addr.id === addressId)
-    if (address) {
-      const result = await addressStore.updateAddress(addressId, {
-        ...address,
-        isPrimary: true,
-      })
-    }
-  } catch (error) {
-    console.error('Error setting primary address:', error)
-    toast.error('Gagal mengatur alamat utama')
-  }
-}
+// const setPrimaryAddress = async (addressId) => {
+//   try {
+//     const address = addresses.value.find((addr) => addr.id === addressId)
+//     if (address) {
+//       const result = await addressStore.updateAddress(addressId, {
+//         ...address,
+//         isPrimary: true,
+//       })
+//     }
+//   } catch (error) {
+//     console.error('Error setting primary address:', error)
+//     toast.error('Gagal mengatur alamat utama')
+//   }
+// }
 
 // Delete address functions
 const confirmDeleteAddress = (address) => {

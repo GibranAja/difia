@@ -136,19 +136,17 @@ const isSubmitting = ref(false)
 const submitForm = async () => {
   try {
     isSubmitting.value = true
-
-    // Get the order reference
     const orderRef = doc(db, 'orders', props.order.id)
 
     if (props.isCancellation) {
-      // Cancel the order
+      // This is for order cancellation
       await updateDoc(orderRef, {
         status: 'cancelled',
         cancelReason: formData.value.cancellationReason,
-        cancelledBy: 'user',
+        cancelledBy: 'user', // Explicitly set cancelledBy as 'user'
         cancelledAt: serverTimestamp(),
         refundRequest: {
-          status: 'pending', // Initial status: pending, processed, rejected
+          status: 'pending',
           requestDate: serverTimestamp(),
           accountType: formData.value.accountType,
           accountNumber: formData.value.accountNumber,

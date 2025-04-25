@@ -69,6 +69,34 @@
           @update:entriesPerPage="updateEntriesPerPage"
         />
       </div>
+
+      <!-- Refund Orders Section -->
+      <div class="order-section" v-if="activeOrderType === 'refund'">
+        <RefundTable
+          :orders="paginatedRefundOrders"
+          :searchQuery="searchQuery"
+          :emptyStateTitle="
+            refundOrders.length ? 'Tidak ada data refund' : 'Belum Ada Permintaan Refund'
+          "
+          :emptyStateMessage="
+            refundOrders.length
+              ? 'Tidak ditemukan permintaan refund dengan filter yang dipilih'
+              : 'Saat ini belum ada permintaan refund yang masuk'
+          "
+          @process-refund="openRefundProofModal"
+          @view-proof="viewRefundProof"
+        />
+
+        <PaginationControls
+          v-if="refundOrders.length"
+          :currentPage="currentRefundPage"
+          :totalPages="totalRefundPages"
+          :entriesPerPage="entriesPerPage"
+          @prev-page="goToPrevRefundPage"
+          @next-page="goToNextRefundPage"
+          @update:entriesPerPage="updateEntriesPerPage"
+        />
+      </div>
     </template>
 
     <!-- Status Update Modal -->
@@ -98,16 +126,41 @@
       altText="Payment proof"
       @close="closePaymentProofModal"
     />
+
+    <!-- Refund Proof Modal -->
+    <RefundProofModal
+      :show="showRefundProofModal"
+      :order="selectedRefundOrder"
+      @close="closeRefundProofModal"
+      @submit="processRefund"
+    />
+
+    <!-- Additional Image Preview Modal -->
+    <ImagePreviewModal
+      :show="showImagePreview"
+      :imageSrc="previewImage"
+      :altText="'Bukti Refund'"
+      @close="closeImagePreview"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { db } from '@/config/firebase'
-import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  query,
+  orderBy,
+  serverTimestamp,
+} from 'firebase/firestore'
 import LoadComponent from '@/components/LoadComponent.vue'
 import { useToast } from 'vue-toastification'
 import { useOrderStore } from '@/stores/OrderStore'
+import { useNotificationStore } from '@/stores/NotificationStore'
 
 // Import new components
 import OrderControls from '@/components/admin/orders/OrderControls.vue'
@@ -115,8 +168,11 @@ import OrderTable from '@/components/admin/orders/OrderTable.vue'
 import OrderStatusModal from '@/components/admin/orders/OrderStatusModal.vue'
 import ImagePreviewModal from '@/components/admin/orders/ImagePreviewModal.vue'
 import PaginationControls from '@/components/admin/orders/PaginationControls.vue'
+import RefundTable from '@/components/admin/orders/RefundTable.vue'
+import RefundProofModal from '@/components/admin/orders/RefundProofModal.vue'
 
 const toast = useToast()
+const notificationStore = useNotificationStore()
 const loading = ref(true)
 const orders = ref([])
 const showStatusModal = ref(false)
@@ -131,6 +187,9 @@ const activeOrderType = ref('regular')
 const selectedStatuses = ref([])
 const searchQuery = ref('')
 const orderStore = useOrderStore()
+const showRefundProofModal = ref(false)
+const selectedRefundOrder = ref(null)
+// const refundProofImage = ref('')
 
 defineProps({
   isSidebarOpen: {
@@ -187,6 +246,24 @@ const souvenirOrders = computed(() => {
         order.status.toLowerCase().includes(query)
       )
     })
+  }
+
+  return filtered
+})
+
+const refundOrders = computed(() => {
+  let filtered = orders.value.filter((order) => order.status === 'cancelled' && order.refundRequest)
+
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(
+      (order) =>
+        order.id.toLowerCase().includes(query) ||
+        order.shippingDetails?.name?.toLowerCase().includes(query) ||
+        order.refundRequest?.accountNumber?.includes(query) ||
+        order.refundRequest?.bankName?.toLowerCase().includes(query),
+    )
   }
 
   return filtered
@@ -251,16 +328,38 @@ const closePaymentProofModal = () => {
   paymentProofImage.value = ''
 }
 
+const openRefundProofModal = (order) => {
+  // Make sure we're setting the full order object
+  selectedRefundOrder.value = order
+  showRefundProofModal.value = true
+}
+
+const closeRefundProofModal = () => {
+  showRefundProofModal.value = false
+  selectedRefundOrder.value = null
+}
+
+const viewRefundProof = (proofUrl) => {
+  if (!proofUrl) {
+    toast.error('Bukti refund tidak tersedia')
+    return
+  }
+
+  // This is for viewing existing proof
+  previewImage.value = proofUrl
+  showImagePreview.value = true
+}
+
 // Convert status code to human-readable label
 const getStatusLabel = (status) => {
   const statusLabels = {
-    'pending': 'Menunggu Pembayaran',
-    'processing': 'Diproses',
-    'shipped': 'Dikirim',
-    'delivered': 'Diterima',
-    'cancelled': 'Dibatalkan',
-    'completed': 'Selesai',
-    'refunded': 'Dikembalikan'
+    pending: 'Menunggu Pembayaran',
+    processing: 'Diproses',
+    shipped: 'Dikirim',
+    delivered: 'Diterima',
+    cancelled: 'Dibatalkan',
+    completed: 'Selesai',
+    refunded: 'Dikembalikan',
   }
   return statusLabels[status] || status
 }
@@ -277,6 +376,8 @@ const updateOrderStatus = async () => {
 
     if (newStatus.value === 'cancelled') {
       updateData.cancelReason = cancelReason.value
+      updateData.cancelledBy = 'admin' // Add this line to set the canceller as admin
+      updateData.cancelledAt = serverTimestamp() // Optional: Add timestamp for when it was cancelled
     }
 
     await updateDoc(orderRef, updateData)
@@ -308,6 +409,7 @@ const updateOrderStatus = async () => {
 // Add pagination state
 const currentRegularPage = ref(1)
 const currentSouvenirPage = ref(1)
+const currentRefundPage = ref(1)
 const entriesPerPage = ref(10)
 
 // Computed properties for pagination
@@ -317,6 +419,10 @@ const totalRegularPages = computed(() => {
 
 const totalSouvenirPages = computed(() => {
   return Math.max(1, Math.ceil(souvenirOrders.value.length / entriesPerPage.value))
+})
+
+const totalRefundPages = computed(() => {
+  return Math.max(1, Math.ceil(refundOrders.value.length / entriesPerPage.value))
 })
 
 const paginatedRegularOrders = computed(() => {
@@ -329,6 +435,12 @@ const paginatedSouvenirOrders = computed(() => {
   const startIndex = (currentSouvenirPage.value - 1) * entriesPerPage.value
   const endIndex = startIndex + entriesPerPage.value
   return souvenirOrders.value.slice(startIndex, endIndex)
+})
+
+const paginatedRefundOrders = computed(() => {
+  const startIndex = (currentRefundPage.value - 1) * entriesPerPage.value
+  const endIndex = startIndex + entriesPerPage.value
+  return refundOrders.value.slice(startIndex, endIndex)
 })
 
 // Navigation functions
@@ -356,11 +468,24 @@ const goToPrevSouvenirPage = () => {
   }
 }
 
+const goToNextRefundPage = () => {
+  if (currentRefundPage.value < totalRefundPages.value) {
+    currentRefundPage.value++
+  }
+}
+
+const goToPrevRefundPage = () => {
+  if (currentRefundPage.value > 1) {
+    currentRefundPage.value--
+  }
+}
+
 const updateEntriesPerPage = (value) => {
   entriesPerPage.value = value
   // Reset page numbers
   currentRegularPage.value = 1
   currentSouvenirPage.value = 1
+  currentRefundPage.value = 1
 }
 
 // Add a watcher for when entriesPerPage changes
@@ -368,7 +493,56 @@ watch(entriesPerPage, () => {
   // Reset page numbers when entries per page changes to avoid being on a now non-existent page
   currentRegularPage.value = 1
   currentSouvenirPage.value = 1
+  currentRefundPage.value = 1
 })
+
+// Process refund
+const processRefund = async (data) => {
+  try {
+    const orderRef = doc(db, 'orders', data.orderId)
+
+    // Update refund status, add proof and record timestamp
+    await updateDoc(orderRef, {
+      'refundRequest.status': 'processed',
+      'refundRequest.processedAt': serverTimestamp(),
+      'refundRequest.proof': data.proof,
+      'refundRequest.fileName': data.fileName || 'bukti-refund.jpg',
+      'refundRequest.fileType': data.fileType || 'image/jpeg',
+    })
+
+    // Add notification for the user
+    await notificationStore.createNotification({
+      title: 'Refund Berhasil! 💰',
+      message: `Dana refund untuk pesanan #${data.orderId.slice(-6)} telah diproses dan sedang dalam perjalanan ke rekening Anda. Silakan periksa detail refund di halaman pesanan.`,
+      type: 'refund',
+      userId: selectedRefundOrder.value.userId,
+      orderId: data.orderId,
+      icon: 'fas fa-money-bill-wave',
+      color: '#10b981',
+      link: `/my-account/orders?search=${data.orderId}`,
+    })
+
+    toast.success('Refund berhasil diproses')
+    closeRefundProofModal()
+
+    // Update local state if needed
+    const orderIndex = orders.value.findIndex((order) => order.id === data.orderId)
+    if (orderIndex !== -1) {
+      orders.value[orderIndex] = {
+        ...orders.value[orderIndex],
+        refundRequest: {
+          ...orders.value[orderIndex].refundRequest,
+          status: 'processed',
+          processedAt: new Date(),
+          proof: data.proof,
+        },
+      }
+    }
+  } catch (error) {
+    console.error('Error processing refund:', error)
+    toast.error('Gagal memproses refund')
+  }
+}
 
 // Lifecycle hooks
 onMounted(fetchOrders)

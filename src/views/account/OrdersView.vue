@@ -180,6 +180,16 @@
                 <div v-if="order.refundRequest" class="refund-status">
                   <i :class="['fas', getRefundStatusIcon(order.refundRequest.status)]"></i>
                   <span>Refund: {{ getRefundStatusLabel(order.refundRequest.status) }}</span>
+
+                  <!-- Show this button only if refund is processed and has proof -->
+                  <button
+                    v-if="order.refundRequest.status === 'processed' && order.refundRequest.proof"
+                    class="view-proof-btn"
+                    @click="openRefundProofModal(order.refundRequest.proof)"
+                  >
+                    <i class="fas fa-receipt"></i>
+                    Lihat Bukti
+                  </button>
                 </div>
 
                 <!-- Actions for completed orders -->
@@ -194,7 +204,14 @@
                   >
                     Beli Lagi
                   </router-link>
-                  <button class="review-btn" @click="openReviewModal(order)">Tulis Ulasan</button>
+                  <button
+                    v-if="!order.hasReview"
+                    class="review-btn"
+                    @click="openReviewModal(order)"
+                  >
+                    Tulis Ulasan
+                  </button>
+                  <button v-else class="review-btn-disabled" disabled>Sudah Diulas</button>
                 </div>
               </div>
             </div>
@@ -218,14 +235,23 @@
     </div>
 
     <!-- Review Modal -->
-    <ReviewModal v-if="showReviewModal" :order="selectedOrder" @close="closeReviewModal" />
+    <ReviewModal v-if="showReviewModal" :order="selectedOrder" @close="closeReviewModal($event)" />
 
     <!-- Refund Modal - will be shown for both refunds and cancellations -->
-    <RefundModal 
-      v-if="showRefundModal" 
-      :order="selectedOrder" 
+    <RefundModal
+      v-if="showRefundModal"
+      :order="selectedOrder"
       :is-cancellation="isCancellation"
-      @close="closeRefundModal" 
+      @close="closeRefundModal"
+    />
+
+    <!-- Refund Proof Modal -->
+    <ImagePreviewModal
+      v-if="showRefundProofModal"
+      :show="showRefundProofModal"
+      :imageSrc="refundProofImage"
+      altText="Bukti Refund"
+      @close="closeRefundProofModal"
     />
   </div>
 </template>
@@ -241,6 +267,8 @@ import {
   doc,
   getDoc,
   updateDoc,
+  getDocs,
+  limit,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
@@ -251,6 +279,7 @@ import { useRoute } from 'vue-router'
 import ReviewModal from '@/components/ReviewModal.vue'
 import RefundModal from '@/components/RefundModal.vue'
 import LoadComponent from '@/components/LoadComponent.vue'
+import ImagePreviewModal from '@/components/ImagePreviewModal.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -271,6 +300,8 @@ const isFilterOpen = ref(false)
 const loading = ref(true) // New loading state
 const showRefundModal = ref(false) // Refund modal state
 const isCancellation = ref(false) // Track whether it's a cancellation or refund
+const showRefundProofModal = ref(false) // Refund proof modal state
+const refundProofImage = ref(null) // Refund proof image
 let unsubscribe = null
 
 // Status filter options
@@ -342,6 +373,25 @@ onMounted(async () => {
         // Fetch catalog images for each order
         const ordersWithImages = await Promise.all(
           orderDocs.map(async (order) => {
+            let hasReview = false
+
+            // Check if user has already reviewed this order
+            if (order.status === 'complete') {
+              try {
+                const reviewsRef = collection(db, 'reviews')
+                const reviewQuery = query(
+                  reviewsRef,
+                  where('orderId', '==', order.id),
+                  where('userId', '==', userId),
+                  limit(1),
+                )
+                const reviewSnapshot = await getDocs(reviewQuery)
+                hasReview = !reviewSnapshot.empty
+              } catch (err) {
+                console.error('Error checking review status:', err)
+              }
+            }
+
             if (order.productId) {
               try {
                 const catalogRef = doc(db, 'katalog', order.productId)
@@ -350,6 +400,7 @@ onMounted(async () => {
                   const catalogData = catalogDoc.data()
                   return {
                     ...order,
+                    hasReview,
                     productImage: catalogData.images?.[0] || null,
                     customOptions: {
                       ...order.customOptions,
@@ -361,7 +412,7 @@ onMounted(async () => {
                 console.error('Error fetching catalog:', err)
               }
             }
-            return order
+            return { ...order, hasReview }
           }),
         )
 
@@ -550,7 +601,30 @@ const openReviewModal = (order) => {
   showReviewModal.value = true
 }
 
-const closeReviewModal = () => {
+const closeReviewModal = async (reviewSubmitted = false) => {
+  if (reviewSubmitted && selectedOrder.value) {
+    try {
+      // Update di database Firestore
+      const orderRef = doc(db, 'orders', selectedOrder.value.id)
+      await updateDoc(orderRef, {
+        hasReview: true,
+      })
+
+      // Update di state lokal dengan cara yang lebih reaktif
+      const orderIndex = orders.value.findIndex((order) => order.id === selectedOrder.value.id)
+      if (orderIndex !== -1) {
+        // Gunakan splice untuk memastikan reaktivitas
+        const updatedOrder = { ...orders.value[orderIndex], hasReview: true }
+        orders.value.splice(orderIndex, 1, updatedOrder)
+      }
+
+      toast.success('Status ulasan berhasil diperbarui')
+    } catch (error) {
+      console.error('Error updating review status:', error)
+      toast.error('Gagal memperbarui status ulasan')
+    }
+  }
+
   showReviewModal.value = false
   selectedOrder.value = null
 }
@@ -573,6 +647,20 @@ const closeRefundModal = () => {
   isCancellation.value = false
 }
 
+const openRefundProofModal = (proofUrl) => {
+  if (!proofUrl) {
+    toast.error('Bukti refund tidak tersedia')
+    return
+  }
+  refundProofImage.value = proofUrl
+  showRefundProofModal.value = true
+}
+
+const closeRefundProofModal = () => {
+  showRefundProofModal.value = false
+  refundProofImage.value = null
+}
+
 const getRefundStatusIcon = (status) => {
   const icons = {
     pending: 'fa-clock',
@@ -585,7 +673,7 @@ const getRefundStatusIcon = (status) => {
 const getRefundStatusLabel = (status) => {
   const labels = {
     pending: 'Sedang Diproses',
-    processed: 'Berhasil',
+    processed: 'Refund Berhasil',
     rejected: 'Ditolak',
   }
   return labels[status] || 'Tidak Diketahui'
@@ -1007,6 +1095,18 @@ input:focus {
   background: #eef1f3;
 }
 
+.review-btn-disabled {
+  background: #e2e2e2;
+  color: #888;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: not-allowed;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: 'Montserrat', sans-serif;
+}
+
 /* Refund button styles */
 .refund-btn {
   background-color: #9333ea;
@@ -1051,13 +1151,14 @@ input:focus {
 .refund-status {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.5rem 1rem;
   background-color: #f4f4f4;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   color: #444;
+  flex-wrap: wrap;
 }
 
 .refund-status i {
@@ -1074,6 +1175,25 @@ input:focus {
 
 .refund-status i.fa-times-circle {
   color: #ef4444;
+}
+
+/* View proof button styles */
+.view-proof-btn {
+  background-color: #02163b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-proof-btn:hover {
+  background-color: #e8ba38;
 }
 
 /* Cancellation reason */
@@ -1249,3 +1369,4 @@ input:focus {
   }
 }
 </style>
+```
