@@ -19,6 +19,8 @@
         ></iframe>
       </div> -->
       <div class="product-card">
+        <i class="fas fa-solid fa-trophy right"></i>
+        <i class="fas fa-solid fa-trophy left"></i>
         <span class="straight"></span>
         <h1>
           <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
@@ -29,18 +31,14 @@
     </section>
     <section class="katalog" id="catalog">
       <span class="box"></span>
+      <span class="box-left"></span>
       <span class="rounded"></span>
       <span class="rounded-left"></span>
       <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog
-          v-for="(katalog, index) in visibleKatalog"
-          :key="katalog.id"
-          :item="katalog"
-          :index="index"
-        />
+        <CardCatalog v-for="(katalog, index) in visibleKatalog" :key="katalog.id" :item="katalog" :index="index" />
       </div>
       <div class="load-more-container" v-if="hasMoreItems">
         <button @click="loadMore" class="load-more-btn">See More</button>
@@ -268,12 +266,14 @@ header {
 }
 
 .header-at-top {
-  transform: translateY(100px); /* Adjust this value to match your navbar height */
+  transform: translateY(100px);
+  /* Adjust this value to match your navbar height */
 }
 
 .navbar {
   position: fixed;
-  top: 40px; /* Account for VoucherNotification */
+  top: 40px;
+  /* Account for VoucherNotification */
   left: 0;
   width: 100%;
   z-index: 100;
@@ -281,7 +281,8 @@ header {
 
 @media (max-width: 768px) {
   .header-at-top {
-    transform: translateY(60px); /* Smaller offset for mobile */
+    transform: translateY(60px);
+    /* Smaller offset for mobile */
   }
 }
 
@@ -296,13 +297,17 @@ header {
 
 .carousel-track {
   display: flex;
-  transition: none; /* Remove transition untuk animasi yang lebih smooth */
-  will-change: transform; /* Optimize performance */
+  transition: none;
+  /* Remove transition untuk animasi yang lebih smooth */
+  will-change: transform;
+  /* Optimize performance */
 }
 
 .carousel-item {
-  flex: 0 0 25%; /* 4 items in view */
-  padding: 0 25px; /* Increased padding from 15px to 25px */
+  flex: 0 0 25%;
+  /* 4 items in view */
+  padding: 0 25px;
+  /* Increased padding from 15px to 25px */
   box-sizing: border-box;
   opacity: 1;
 }
@@ -330,6 +335,7 @@ header {
     flex: 0 0 100%;
   }
 }
+
 /* END OF CAROUSEL STYLES */
 
 .foto-tentang-kami {
@@ -347,6 +353,7 @@ header {
   width: 100%;
   /* height: 100vh */
 }
+
 /* .video-ad {
   width: 20%;
   display: flex;
@@ -354,6 +361,26 @@ header {
   align-items: center;
   height: 100vh;
 } */
+.popular .right {
+  position: absolute;
+  left: -25%;
+  color: #ffd700;
+  top: 10px;
+  font-size: 35rem;
+  z-index: -1;
+  text-shadow: 0 10px 20px #ffd700;
+}
+
+.popular .left {
+  position: absolute;
+  right: -25%;
+  color: #c0c0c0;
+  top: 10px;
+  font-size: 35rem;
+  z-index: -1;
+  text-shadow: 0 10px 20px #c0c0c0;
+}
+
 .product-card {
   display: flex;
   justify-content: space-around;
@@ -363,15 +390,18 @@ header {
   position: relative;
   /* height: 100vh; */
 }
+
 .product-card h1 {
   font-size: 4rem;
   width: 100%;
   text-align: center;
   color: black;
 }
+
 .product-card h1 i {
   color: #e8ba38;
 }
+
 .product-card .straight {
   width: 90%;
   height: 150px;
@@ -402,25 +432,35 @@ header {
 .katalog .box {
   position: absolute;
   left: -70px;
-  height: 150px;
-  width: 150px;
+  height: 50%;
+  width: 100px;
   z-index: -1;
   bottom: 100px;
-  rotate: 50deg;
   background-color: #ffbb00;
 }
-.katalog .rounded {
+.katalog .box-left {
+  position: absolute;
+  right: -70px;
+  height: 50%;
+  width: 100px;
+  z-index: -1;
+  top: 100px;
+  background-color: #02163b;
+}
+
+/* .katalog .rounded {
   position: absolute;
   right: 20px;
   height: 150px;
   width: 150px;
   z-index: -1;
   top: 100px;
-  /* rotate: 50deg; */
-  /* background-color: #ffbb00; */
+  rotate: 50deg;
+  background-color: #ffbb00;
   border-radius: 100px;
   border: 15px solid #ffbb00;
 }
+
 .katalog .rounded-left {
   position: absolute;
   left: 20px;
@@ -428,11 +468,11 @@ header {
   width: 150px;
   z-index: -1;
   top: 100px;
-  /* rotate: 50deg; */
-  /* background-color: #ffbb00; */
+  rotate: 50deg;
+  background-color: #ffbb00;
   border-radius: 100px;
   border: 15px solid #ffbb00;
-}
+} */
 
 .katalog .dot {
   width: 30%;
@@ -452,7 +492,7 @@ header {
 }
 
 /* Tambahkan style baru untuk card terakhir ketika jumlah item tidak habis dibagi 3 */
-.catalog-grid > *:last-child:nth-child(3n - 2) {
+.catalog-grid>*:last-child:nth-child(3n - 2) {
   grid-column: 2;
 }
 
@@ -462,8 +502,10 @@ header {
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  padding: 70px 100px 100px; /* Reduced top padding from 100px to 70px */
-  margin-top: -150px; /* Add negative margin to bring it closer to the catalog section */
+  padding: 70px 100px 100px;
+  /* Reduced top padding from 100px to 70px */
+  margin-top: -150px;
+  /* Add negative margin to bring it closer to the catalog section */
 }
 
 .blog h1 {
@@ -550,6 +592,7 @@ header {
 
 /* General responsive adjustments */
 @media (max-width: 1200px) {
+
   .katalog h1,
   .blog h1,
   .partner h1,
@@ -584,6 +627,7 @@ header {
 }
 
 @media (max-width: 768px) {
+
   .katalog,
   .blog,
   .partner,
@@ -665,7 +709,7 @@ header {
 }
 
 /* Make sure all cards maintain consistent height */
-.blog-grid > * {
+.blog-grid>* {
   min-height: 150px;
 }
 
