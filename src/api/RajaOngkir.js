@@ -1,4 +1,3 @@
-// RajaOngkir.js
 import axios from 'axios'
 
 const RAJAONGKIR_API_KEY = 'f5bbc8efa8f9454734a47ea7558f1737'
@@ -6,8 +5,16 @@ const BOGOR_CITY_ID = '79'
 
 class RajaOngkir {
   constructor() {
+    // Determine if we're in production based on hostname
+    const isProduction = window.location.hostname === 'difia.kuadratdev.com';
+    
+    // Use different base URL for production vs development
+    const baseURL = isProduction 
+      ? '/api/rajaongkir' 
+      : '/api/rajaongkir';
+    
     this.axios = axios.create({
-      baseURL: '/api/rajaongkir',
+      baseURL,
       headers: {
         key: RAJAONGKIR_API_KEY,
       },
