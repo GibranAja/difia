@@ -49,6 +49,15 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+    <!-- Resource hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
     <!-- Your existing links -->
     <link
       href="https://fonts.googleapis.com/css2?family=Judson:wght@400;700&display=swap"
@@ -67,6 +76,29 @@
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Difia",
+        "url": "https://www.difia.com",
+        "logo": "https://www.difia.com/src/assets/Logo_Difia_Haki.png",
+        "description": "Difia menyediakan souvenir & merchandise premium berkualitas tinggi. Produk kustom dari bahan premium dengan pelayanan terbaik untuk acara dan kebutuhan perusahaan.",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Bogor",
+          "addressRegion": "Jawa Barat",
+          "addressCountry": "ID"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+62-XXX-XXXX-XXX",
+          "contactType": "customer service"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>

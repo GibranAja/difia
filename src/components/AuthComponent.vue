@@ -9,31 +9,13 @@
     <div class="auth-content">
       <h1 class="auth-title">{{ isLogin ? 'MASUK' : 'DAFTAR' }}</h1>
 
-      <form @submit.prevent="handleSubmit" class="auth-form">
-        <!-- Only show name field for registration -->
-        <div class="form-group" v-if="!isLogin">
-          <input type="text" v-model="user.name" placeholder="Nama" class="auth-input" required />
-        </div>
-
-        <!-- Phone number field for registration -->
-        <div class="form-group" v-if="!isLogin">
-          <input
-            type="tel"
-            v-model="user.phone"
-            placeholder="Nomor Telepon"
-            class="auth-input"
-            required
-            maxlength="13"
-            @input="validatePhone"
-          />
-          <p v-if="phoneError" class="error-text">{{ phoneError }}</p>
-        </div>
-
+      <!-- Login Form -->
+      <form v-if="isLogin" @submit.prevent="handleSubmit" class="auth-form">
         <div class="form-group">
           <input
             type="text"
             v-model="emailOrPhone"
-            :placeholder="isLogin ? 'Email atau Nomor Telepon' : 'Email'"
+            placeholder="Email atau Nomor Telepon"
             class="auth-input"
             required
           />
@@ -48,7 +30,6 @@
             required
           />
           <button type="button" class="toggle-password" @click="showPassword = !showPassword">
-            <!-- SVG Eye icon that toggles between open/closed -->
             <svg
               v-if="!showPassword"
               xmlns="http://www.w3.org/2000/svg"
@@ -84,80 +65,25 @@
           </button>
         </div>
 
-        <!-- Confirm password field for registration -->
-        <div class="form-group password-field" v-if="!isLogin">
-          <input
-            :type="showConfirmPassword ? 'text' : 'password'"
-            v-model="confirmPassword"
-            placeholder="Konfirmasi Kata Sandi"
-            class="auth-input"
-            required
-          />
-          <button
-            type="button"
-            class="toggle-password"
-            @click="showConfirmPassword = !showConfirmPassword"
-          >
-            <!-- SVG Eye icon that toggles between open/closed -->
-            <svg
-              v-if="!showConfirmPassword"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
-              ></path>
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </button>
-          <p v-if="passwordError" class="error-text">{{ passwordError }}</p>
-        </div>
-
         <div class="auth-links">
           <div class="auth-redirect">
-            <span>{{ isLogin ? 'Belum' : 'Sudah' }} punya akun? </span>
-            <router-link :to="isLogin ? '/register' : '/login'" class="redirect-link">
-              {{ isLogin ? 'Daftar' : 'Masuk' }}
-            </router-link>
+            <span>Belum punya akun? </span>
+            <router-link to="/register" class="redirect-link"> Daftar </router-link>
           </div>
-          <router-link v-if="isLogin" to="/forgot-password" class="redirect-link">
-            Forgot Password?
-          </router-link>
+          <router-link to="/forgot-password" class="redirect-link"> Forgot Password? </router-link>
         </div>
 
         <button
           type="submit"
           class="submit-button"
-          :disabled="isLoading || (!isLogin && !formValid)"
+          :disabled="isLoading"
           :class="{ 'button-loading': isLoading }"
         >
-          {{ isLoading ? 'Processing...' : isLogin ? 'Masuk' : 'Daftar' }}
+          {{ isLoading ? 'Processing...' : 'Masuk' }}
         </button>
 
         <div class="divider">
-          <span class="divider-text">Atau {{ isLogin ? 'Masuk' : 'Daftar' }} Dengan</span>
+          <span class="divider-text">Atau Masuk Dengan</span>
         </div>
 
         <button
@@ -168,9 +94,317 @@
           :class="{ 'button-loading': isLoading }"
         >
           <img src="../assets/google.svg" alt="Google" class="google-icon" />
-          {{ isLoading ? 'Processing...' : (isLogin ? 'Masuk' : 'Daftar') + ' menggunakan Google' }}
+          {{ isLoading ? 'Processing...' : 'Masuk menggunakan Google' }}
         </button>
       </form>
+
+      <!-- Registration Multi-Step Form -->
+      <div v-else class="register-container">
+        <!-- Step indicator -->
+        <div class="step-indicator">
+          <div
+            v-for="step in 3"
+            :key="step"
+            class="step"
+            :class="{ active: currentStep >= step, complete: currentStep > step }"
+          >
+            <div class="step-number">{{ step }}</div>
+            <div class="step-label">{{ getStepLabel(step) }}</div>
+          </div>
+          <div class="step-line"></div>
+        </div>
+
+        <!-- Step 1: Personal Information -->
+        <form v-if="currentStep === 1" @submit.prevent="nextStep" class="auth-form">
+          <div class="form-group">
+            <input type="text" v-model="user.name" placeholder="Nama" class="auth-input" required />
+          </div>
+
+          <div class="form-group">
+            <input
+              type="email"
+              v-model="user.email"
+              placeholder="Email"
+              class="auth-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <input
+              type="tel"
+              v-model="user.phone"
+              placeholder="Nomor Telepon"
+              class="auth-input"
+              required
+              maxlength="13"
+              @input="validatePhone"
+            />
+            <p v-if="phoneError" class="error-text">{{ phoneError }}</p>
+          </div>
+
+          <div class="form-group password-field">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="user.password"
+              placeholder="Kata Sandi"
+              class="auth-input"
+              required
+            />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword">
+              <svg
+                v-if="!showPassword"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                ></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+
+          <div class="form-group password-field">
+            <input
+              :type="showConfirmPassword ? 'text' : 'password'"
+              v-model="confirmPassword"
+              placeholder="Konfirmasi Kata Sandi"
+              class="auth-input"
+              required
+            />
+            <button
+              type="button"
+              class="toggle-password"
+              @click="showConfirmPassword = !showConfirmPassword"
+            >
+              <svg
+                v-if="!showConfirmPassword"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                ></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <p v-if="passwordError" class="error-text">{{ passwordError }}</p>
+          </div>
+
+          <div class="auth-links">
+            <div class="auth-redirect">
+              <span>Sudah punya akun? </span>
+              <router-link to="/login" class="redirect-link"> Masuk </router-link>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="submit-button"
+              :disabled="isLoading || !isStep1Valid"
+              :class="{ 'button-loading': isLoading }"
+            >
+              Selanjutnya
+            </button>
+          </div>
+
+          <div class="divider">
+            <span class="divider-text">Atau Daftar Dengan</span>
+          </div>
+
+          <button
+            @click="handleGoogleSignIn"
+            type="button"
+            class="google-button"
+            :disabled="isLoading"
+            :class="{ 'button-loading': isLoading }"
+          >
+            <img src="../assets/google.svg" alt="Google" class="google-icon" />
+            {{ isLoading ? 'Processing...' : 'Daftar menggunakan Google' }}
+          </button>
+        </form>
+
+        <!-- Step 2: Payment Information -->
+        <form v-if="currentStep === 2" @submit.prevent="nextStep" class="auth-form">
+          <div class="form-group">
+            <label>Metode Pembayaran</label>
+            <div class="payment-method-options">
+              <div
+                class="payment-option"
+                :class="{ selected: paymentMethod === 'bank' }"
+                @click="paymentMethod = 'bank'"
+              >
+                <i class="fas fa-university"></i>
+                <span>Bank</span>
+              </div>
+              <div
+                class="payment-option"
+                :class="{ selected: paymentMethod === 'ewallet' }"
+                @click="paymentMethod = 'ewallet'"
+              >
+                <i class="fas fa-wallet"></i>
+                <span>E-Wallet</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>{{ paymentMethod === 'bank' ? 'Nama Bank' : 'Nama E-Wallet' }}</label>
+            <input
+              type="text"
+              v-model="paymentDetails.name"
+              :placeholder="
+                paymentMethod === 'bank' ? 'Contoh: BCA, Mandiri' : 'Contoh: OVO, GoPay'
+              "
+              class="auth-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>{{ paymentMethod === 'bank' ? 'Nomor Rekening' : 'Nomor E-Wallet' }}</label>
+            <input
+              type="text"
+              v-model="paymentDetails.number"
+              :placeholder="
+                paymentMethod === 'bank' ? 'Masukkan nomor rekening' : 'Masukkan nomor e-wallet'
+              "
+              class="auth-input"
+              required
+              @input="validateAccountNumber"
+              maxlength="paymentMethod === 'bank' ? 17 : 13"
+            />
+            <p v-if="accountNumberError" class="error-text">{{ accountNumberError }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Nama Pemilik</label>
+            <input
+              type="text"
+              v-model="paymentDetails.ownerName"
+              placeholder="Nama pemilik rekening/e-wallet"
+              class="auth-input"
+              required
+            />
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="back-button" @click="prevStep">Kembali</button>
+            <button
+              type="submit"
+              class="submit-button"
+              :disabled="isLoading || !isStep2Valid"
+              :class="{ 'button-loading': isLoading }"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </form>
+
+        <!-- Step 3: Review and Submit -->
+        <form v-if="currentStep === 3" @submit.prevent="handleSubmit" class="auth-form">
+          <div class="review-section">
+            <h3>Informasi Pribadi</h3>
+            <div class="review-item">
+              <span class="review-label">Nama:</span>
+              <span class="review-value">{{ user.name }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Email:</span>
+              <span class="review-value">{{ user.email }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">No. Telepon:</span>
+              <span class="review-value">{{ user.phone }}</span>
+            </div>
+
+            <h3>Informasi Pembayaran</h3>
+            <div class="review-item">
+              <span class="review-label">Metode Pembayaran:</span>
+              <span class="review-value">{{ paymentMethod === 'bank' ? 'Bank' : 'E-Wallet' }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">{{
+                paymentMethod === 'bank' ? 'Bank:' : 'E-Wallet:'
+              }}</span>
+              <span class="review-value">{{ paymentDetails.name }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">{{
+                paymentMethod === 'bank' ? 'No. Rekening:' : 'No. E-Wallet:'
+              }}</span>
+              <span class="review-value">{{ paymentDetails.number }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Nama Pemilik:</span>
+              <span class="review-value">{{ paymentDetails.ownerName }}</span>
+            </div>
+          </div>
+
+          <p class="info-text">
+            Setelah mendaftar, Anda akan menerima email verifikasi. Silakan verifikasi email Anda
+            untuk mengaktifkan akun.
+          </p>
+
+          <div class="form-actions">
+            <button type="button" class="back-button" @click="prevStep">Kembali</button>
+            <button
+              type="submit"
+              class="submit-button"
+              :disabled="isLoading"
+              :class="{ 'button-loading': isLoading }"
+            >
+              {{ isLoading ? 'Processing...' : 'Daftar' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -180,9 +414,11 @@ import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../stores/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const toast = useToast()
 const { user } = storeToRefs(authStore)
 
 // Add phone to user object in local component
@@ -197,6 +433,16 @@ const passwordError = ref('')
 const phoneError = ref('')
 const loginIdentifier = ref('')
 
+// Multi-step registration
+const currentStep = ref(1)
+const paymentMethod = ref('bank')
+const paymentDetails = ref({
+  name: '',
+  number: '',
+  ownerName: '',
+})
+const accountNumberError = ref('')
+
 // Computed property for email/phone input
 const emailOrPhone = computed({
   get() {
@@ -208,7 +454,7 @@ const emailOrPhone = computed({
     } else {
       user.value.email = value
     }
-  }
+  },
 })
 
 const props = defineProps({
@@ -218,22 +464,89 @@ const props = defineProps({
   },
 })
 
-// Form validation
-const formValid = computed(() => {
-  if (props.isLogin) return true
+// Helper function to get step label
+const getStepLabel = (step) => {
+  switch (step) {
+    case 1:
+      return 'Informasi Pribadi'
+    case 2:
+      return 'Informasi Pembayaran'
+    case 3:
+      return 'Verifikasi'
+    default:
+      return ''
+  }
+}
 
+// Validate phone number
+const validatePhone = () => {
+  // Remove non-digits
+  user.value.phone = user.value.phone.replace(/\D/g, '')
+
+  // Validate format
+  if (user.value.phone && !/^(62|0)\d{9,12}$/.test(user.value.phone)) {
+    phoneError.value = 'Format nomor telepon tidak valid'
+  } else {
+    phoneError.value = ''
+  }
+}
+
+// Validate account/e-wallet number
+const validateAccountNumber = () => {
+  // Remove non-digits
+  paymentDetails.value.number = paymentDetails.value.number.replace(/\D/g, '')
+
+  const maxLength = paymentMethod.value === 'bank' ? 17 : 13
+
+  if (paymentDetails.value.number && paymentDetails.value.number.length > maxLength) {
+    paymentDetails.value.number = paymentDetails.value.number.substring(0, maxLength)
+  }
+
+  // Validate for bank (typically 10-17 digits)
+  if (paymentMethod.value === 'bank') {
+    if (paymentDetails.value.number && paymentDetails.value.number.length < 10) {
+      accountNumberError.value = 'Nomor rekening bank minimal 10 digit'
+    } else {
+      accountNumberError.value = ''
+    }
+  }
+  // Validate for e-wallet (typically 10-13 digits)
+  else if (paymentMethod.value === 'ewallet') {
+    if (paymentDetails.value.number && paymentDetails.value.number.length < 10) {
+      accountNumberError.value = 'Nomor e-wallet minimal 10 digit'
+    } else {
+      accountNumberError.value = ''
+    }
+  }
+}
+
+// Form validation for step 1
+const isStep1Valid = computed(() => {
   if (
-    !user.value.phone ||
     !user.value.name ||
     !user.value.email ||
+    !user.value.phone ||
     !user.value.password ||
     !confirmPassword.value
   ) {
     return false
   }
 
-  if (phoneError.value) return false
-  if (user.value.password !== confirmPassword.value) {
+  if (phoneError.value || user.value.password !== confirmPassword.value) {
+    return false
+  }
+
+  return true
+})
+
+// Form validation for step 2
+const isStep2Valid = computed(() => {
+  if (
+    !paymentDetails.value.name ||
+    !paymentDetails.value.number ||
+    !paymentDetails.value.ownerName ||
+    accountNumberError.value
+  ) {
     return false
   }
 
@@ -265,15 +578,24 @@ watch([() => user.value.password, confirmPassword], ([password, confirm]) => {
   }
 })
 
-const validatePhone = () => {
-  // Remove non-digits
-  user.value.phone = user.value.phone.replace(/\D/g, '')
+// Navigation between steps
+const nextStep = () => {
+  if (currentStep.value === 1 && !isStep1Valid.value) {
+    toast.error('Silakan lengkapi semua informasi pribadi dengan benar')
+    return
+  }
 
-  // Validate format
-  if (user.value.phone && !/^(62|0)\d{9,12}$/.test(user.value.phone)) {
-    phoneError.value = 'Format nomor telepon tidak valid'
-  } else {
-    phoneError.value = ''
+  if (currentStep.value === 2 && !isStep2Valid.value) {
+    toast.error('Silakan lengkapi semua informasi pembayaran dengan benar')
+    return
+  }
+
+  currentStep.value++
+}
+
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--
   }
 }
 
@@ -289,7 +611,15 @@ const handleSubmit = async () => {
       // Login with either email or phone
       await authStore.authUser(props.isLogin, router, loginIdentifier.value)
     } else {
-      // Register with all fields
+      // Register with all fields including payment information
+      // Add payment details to user object before registration
+      user.value.paymentInfo = {
+        method: paymentMethod.value,
+        name: paymentDetails.value.name,
+        accountNumber: paymentDetails.value.number,
+        accountName: paymentDetails.value.ownerName,
+      }
+
       await authStore.authUser(props.isLogin, router)
     }
   } catch (error) {
@@ -302,7 +632,14 @@ const handleSubmit = async () => {
 const handleGoogleSignIn = async () => {
   try {
     isLoading.value = true
-    await authStore.signInWithGoogle(router)
+    // Mark as Google sign-in for tracking completion status
+    sessionStorage.setItem('googleSignInFlow', 'true')
+    const result = await authStore.signInWithGoogle(router)
+
+    // Check if additional info is needed
+    if (result && result.needsProfileCompletion) {
+      router.push('/complete-profile')
+    }
   } catch (error) {
     console.error('Google sign-in error:', error)
   } finally {
@@ -348,6 +685,14 @@ const handleGoogleSignIn = async () => {
 
 .form-group {
   margin-bottom: 1.5rem;
+}
+
+/* Form labels */
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
 }
 
 /* Update input styles */
@@ -444,6 +789,19 @@ const handleGoogleSignIn = async () => {
   transition: all 0.3s ease;
 }
 
+.back-button {
+  padding: 1rem;
+  border: 1px solid #02163b;
+  border-radius: 50px;
+  background-color: transparent;
+  color: #02163b;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 1rem;
+  width: 45%;
+}
+
 .google-button {
   display: flex;
   align-items: center;
@@ -459,6 +817,12 @@ const handleGoogleSignIn = async () => {
   display: block;
 }
 
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
 .google-button:hover,
 .submit-button:hover {
   background-color: #0f3172; /* Even darker on hover */
@@ -466,8 +830,14 @@ const handleGoogleSignIn = async () => {
   transform: translateY(-1px); /* Slight lift effect */
 }
 
+.back-button:hover {
+  background-color: rgba(2, 22, 59, 0.1);
+  transform: translateY(-1px);
+}
+
 .google-button:active,
-.submit-button:active {
+.submit-button:active,
+.back-button:active {
   transform: translateY(0);
 }
 
@@ -511,6 +881,133 @@ const handleGoogleSignIn = async () => {
   padding-left: 1.5rem;
 }
 
+/* Step indicator styles */
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+  background-color: #02163b;
+  color: white;
+}
+
+.step.complete .step-number {
+  background-color: #4caf50;
+  color: white;
+}
+
+.step-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.step.active .step-label,
+.step.complete .step-label {
+  color: #02163b;
+  font-weight: 600;
+}
+
+.step-line {
+  position: absolute;
+  top: 15px;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background-color: #e0e0e0;
+  z-index: 0;
+}
+
+/* Payment method options */
+.payment-method-options {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.payment-option {
+  flex: 1;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.payment-option.selected {
+  border-color: #02163b;
+  background-color: rgba(2, 22, 59, 0.05);
+}
+
+.payment-option i {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Review section styles */
+.review-section {
+  background-color: rgba(232, 186, 56, 0.2);
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+}
+
+.review-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #02163b;
+  font-size: 1.2rem;
+}
+
+.review-item {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.review-label {
+  font-weight: 600;
+  width: 120px;
+  color: #555;
+}
+
+.review-value {
+  flex: 1;
+}
+
+.info-text {
+  background-color: rgba(25, 118, 210, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  color: #1976d2;
+  margin-bottom: 1.5rem;
+}
+
 /* Media query for mobile responsiveness */
 @media (max-width: 768px) {
   .auth-container {
@@ -533,6 +1030,44 @@ const handleGoogleSignIn = async () => {
   .difia-logo {
     max-width: 200px;
   }
+
+  .step-indicator {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .step {
+    flex-direction: row;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .step-number {
+    margin-bottom: 0;
+    margin-right: 1rem;
+  }
+
+  .step-line {
+    display: none;
+  }
+
+  .payment-method-options {
+    flex-direction: column;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .back-button {
+    margin-right: 0;
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
+  .submit-button {
+    width: 100%;
+  }
 }
 
 /* Add to your existing <style> section */
@@ -543,9 +1078,11 @@ const handleGoogleSignIn = async () => {
 }
 
 .google-button:disabled,
-.submit-button:disabled {
+.submit-button:disabled,
+.back-button:disabled {
   cursor: not-allowed;
   transform: none !important;
+  opacity: 0.7;
 }
 
 .toggle-password svg {
@@ -556,6 +1093,6 @@ const handleGoogleSignIn = async () => {
 
 .button-loading:hover {
   transform: none !important;
-  background-color: #998269 !important;
+  background-color: #0f3172 !important;
 }
 </style>

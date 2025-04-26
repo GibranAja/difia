@@ -144,6 +144,15 @@ const router = createRouter({
         title: 'Verify Email - DIFIA',
       },
     },
+    {
+      path: '/complete-profile',
+      name: 'CompleteProfile',
+      component: () => import('@/views/auth/ProfileCompletionView.vue'),
+      meta: {
+        requiresAuth: true,
+        title: 'Complete Profile - DIFIA',
+      },
+    },
 
     // Account Routes
     {

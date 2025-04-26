@@ -19,7 +19,13 @@
         </p>
       </div>
 
-      <form @submit.prevent="submitForm" class="refund-form">
+      <!-- Loading state -->
+      <div v-if="isLoading" class="loading-container">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Memuat data pembayaran...</p>
+      </div>
+
+      <form v-else @submit.prevent="submitForm" class="refund-form">
         <!-- Show cancellation reason field if user is cancelling their own order -->
         <div class="form-group full-width" v-if="isCancellation || showCancellationReason">
           <label for="cancellationReason">Alasan Pembatalan</label>
@@ -32,25 +38,28 @@
           ></textarea>
         </div>
 
-        <!-- Payment details fields - more compact layout -->
+        <!-- Payment details fields - readonly and pre-filled -->
         <div class="form-row">
           <div class="form-group">
             <label for="accountType">Jenis Akun</label>
-            <select id="accountType" v-model="formData.accountType" required>
-              <option value="bank">Rekening Bank</option>
-              <option value="ewallet">E-Wallet</option>
-            </select>
+            <input
+              type="text"
+              id="accountType"
+              v-model="formData.accountTypeDisplay"
+              class="readonly-input"
+              readonly
+            />
           </div>
           <div class="form-group">
             <label for="bankName">
-              {{ formData.accountType === 'bank' ? 'Nama Bank' : 'E-wallet' }}
+              {{ formData.accountType === 'bank' ? 'Nama Bank' : 'Nama E-wallet' }}
             </label>
             <input
               type="text"
               id="bankName"
               v-model="formData.bankName"
-              :placeholder="formData.accountType === 'bank' ? 'BCA, Mandiri' : 'GoPay, OVO'"
-              required
+              class="readonly-input"
+              readonly
             />
           </div>
         </div>
@@ -62,8 +71,8 @@
               type="text"
               id="accountNumber"
               v-model="formData.accountNumber"
-              placeholder="Masukkan nomor rekening"
-              required
+              class="readonly-input"
+              readonly
             />
           </div>
           <div class="form-group">
@@ -72,8 +81,8 @@
               type="text"
               id="accountName"
               v-model="formData.accountName"
-              placeholder="Nama pemilik rekening"
-              required
+              class="readonly-input"
+              readonly
             />
           </div>
         </div>
@@ -91,8 +100,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { ref, computed, onMounted } from 'vue'
+import {
+  doc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
@@ -113,11 +130,9 @@ const emit = defineEmits(['close'])
 const authStore = useAuthStore()
 const toast = useToast()
 const notificationStore = useNotificationStore()
+const isLoading = ref(true)
 
 // Determine if we need to show the cancellation reason field
-// Only show when:
-// 1. This is a refund for a cancelled order where WE need to add the reason (admin cancelled)
-// 2. This is NOT a cancellation request by an admin
 const showCancellationReason = computed(() => {
   return !props.isCancellation && !props.order.cancelReason
 })
@@ -125,6 +140,7 @@ const showCancellationReason = computed(() => {
 // Form data
 const formData = ref({
   accountType: 'bank',
+  accountTypeDisplay: '',
   accountNumber: '',
   accountName: '',
   bankName: '',
@@ -132,6 +148,51 @@ const formData = ref({
 })
 
 const isSubmitting = ref(false)
+
+// Fetch user payment information
+const fetchUserPaymentInfo = async () => {
+  try {
+    isLoading.value = true
+
+    if (!authStore.currentUser?.id) {
+      toast.error('Data pengguna tidak tersedia')
+      return
+    }
+
+    // Query Firestore for the user document
+    const userQuery = query(collection(db, 'users'), where('uid', '==', authStore.currentUser.id))
+
+    const querySnapshot = await getDocs(userQuery)
+
+    if (querySnapshot.empty) {
+      toast.error('Data pengguna tidak ditemukan')
+      return
+    }
+
+    const userData = querySnapshot.docs[0].data()
+
+    // Check if payment info exists
+    if (userData.paymentInfo) {
+      formData.value.accountType = userData.paymentInfo.method || 'bank'
+      formData.value.accountTypeDisplay =
+        userData.paymentInfo.method === 'bank' ? 'Rekening Bank' : 'E-Wallet'
+      formData.value.bankName = userData.paymentInfo.name || ''
+      formData.value.accountNumber = userData.paymentInfo.accountNumber || ''
+      formData.value.accountName = userData.paymentInfo.accountName || ''
+    } else {
+      toast.warning('Informasi pembayaran tidak tersedia dalam profil Anda')
+    }
+  } catch (error) {
+    console.error('Error fetching user payment info:', error)
+    toast.error('Gagal memuat informasi pembayaran')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchUserPaymentInfo()
+})
 
 const submitForm = async () => {
   try {
@@ -307,6 +368,22 @@ const close = () => {
   color: #991b1b;
 }
 
+/* Loading container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading-container i {
+  font-size: 2rem;
+  color: #02163b;
+  margin-bottom: 1rem;
+}
+
 .refund-form {
   padding: 0 1.5rem 1.2rem; /* Increased left/right padding */
   margin: 0 auto;
@@ -356,6 +433,13 @@ const close = () => {
   transition: border-color 0.2s;
   font-family: 'Montserrat', sans-serif;
   box-sizing: border-box; /* Ensure padding doesn't affect width */
+}
+
+.readonly-input {
+  background-color: #f9f9f9;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #e0e0e0;
 }
 
 .form-group input:focus,

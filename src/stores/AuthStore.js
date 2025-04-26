@@ -11,11 +11,11 @@ import {
   signInWithPopup,
   sendPasswordResetEmail,
   sendEmailVerification,
-  applyActionCode,
-  checkActionCode,
-  EmailAuthProvider,
-  linkWithCredential,
-  fetchSignInMethodsForEmail,
+  // applyActionCode,
+  // checkActionCode,
+  // EmailAuthProvider,
+  // linkWithCredential,
+  // fetchSignInMethodsForEmail,
 } from 'firebase/auth'
 import {
   collection,
@@ -25,7 +25,7 @@ import {
   query,
   where,
   getDocs,
-  getDoc,
+  // getDoc,
 } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../config/firebase'
 import bcrypt from 'bcryptjs'
@@ -165,11 +165,7 @@ export const useAuthStore = defineStore('auth', () => {
 
           // Check if the user has an associated Firebase auth account
           if (userDoc.uid) {
-            await signInWithEmailAndPassword(
-              auth,
-              userDoc.email,
-              user.password,
-            )
+            await signInWithEmailAndPassword(auth, userDoc.email, user.password)
 
             currentUser.value = {
               email: userDoc.email,
@@ -226,6 +222,9 @@ export const useAuthStore = defineStore('auth', () => {
             profilePhoto: user.profilePhoto || '',
             isAdmin: false,
             emailVerified: false,
+            // Add payment information
+            paymentInfo: user.paymentInfo || null,
+            profileComplete: true, // Mark as complete since all info is provided
           })
 
           // Set current user after successful registration
@@ -372,7 +371,7 @@ export const useAuthStore = defineStore('auth', () => {
         prompt: 'select_account',
       })
 
-      // Use the standard Firebase signInWithPopup without the custom detection
+      // Use the standard Firebase signInWithPopup
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
@@ -382,6 +381,7 @@ export const useAuthStore = defineStore('auth', () => {
       const querySnapshot = await getDocs(q)
 
       let isAdmin = false
+      let needsProfileCompletion = false
 
       if (querySnapshot.empty) {
         // Buat dokumen user baru
@@ -392,10 +392,16 @@ export const useAuthStore = defineStore('auth', () => {
           profilePhoto: user.photoURL || '',
           isAdmin: false, // Default false for new users
           createdAt: new Date(),
+          // Missing payment info - mark as incomplete
+          profileComplete: false,
         })
+
+        needsProfileCompletion = true
       } else {
-        // Get existing user data
-        isAdmin = querySnapshot.docs[0].data().isAdmin
+        // Get existing user data and check if profile is complete
+        const userData = querySnapshot.docs[0].data()
+        isAdmin = userData.isAdmin || false
+        needsProfileCompletion = !userData.profileComplete
       }
 
       // Set current user with admin status
@@ -409,12 +415,20 @@ export const useAuthStore = defineStore('auth', () => {
 
       isLoggedIn.value = true
 
-      if (isAdmin) {
-        toast.success('Welcome back, Admin!')
-        await router.push('/admin')
+      // If profile is incomplete, redirect to profile completion page
+      if (needsProfileCompletion) {
+        toast.info('Silahkan lengkapi informasi profil Anda')
+        // Return info that profile needs completion
+        return { success: true, needsProfileCompletion: true }
       } else {
-        toast.success('Successfully logged in with Google!')
-        await router.push('/')
+        if (isAdmin) {
+          toast.success('Welcome back, Admin!')
+          await router.push('/admin')
+        } else {
+          toast.success('Successfully logged in with Google!')
+          await router.push('/')
+        }
+        return { success: true, needsProfileCompletion: false }
       }
     } catch (error) {
       console.error('Google sign-in error:', error)
@@ -422,9 +436,7 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = false
 
       if (error.code === 'auth/popup-closed-by-user') {
-        setTimeout(() => {
-          toast.error('Sign-in cancelled by user')
-        }, 0)
+        console.log('ditutup oleh user')
       } else if (error.code === 'auth/popup-blocked') {
         toast.error('Pop-up was blocked by the browser. Please enable pop-ups for this site.')
       } else {
