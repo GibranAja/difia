@@ -84,6 +84,7 @@
                       <span>P: {{ item.detail?.ukuran?.panjang || 0 }} cm</span>
                       <span>L: {{ item.detail?.ukuran?.lebar || 0 }} cm</span>
                       <span>T: {{ item.detail?.ukuran?.tinggi || 0 }} cm</span>
+                      <span>Berat: {{ item.detail?.berat || 0 }} gram</span>
                     </div>
                   </div>
                   <div class="detail-section">

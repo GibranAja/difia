@@ -140,6 +140,12 @@ const validateForm = () => {
     isValid = false
   }
 
+  // Add validation for logo upload when Souvenir type is selected
+  if (purchaseType.value === 'Souvenir' && !uploadedLogo.value) {
+    errors.value.logo = 'Upload logo wajib untuk pembelian tipe Souvenir'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -567,6 +573,16 @@ watch(purchaseType, (newType) => {
             </div>
           </transition>
 
+          <!-- Add this after the type-selector div -->
+          <div class="type-info" v-if="purchaseType === 'Souvenir'">
+            <div class="info-alert">
+              <i class="fas fa-info-circle"></i>
+              <span
+                >Untuk pembelian tipe Souvenir, upload logo dalam format PDF wajib dilakukan</span
+              >
+            </div>
+          </div>
+
           <!-- Add after the quantity-control div -->
           <div class="purchase-info">
             <div class="info-item" :class="{ active: purchaseType === 'Satuan' }">
@@ -667,8 +683,8 @@ watch(purchaseType, (newType) => {
             <!-- PDF Upload for Souvenir -->
             <div class="form-row" v-if="purchaseType === 'Souvenir'">
               <div class="input-group full-width">
-                <label>Upload Logo (PDF)</label>
-                <div class="upload-zone" :class="{ 'has-file': uploadedLogo }">
+                <label>Upload Logo (PDF) <span class="required-mark">*</span></label>
+                <div class="upload-zone" :class="{ 'has-file': uploadedLogo, error: errors.logo }">
                   <input
                     type="file"
                     id="logoUpload"
@@ -682,11 +698,17 @@ watch(purchaseType, (newType) => {
                       <i class="fas fa-file-pdf pdf-icon"></i>
                       <span class="pdf-filename">{{ logoFileName }}</span>
                     </div>
+                    <div class="upload-instructions" v-if="!uploadedLogo">
+                      <p><strong>Logo wajib diupload</strong></p>
+                      <p>Format: PDF (Maks. 2MB)</p>
+                      <p>Klik atau seret file ke sini</p>
+                    </div>
                   </label>
                   <button v-if="uploadedLogo" @click="removeUploadedLogo" class="remove-file">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
+                <span class="error-text" v-if="errors.logo">{{ errors.logo }}</span>
                 <div class="file-info" v-if="logoFileSize">
                   {{ (logoFileSize / 1024).toFixed(2) }} KB
                 </div>
@@ -1591,6 +1613,60 @@ watch(purchaseType, (newType) => {
 .note-input::placeholder {
   color: #6c757d;
   font-family: 'Montserrat', sans-serif;
+}
+
+/* Add to your existing <style> section */
+.type-info {
+  padding: 0 1rem;
+  margin-top: 0.5rem;
+}
+
+.info-alert {
+  background-color: #e8f4fd;
+  border-left: 4px solid #0ea5e9;
+  padding: 0.75rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-alert i {
+  color: #0ea5e9;
+  font-size: 1.2rem;
+}
+
+.info-alert span {
+  font-size: 0.85rem;
+  color: #0c4a6e;
+}
+
+/* Add to your existing <style> section */
+.required-mark {
+  color: #dc3545;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.upload-zone.error {
+  border-color: var(--error-color);
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.upload-instructions {
+  text-align: center;
+  color: #777;
+  padding: 10px;
+}
+
+.upload-instructions p {
+  margin: 5px 0;
+}
+
+.upload-instructions p:first-child {
+  color: var(--primary-color);
+  font-size: 1rem;
+  margin-bottom: 10px;
 }
 
 /* Add to the <style> section of your component */

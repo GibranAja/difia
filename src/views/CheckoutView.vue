@@ -10,64 +10,18 @@
       </div>
     </header>
 
-    <div v-if="orderStore.currentOrder || getOrderFromLocal()" class="checkout-content">
-      <section class="checkout-section order-details">
-        <h2 class="section-title">Ringkasan Order</h2>
-        <div class="order-card" v-if="orderStore.currentOrder">
-          <img
-            :src="orderStore.currentOrder.image"
-            :alt="orderStore.currentOrder.name"
-            class="order-image"
-          />
-          <div class="order-info">
-            <div class="order-header">
-              <h3>{{ orderStore.currentOrder.name }}</h3>
-              <p class="order-price">
-                {{ orderStore.currentOrder.quantity }}x Rp
-                {{ formatPrice(orderStore.currentOrder.price) }}
-              </p>
-            </div>
-            <div class="order-specs">
-              <div class="spec-item">
-                <span class="spec-label">Tipe:</span>
-                <span>{{ orderStore.currentOrder.customOptions.purchaseType }}</span>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">Harga:</span>
-                <span>{{ orderStore.currentOrder.customOptions.priceType }}</span>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">Bahan Luar:</span>
-                <span>{{ orderStore.currentOrder.customOptions.bahanLuar }}</span>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">Bahan Dalam:</span>
-                <span>{{ orderStore.currentOrder.customOptions.bahanDalam }}</span>
-              </div>
-              <div class="spec-item">
-                <span class="spec-label">Aksesoris:</span>
-                <span>{{ orderStore.currentOrder.customOptions.aksesoris.join(', ') }}</span>
-              </div>
-              <div class="spec-item" v-if="orderStore.currentOrder.customOptions.note">
-                <span class="spec-label">Catatan:</span>
-                <span>{{ orderStore.currentOrder.customOptions.note }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div v-if="checkoutItems.length > 0" class="checkout-content">
+      <!-- Use the new component here -->
+      <OrderSummaryComponent :checkout-items="checkoutItems" />
 
-      <!-- New Shipping Address Section -->
       <section class="checkout-section customer-info">
         <h2 class="section-title">Alamat Pengiriman</h2>
 
-        <!-- Loading state -->
         <div v-if="addressStore.loading" class="address-loading">
           <i class="fas fa-spinner fa-spin"></i>
           <p>Memuat alamat...</p>
         </div>
 
-        <!-- No addresses state -->
         <div v-else-if="addressStore.addresses.length === 0" class="no-address">
           <div class="empty-address">
             <i class="fas fa-map-marker-alt empty-icon"></i>
@@ -78,7 +32,6 @@
           </div>
         </div>
 
-        <!-- Address selection -->
         <div v-else class="address-selection">
           <div
             v-for="address in addressStore.addresses"
@@ -183,8 +136,8 @@
 
       <section class="checkout-section order-summary">
         <div class="summary-item">
-          <span>Subtotal</span>
-          <span>Rp {{ formatPrice(getSubtotal) }}</span>
+          <span>Subtotal ({{ totalItems }} item)</span>
+          <span>Rp {{ formatPrice(getTotalSubtotal) }}</span>
         </div>
         <div class="summary-item">
           <span>Pengiriman</span>
@@ -230,11 +183,17 @@
         </p>
       </section>
     </div>
-    <div v-else>
-      <p>Tidak ada data order. Kembali ke <router-link to="/">home</router-link></p>
+    <div v-else class="empty-checkout">
+      <div class="empty-state">
+        <i class="fas fa-shopping-bag empty-icon"></i>
+        <h3>Tidak ada data order</h3>
+        <p>Anda tidak dapat mengakses halaman checkout secara langsung.</p>
+        <router-link to="/cart" class="return-cart-btn">
+          <i class="fas fa-arrow-left"></i> Kembali ke Keranjang
+        </router-link>
+      </div>
     </div>
 
-    <!-- Address Modal -->
     <AddressModalComponent
       v-if="showAddressModal"
       :is-editing="isEditingAddress"
@@ -245,7 +204,6 @@
       @error="(message) => toast.error(message)"
     />
 
-    <!-- Address Confirmation Modal -->
     <div v-if="showConfirmationModal" class="modal-overlay" @click="showConfirmationModal = false">
       <div class="modal-content" @click.stop>
         <h2 class="modal-title">Konfirmasi Alamat Pengiriman</h2>
@@ -273,8 +231,11 @@
             <button type="button" class="cancel-btn" @click="showConfirmationModal = false">
               Batal
             </button>
-            <button type="button" class="submit-btn" @click="processOrderAfterConfirmation"
-            :disabled="isProcessing"
+            <button
+              type="button"
+              class="submit-btn"
+              @click="processOrderAfterConfirmation"
+              :disabled="isProcessing"
             >
               {{ isProcessing ? 'Memproses...' : 'Konfirmasi & Bayar' }}
             </button>
@@ -295,7 +256,8 @@ import { useRouter } from 'vue-router'
 import rajaOngkir from '@/api/RajaOngkir'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
-import AddressModalComponent from '@/components/AddressModalComponent.vue' // Add this import
+import AddressModalComponent from '@/components/AddressModalComponent.vue'
+import OrderSummaryComponent from '@/components/checkout/OrderSummaryComponent.vue' // Import the new component
 
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
@@ -307,17 +269,20 @@ const toast = useToast()
 const provinces = ref([])
 const cities = ref([])
 const shippingCost = ref(0)
-const courier = ref('jne') // Default courier
+const courier = ref('jne')
 const isLoadingShipping = ref(false)
 const isLoadingProvinces = ref(false)
 const isLoadingCities = ref(false)
 const isProcessing = ref(false)
 const acceptedTerms = ref(false)
 
-// Address selection
+const checkoutItems = ref([])
+const currentItemIndex = ref(0)
+
+const totalItems = computed(() => checkoutItems.value.length)
+
 const selectedAddressId = ref(null)
 
-// Address modal
 const showAddressModal = ref(false)
 const isEditingAddress = ref(false)
 const isSavingAddress = ref(false)
@@ -333,11 +298,9 @@ const addressForm = ref({
   isPrimary: false,
 })
 
-// Address confirmation modal
 const showConfirmationModal = ref(false)
 const selectedAddress = ref(null)
 
-// Address label options
 const addressLabelOptions = [
   { value: 'home', name: 'Rumah', icon: 'fas fa-home' },
   { value: 'office', name: 'Kantor', icon: 'fas fa-building' },
@@ -346,18 +309,15 @@ const addressLabelOptions = [
   { value: 'other', name: 'Lainnya', icon: 'fas fa-map-marker-alt' },
 ]
 
-// Check if this is the first address
 const isFirstAddress = computed(() => {
   return addressStore.addresses.length === 0
 })
 
-// Get icon based on address label
 const getLabelIcon = (label) => {
   const option = addressLabelOptions.find((opt) => opt.value === label)
   return option ? option.icon : 'fas fa-map-marker-alt'
 }
 
-// Load all provinces
 const loadProvinces = async () => {
   try {
     isLoadingProvinces.value = true
@@ -369,7 +329,6 @@ const loadProvinces = async () => {
   }
 }
 
-// Load cities based on selected province
 const loadCities = async (provinceName) => {
   if (!provinceName) return
 
@@ -388,20 +347,17 @@ const loadCities = async (provinceName) => {
   }
 }
 
-// Load cities for address form
 const loadAddressCities = async (provinceName) => {
   await loadCities(provinceName)
-  addressForm.value.city = '' // Reset city when province changes
+  addressForm.value.city = ''
 }
 
-// Calculate shipping cost
 const calculateShipping = async (address) => {
   if (!address?.city) return
 
   try {
     isLoadingShipping.value = true
 
-    // Extract city name from address
     const cityMatch = address.city.match(/([A-Za-z]+)\s+(.+)/)
     if (!cityMatch) {
       console.error('Invalid city format:', address.city)
@@ -411,7 +367,6 @@ const calculateShipping = async (address) => {
     const cityType = cityMatch[1]
     const cityName = cityMatch[2]
 
-    // Find city ID from cities list
     const city = cities.value.find(
       (c) =>
         c.type.toLowerCase() === cityType.toLowerCase() &&
@@ -419,7 +374,7 @@ const calculateShipping = async (address) => {
     )
 
     if (city) {
-      const weight = orderStore.currentOrder?.quantity * 1000 || 1000 // Assume 1kg per item
+      const weight = orderStore.currentOrder?.quantity * 1000 || 1000
       const costs = await rajaOngkir.calculateShipping(city.city_id, weight, courier.value)
       shippingCost.value = costs[0]?.cost[0]?.value || 0
     } else {
@@ -434,46 +389,61 @@ const calculateShipping = async (address) => {
   }
 }
 
-// Format price display
 const formatPrice = (price) => {
   return price.toLocaleString('id-ID')
 }
 
-// Calculate subtotal
 const getSubtotal = computed(() => {
-  const order = orderStore.currentOrder || getOrderFromLocal()
-  if (!order) return 0
-  return order.price * order.quantity
+  return checkoutItems.value.reduce((total, item) => total + item.price * item.quantity, 0)
 })
 
-// Get order from localStorage
+const getTotalSubtotal = computed(() => {
+  return checkoutItems.value.reduce((total, item) => {
+    return total + item.price * item.quantity
+  }, 0)
+})
+
 const getOrderFromLocal = () => {
   try {
-    // Try to get from currentOrder first
-    const savedOrder = localStorage.getItem('currentOrder')
-    if (savedOrder) {
-      return JSON.parse(savedOrder)
+    const checkoutData = localStorage.getItem('checkout_items')
+    if (!checkoutData) return null
+
+    const data = JSON.parse(checkoutData)
+    if (Date.now() - data.timestamp > 30 * 60 * 1000) {
+      localStorage.removeItem('checkout_items')
+      return null
     }
 
-    // If not found, try checkout_items as fallback
-    const checkoutData = localStorage.getItem('checkout_items')
-    if (checkoutData) {
-      const { items } = JSON.parse(checkoutData)
-      if (items && items.length > 0) {
-        return items[0]
-      }
+    if (data.userId !== authStore.currentUser?.id) {
+      localStorage.removeItem('checkout_items')
+      return null
     }
-    return null
+
+    return data.items[0]
   } catch (error) {
     console.error('Error getting order from local:', error)
     return null
   }
 }
 
-// Add a flag to track page reloads
-const isPageReload = ref(performance.navigation ? performance.navigation.type === 1 : false)
+const loadCheckoutItems = () => {
+  try {
+    const checkoutData = localStorage.getItem('checkout_items')
+    if (!checkoutData) return []
 
-// Select address
+    const data = JSON.parse(checkoutData)
+    if (Date.now() - data.timestamp > 30 * 60 * 1000 || data.userId !== authStore.currentUser?.id) {
+      localStorage.removeItem('checkout_items')
+      return []
+    }
+
+    return data.items || []
+  } catch (error) {
+    console.error('Error loading checkout items:', error)
+    return []
+  }
+}
+
 const selectAddress = async (address) => {
   selectedAddressId.value = address.id
 
@@ -492,14 +462,12 @@ const selectAddress = async (address) => {
   }
 }
 
-// Initialize edit address
 const editAddress = (address) => {
   isEditingAddress.value = true
   addressForm.value = { ...address }
   showAddressModal.value = true
 }
 
-// Open address modal for new address
 const openAddressModal = () => {
   isEditingAddress.value = false
   addressForm.value = {
@@ -516,12 +484,10 @@ const openAddressModal = () => {
   showAddressModal.value = true
 }
 
-// Close address modal
 const closeAddressModal = () => {
   showAddressModal.value = false
 }
 
-// Save address form
 const saveAddress = async (addressData) => {
   try {
     isSavingAddress.value = true
@@ -535,7 +501,6 @@ const saveAddress = async (addressData) => {
     }
 
     if (result.success) {
-      // If this is the first address or the updated address was selected, update the shipping calculation
       if (isFirstAddress.value || result.address?.id === selectedAddressId.value) {
         const addressToUse = isEditingAddress.value
           ? addressStore.addresses.find((a) => a.id === addressData.id)
@@ -547,7 +512,6 @@ const saveAddress = async (addressData) => {
         }
       }
 
-      // For first address, auto-select it
       if (isFirstAddress.value && result.address) {
         selectedAddressId.value = result.address.id
         await calculateShipping(result.address)
@@ -566,13 +530,10 @@ const saveAddress = async (addressData) => {
   }
 }
 
-// Validate phone in address form
 const validateAddressPhone = (event) => {
-  // Allow only digits
   addressForm.value.phone = event.target.value.replace(/\D/g, '')
 }
 
-// Check if checkout can proceed
 const isCheckoutEnabled = computed(() => {
   return (
     selectedAddressId.value &&
@@ -582,12 +543,10 @@ const isCheckoutEnabled = computed(() => {
   )
 })
 
-// Voucher code
 const voucherCode = ref('')
 const appliedVoucher = ref(null)
 const isApplyingVoucher = ref(false)
 
-// Discount calculation
 const discountAmount = computed(() => {
   if (!appliedVoucher.value) return 0
 
@@ -598,19 +557,16 @@ const discountAmount = computed(() => {
   return Math.min(appliedVoucher.value.discountValue, subtotal)
 })
 
-// Total amount calculation
 const finalTotal = computed(() => {
-  return getSubtotal.value + shippingCost.value - discountAmount.value
+  return getTotalSubtotal.value + shippingCost.value - discountAmount.value
 })
 
-// Apply voucher
 const applyVoucher = async () => {
   if (!voucherCode.value) return
 
   try {
     isApplyingVoucher.value = true
 
-    // Get purchase type from current order
     const purchaseType = orderStore.currentOrder.customOptions.purchaseType
     const userId = authStore.currentUser?.id
 
@@ -626,7 +582,6 @@ const applyVoucher = async () => {
       return
     }
 
-    // Check usage limits
     if (result.voucher.currentUses >= result.voucher.maxUses) {
       toast.error('Voucher sudah mencapai batas penggunaan')
       return
@@ -643,17 +598,14 @@ const applyVoucher = async () => {
   }
 }
 
-// Remove voucher
 const removeVoucher = () => {
   appliedVoucher.value = null
   toast.info('Voucher dihapus')
 }
 
-// Add these constants at the top of your script section with other constants
-const MAX_DIMENSION = 1200 // Maximum dimension for resized images
-const COMPRESSION_QUALITY = 0.6 // Image compression quality (0.6 = 60%)
+const MAX_DIMENSION = 1200
+const COMPRESSION_QUALITY = 0.6
 
-// Add this resizeImage function before handlePaymentProofUpload
 const resizeImage = (file) => {
   return new Promise((resolve, reject) => {
     const image = new Image()
@@ -664,7 +616,6 @@ const resizeImage = (file) => {
       let width = image.width
       let height = image.height
 
-      // Calculate new dimensions while maintaining aspect ratio
       if (width > height) {
         if (width > MAX_DIMENSION) {
           height = Math.round((height * MAX_DIMENSION) / width)
@@ -681,10 +632,8 @@ const resizeImage = (file) => {
       canvas.height = height
       ctx.drawImage(image, 0, 0, width, height)
 
-      // Use canvas to compress the image
       canvas.toBlob(
         (blob) => {
-          // Convert blob to base64 for preview
           const reader = new FileReader()
           reader.onloadend = () => resolve(reader.result)
           reader.readAsDataURL(blob)
@@ -699,12 +648,11 @@ const resizeImage = (file) => {
   })
 }
 
-// Replace your current handlePaymentProofUpload function with this one
 const handlePaymentProofUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB initial check before compression
+  const MAX_FILE_SIZE = 5 * 1024 * 1024
 
   if (file.size > MAX_FILE_SIZE) {
     toast.warning(
@@ -715,13 +663,11 @@ const handlePaymentProofUpload = async (event) => {
   try {
     isProcessing.value = true
 
-    // Check if file is an image
     if (!file.type.match('image.*')) {
       toast.error('Hanya file gambar yang diperbolehkan')
       return
     }
 
-    // Compress the image using our resize function
     const compressedImage = await resizeImage(file)
     orderStore.paymentProof = compressedImage
 
@@ -734,7 +680,6 @@ const handlePaymentProofUpload = async (event) => {
   }
 }
 
-// Process voucher usage
 const processVoucherUsage = async () => {
   if (appliedVoucher.value) {
     const result = await voucherStore.updateVoucherUsage(
@@ -750,27 +695,22 @@ const processVoucherUsage = async () => {
   return true
 }
 
-// Submit order
 const handleSubmitOrder = async () => {
-  // Check if address is selected
   if (!selectedAddressId.value) {
     toast.error('Pilih alamat pengiriman terlebih dahulu')
     return
   }
 
-  // Check terms acceptance
   if (!acceptedTerms.value) {
     toast.error('Mohon setujui syarat & ketentuan')
     return
   }
 
-  // Check payment proof
   if (!orderStore.paymentProof) {
     toast.error('Mohon upload bukti pembayaran')
     return
   }
 
-  // Get selected address
   selectedAddress.value = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
 
   if (!selectedAddress.value) {
@@ -778,177 +718,152 @@ const handleSubmitOrder = async () => {
     return
   }
 
-  // Show confirmation modal instead of processing immediately
   showConfirmationModal.value = true
 }
 
-// Process order after confirmation
 const processOrderAfterConfirmation = async () => {
   try {
     isProcessing.value = true
 
-    // Process voucher if applied
-    const voucherProcessed = await processVoucherUsage()
-    if (!voucherProcessed) return
-
-    // Prepare order details
-    const orderDetails = {
-      name: selectedAddress.value.name,
-      email: selectedAddress.value.email,
-      phone: selectedAddress.value.phone,
-      address: selectedAddress.value.address,
-      province: selectedAddress.value.province,
-      city: selectedAddress.value.city,
-      zip: selectedAddress.value.zip,
-      shippingCost: shippingCost.value,
-      finalTotal: finalTotal.value,
-      voucher: appliedVoucher.value,
-      discountAmount: discountAmount.value,
+    if (appliedVoucher.value) {
+      const result = await processVoucherUsage()
+      if (!result.success) return
     }
 
-    // Create order
-    const result = await orderStore.createOrder(orderDetails)
-    if (result.success) {
-      // Hide the modal
-      showConfirmationModal.value = false
-
-      // Clear checkout data
-      localStorage.removeItem('checkout_items')
-      router.push('/notification')
-      localStorage.removeItem('currentOrder')
+    const address = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
+    if (!address) {
+      toast.error('Alamat pengiriman tidak valid')
+      return
     }
+
+    for (const item of checkoutItems.value) {
+      await orderStore.setCurrentOrder(item)
+
+      const orderDetails = {
+        name: address.name,
+        email: address.email,
+        phone: address.phone,
+        address: address.address,
+        province: address.province,
+        city: address.city,
+        zip: address.zip,
+        shippingCost: shippingCost.value,
+        finalTotal: item.price * item.quantity + shippingCost.value,
+        voucher: currentItemIndex.value === 0 ? appliedVoucher.value : null,
+        discountAmount: currentItemIndex.value === 0 ? discountAmount.value : 0,
+      }
+
+      const result = await orderStore.createOrder(orderDetails)
+      if (!result.success) {
+        toast.error(`Gagal membuat pesanan untuk ${item.name}`)
+      }
+
+      currentItemIndex.value++
+    }
+
+    showConfirmationModal.value = false
+
+    localStorage.removeItem('checkout_items')
+    localStorage.removeItem('currentOrder')
+
+    router.push('/notification')
   } catch (error) {
-    toast.error('Gagal membuat pesanan: ' + error.message)
+    console.error('Error processing orders:', error)
+    toast.error('Gagal memproses pesanan: ' + error.message)
   } finally {
     isProcessing.value = false
   }
 }
 
-// Add this function to load selected items from localStorage
-const loadCartItems = () => {
-  try {
-    const checkoutData = localStorage.getItem('checkout_items')
-    if (!checkoutData) return null
+// Enhance the beforeunload handler to clear localStorage without confirmation
+const handleBeforeUnload = (e) => {
+  if (isProcessing.value) return
 
-    const { items, timestamp, userId } = JSON.parse(checkoutData)
+  // Standard message required for browser compatibility
+  const message = 'Tidak ada data order'
+  e.preventDefault()
+  e.returnValue = message
 
-    // Check if data is fresh (less than 30 min old)
-    if (Date.now() - timestamp > 30 * 60 * 1000) {
-      localStorage.removeItem('checkout_items')
-      return null
-    }
+  // Clear localStorage data immediately without confirmation
+  localStorage.removeItem('checkout_items')
+  localStorage.removeItem('currentOrder')
 
-    // Verify user ID matches current user
-    if (userId !== authStore.currentUser?.id) {
-      localStorage.removeItem('checkout_items')
-      return null
-    }
-
-    // For single checkout, take the first item
-    if (items && items.length > 0) {
-      return items[0]
-    }
-
-    return null
-  } catch (error) {
-    console.error('Error loading checkout items:', error)
-    return null
-  }
+  return message
 }
 
-// Initial data loading
-onMounted(async () => {
-  try {
-    // Check if this is a page reload and order exists in localStorage
-    const localOrder = getOrderFromLocal()
-
-    if (isPageReload.value && localOrder) {
-      // On reload with existing order data, set it without redirecting
-      await orderStore.setCurrentOrder(localOrder)
-      toast.info('Data checkout berhasil dipulihkan')
-    } else {
-      // Normal flow - load the selected item from localStorage
-      const cartItem = loadCartItems()
-
-      if (cartItem) {
-        // Set the current order in the order store
-        await orderStore.setCurrentOrder(cartItem)
-      } else if (!localOrder) {
-        // If no valid item found anywhere, redirect back to cart
-        router.push('/cart')
-        toast.error('Tidak ada item untuk checkout')
-        return
-      } else {
-        // Use the order from localStorage
-        await orderStore.setCurrentOrder(localOrder)
-      }
-    }
-
-    // Rest of your existing code
-    await loadProvinces()
-    await addressStore.fetchUserAddresses()
-
-    // If user has a primary address, select it
-    if (addressStore.primaryAddress) {
-      selectedAddressId.value = addressStore.primaryAddress.id
-
-      // First load cities for the selected address's province
-      if (addressStore.primaryAddress.province) {
-        await loadCities(addressStore.primaryAddress.province)
-      }
-
-      // Then calculate shipping
-      await calculateShipping(addressStore.primaryAddress)
-    }
-    // If no addresses, show the modal
-    else if (addressStore.addresses.length === 0) {
-      openAddressModal()
-    }
-  } catch (error) {
-    console.error('Error in onMounted:', error)
+// Add a history state change listener to detect address bar changes
+const setupHistoryListener = () => {
+  const handlePopState = () => {
+    // Clear localStorage data when user navigates using browser history
+    localStorage.removeItem('checkout_items')
+    localStorage.removeItem('currentOrder')
   }
-})
 
-// Handle navigation guard
+  window.addEventListener('popstate', handlePopState)
+  return () => window.removeEventListener('popstate', handlePopState)
+}
+
+// Update the onBeforeRouteLeave hook to not show confirmation dialog
 onBeforeRouteLeave((to, from, next) => {
-  // Skip confirmation if order is processed or going to notification page
   if (isProcessing.value || to.path === '/notification') {
     next()
     return
   }
 
-  const confirmLeave = window.confirm(
-    'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.',
-  )
+  // Clear data without confirmation and show toast
+  localStorage.removeItem('checkout_items')
+  localStorage.removeItem('currentOrder')
+  next()
+})
 
-  if (confirmLeave) {
-    // Clear checkout data
-    localStorage.removeItem('checkout_items')
-    localStorage.removeItem('currentOrder')
-    next()
-  } else {
-    next(false)
+onMounted(async () => {
+  try {
+    // Add the beforeunload event listener for tab close/refresh
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Add history listener for address bar navigation
+    const removeHistoryListener = setupHistoryListener()
+
+    // Store the cleanup function to be used in onBeforeUnmount
+    onBeforeUnmount(() => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      removeHistoryListener()
+    })
+
+    // Existing code
+    checkoutItems.value = loadCheckoutItems()
+
+    // Check for direct access with no checkout data
+    if (checkoutItems.value.length === 0) {
+      const localOrder = getOrderFromLocal()
+      if (!localOrder) {
+        // No checkout data found - show message and redirect
+        toast.error('Tidak ada data order. Pengalihan ke halaman keranjang')
+        router.push('/cart')
+        return
+      }
+      checkoutItems.value = [localOrder]
+    }
+
+    await orderStore.setCurrentOrder(checkoutItems.value[0])
+
+    await loadProvinces()
+    await addressStore.fetchUserAddresses()
+
+    if (addressStore.primaryAddress) {
+      selectedAddressId.value = addressStore.primaryAddress.id
+
+      if (addressStore.primaryAddress.province) {
+        await loadCities(addressStore.primaryAddress.province)
+      }
+
+      await calculateShipping(addressStore.primaryAddress)
+    } else if (addressStore.addresses.length === 0) {
+      openAddressModal()
+    }
+  } catch (error) {
+    console.error('Error in onMounted:', error)
   }
-})
-
-// Handle beforeunload event
-const handleBeforeUnload = (e) => {
-  // Skip confirmation if order is processed
-  if (isProcessing.value) return
-
-  // Confirmation when closing/refreshing browser
-  e.preventDefault()
-  e.returnValue = 'Anda yakin ingin meninggalkan proses checkout? Data checkout Anda akan hilang.'
-}
-
-// Add beforeunload listener
-onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload)
-})
-
-// Remove beforeunload listener
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
@@ -1049,67 +964,6 @@ onBeforeUnmount(() => {
   width: 60px;
   height: 2px;
   background-color: #e8ba38;
-}
-
-/* Order Details */
-.order-card {
-  display: flex;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f9f9f9;
-  transition: all 0.3s;
-}
-
-.order-card:hover {
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
-}
-
-.order-image {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-}
-
-.order-info {
-  padding: 1rem;
-  flex: 1;
-}
-
-.order-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-}
-
-.order-header h3 {
-  margin: 0 0 0.25rem;
-  color: #02163b;
-  font-size: 1.1rem;
-}
-
-.order-price {
-  font-weight: 600;
-  color: #e8ba38;
-  margin: 0;
-}
-
-.order-specs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  font-size: 0.9rem;
-}
-
-.spec-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.spec-label {
-  font-weight: 500;
-  color: #666;
-  margin-bottom: 0.25rem;
 }
 
 /* Address Selection */
@@ -2058,6 +1912,51 @@ onBeforeUnmount(() => {
   padding: 1.25rem;
 }
 
+/* Empty Checkout */
+.empty-checkout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.empty-state {
+  text-align: center;
+  max-width: 400px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  border: 1px dashed #ddd;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  color: #ccc;
+  margin-bottom: 1.5rem;
+}
+
+.return-cart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 0.85rem 1.75rem;
+  background-color: #02163b;
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.return-cart-btn:hover {
+  background-color: #032968;
+  transform: translateY(-2px);
+}
+
 /* Responsive Design */
 @media (max-width: 992px) {
   .checkout-content {
@@ -2079,19 +1978,6 @@ onBeforeUnmount(() => {
 
   .header-title h1 {
     font-size: 1.5rem;
-  }
-
-  .order-card {
-    flex-direction: column;
-  }
-
-  .order-image {
-    width: 100%;
-    height: 200px;
-  }
-
-  .order-specs {
-    grid-template-columns: 1fr;
   }
 
   .address-labels {

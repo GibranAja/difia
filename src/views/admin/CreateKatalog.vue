@@ -134,6 +134,18 @@
                   step="0.1"
                 />
               </div>
+              <div class="ukuran-item">
+                <label for="berat">Berat (gram)</label>
+                <input
+                  type="number"
+                  id="berat"
+                  v-model="formData.detail.berat"
+                  required
+                  min="0"
+                  step="1"
+                  placeholder="Masukkan berat"
+                />
+              </div>
             </div>
           </div>
 
@@ -354,12 +366,13 @@ const formData = ref({
       tinggi: 0,
       lebar: 0,
     },
+    berat: 0, // Add this new field
     bahanLuar: '',
-    bahanLuarDesc: '', // New field for outer material description
-    bahanLuarImage: null, // New field for outer material image
+    bahanLuarDesc: '',
+    bahanLuarImage: null,
     bahanDalam: '',
-    bahanDalamDesc: '', // New field for inner material description
-    bahanDalamImage: null, // New field for inner material image
+    bahanDalamDesc: '',
+    bahanDalamImage: null,
     aksesoris: '',
     warna: '',
   },
@@ -387,6 +400,7 @@ const loadKatalogData = () => {
       },
       detail: {
         ukuran: katalog.detail.ukuran,
+        berat: katalog.detail.berat || 0, // Add this line to load weight
         bahanLuar: katalog.detail.bahanLuar || '',
         bahanLuarDesc: katalog.detail.bahanLuarDesc || '',
         bahanLuarImage: katalog.detail.bahanLuarImage || null,
@@ -433,6 +447,7 @@ const isFormValid = computed(() => {
     formData.value.detail.ukuran.panjang > 0 &&
     formData.value.detail.ukuran.tinggi > 0 &&
     formData.value.detail.ukuran.lebar > 0 &&
+    formData.value.detail.berat > 0 &&
     formData.value.detail.bahanLuar.trim() &&
     formData.value.detail.bahanDalam.trim() &&
     formData.value.detail.aksesoris.trim() &&
@@ -717,6 +732,7 @@ const handleSubmit = async () => {
           tinggi: formData.value.detail.ukuran.tinggi,
           lebar: formData.value.detail.ukuran.lebar,
         },
+        berat: formData.value.detail.berat,
         bahanLuar: formData.value.detail.bahanLuar.trim(),
         bahanLuarDesc: formData.value.detail.bahanLuarDesc.trim(),
         bahanLuarImage: formData.value.detail.bahanLuarImage,
