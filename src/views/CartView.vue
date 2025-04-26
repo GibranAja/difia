@@ -251,12 +251,15 @@ const proceedToCheckout = () => {
       customOptions: item.customOptions,
     }))
 
+  // For a single checkout flow, only use the first item
+  const checkoutItem = selectedItemsData[0]
+
   try {
-    // Store selected items in localStorage for checkout
+    // Store the selected item in localStorage for checkout
     localStorage.setItem(
       'checkout_items',
       JSON.stringify({
-        items: selectedItemsData,
+        items: [checkoutItem], // Wrap in array for future compatibility
         timestamp: Date.now(),
         userId: authStore.currentUser?.id,
       }),

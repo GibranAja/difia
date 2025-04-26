@@ -273,7 +273,9 @@
             <button type="button" class="cancel-btn" @click="showConfirmationModal = false">
               Batal
             </button>
-            <button type="button" class="submit-btn" @click="processOrderAfterConfirmation">
+            <button type="button" class="submit-btn" @click="processOrderAfterConfirmation"
+            :disabled="isProcessing"
+            >
               {{ isProcessing ? 'Memproses...' : 'Konfirmasi & Bayar' }}
             </button>
           </div>
@@ -447,9 +449,19 @@ const getSubtotal = computed(() => {
 // Get order from localStorage
 const getOrderFromLocal = () => {
   try {
+    // Try to get from currentOrder first
     const savedOrder = localStorage.getItem('currentOrder')
     if (savedOrder) {
       return JSON.parse(savedOrder)
+    }
+
+    // If not found, try checkout_items as fallback
+    const checkoutData = localStorage.getItem('checkout_items')
+    if (checkoutData) {
+      const { items } = JSON.parse(checkoutData)
+      if (items && items.length > 0) {
+        return items[0]
+      }
     }
     return null
   } catch (error) {
@@ -458,6 +470,9 @@ const getOrderFromLocal = () => {
   }
 }
 
+// Add a flag to track page reloads
+const isPageReload = ref(performance.navigation ? performance.navigation.type === 1 : false)
+
 // Select address
 const selectAddress = async (address) => {
   selectedAddressId.value = address.id
@@ -465,18 +480,16 @@ const selectAddress = async (address) => {
   isLoadingShipping.value = true
 
   try {
-    if(address.province) {
-    await loadCities(address.province)
-  }
-  await calculateShipping(address)  
+    if (address.province) {
+      await loadCities(address.province)
+    }
+    await calculateShipping(address)
   } catch (error) {
     console.error('Error selecting address:', error)
     toast.error('Gagal memuat alamat')
   } finally {
     isLoadingShipping.value = false
   }
-
-  
 }
 
 // Initialize edit address
@@ -811,13 +824,68 @@ const processOrderAfterConfirmation = async () => {
   }
 }
 
+// Add this function to load selected items from localStorage
+const loadCartItems = () => {
+  try {
+    const checkoutData = localStorage.getItem('checkout_items')
+    if (!checkoutData) return null
+
+    const { items, timestamp, userId } = JSON.parse(checkoutData)
+
+    // Check if data is fresh (less than 30 min old)
+    if (Date.now() - timestamp > 30 * 60 * 1000) {
+      localStorage.removeItem('checkout_items')
+      return null
+    }
+
+    // Verify user ID matches current user
+    if (userId !== authStore.currentUser?.id) {
+      localStorage.removeItem('checkout_items')
+      return null
+    }
+
+    // For single checkout, take the first item
+    if (items && items.length > 0) {
+      return items[0]
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error loading checkout items:', error)
+    return null
+  }
+}
+
 // Initial data loading
 onMounted(async () => {
   try {
-    // Load provinces first (needed for both address selection and creation)
-    await loadProvinces()
+    // Check if this is a page reload and order exists in localStorage
+    const localOrder = getOrderFromLocal()
 
-    // Load user addresses
+    if (isPageReload.value && localOrder) {
+      // On reload with existing order data, set it without redirecting
+      await orderStore.setCurrentOrder(localOrder)
+      toast.info('Data checkout berhasil dipulihkan')
+    } else {
+      // Normal flow - load the selected item from localStorage
+      const cartItem = loadCartItems()
+
+      if (cartItem) {
+        // Set the current order in the order store
+        await orderStore.setCurrentOrder(cartItem)
+      } else if (!localOrder) {
+        // If no valid item found anywhere, redirect back to cart
+        router.push('/cart')
+        toast.error('Tidak ada item untuk checkout')
+        return
+      } else {
+        // Use the order from localStorage
+        await orderStore.setCurrentOrder(localOrder)
+      }
+    }
+
+    // Rest of your existing code
+    await loadProvinces()
     await addressStore.fetchUserAddresses()
 
     // If user has a primary address, select it

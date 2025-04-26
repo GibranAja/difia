@@ -166,6 +166,19 @@
                   Batalkan Pesanan
                 </button>
 
+                <!-- View logo button (for pending orders with uploaded logo) -->
+                <button
+                  v-if="
+                    order.customOptions?.purchaseType === 'Souvenir' &&
+                    order.customOptions?.uploadedLogo
+                  "
+                  class="view-logo-btn"
+                  @click="openPdfInNewTab(order.customOptions.uploadedLogo)"
+                >
+                  <i class="fas fa-file-pdf"></i>
+                  Lihat Logo
+                </button>
+
                 <!-- Refund button (for cancelled orders) -->
                 <button
                   v-if="order.status === 'cancelled' && !order.refundRequest"
@@ -677,6 +690,51 @@ const getRefundStatusLabel = (status) => {
     rejected: 'Ditolak',
   }
   return labels[status] || 'Tidak Diketahui'
+}
+
+const openPdfInNewTab = (base64Data) => {
+  try {
+    // Check if it's a valid base64 data URL
+    if (!base64Data || !base64Data.startsWith('data:application/pdf')) {
+      console.error('Invalid PDF data format')
+      alert('PDF data format is invalid or corrupted')
+      return
+    }
+
+    // Open in a new tab
+    const newWindow = window.open()
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>PDF Viewer</title>
+            <style>
+              body, html {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                overflow: hidden;
+              }
+              embed {
+                width: 100%;
+                height: 100%;
+              }
+            </style>
+          </head>
+          <body>
+            <embed src="${base64Data}" type="application/pdf" width="100%" height="100%">
+          </body>
+        </html>
+      `)
+    } else {
+      // If popup was blocked
+      alert('Please allow popups to view the PDF')
+    }
+  } catch (error) {
+    console.error('Error opening PDF:', error)
+    alert('Error opening PDF: ' + error.message)
+  }
 }
 </script>
 
@@ -1196,6 +1254,26 @@ input:focus {
   background-color: #e8ba38;
 }
 
+/* View logo button styles */
+.view-logo-btn {
+  background-color: #0284c7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Montserrat', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.view-logo-btn:hover {
+  background-color: #0369a1;
+}
+
 /* Cancellation reason */
 .cancellation-reason {
   margin-left: 1.2rem;
@@ -1369,4 +1447,3 @@ input:focus {
   }
 }
 </style>
-```

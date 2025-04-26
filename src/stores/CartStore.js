@@ -75,7 +75,7 @@ export const useCartStore = defineStore('cart', () => {
           purchaseType: cartItem.customOptions.purchaseType,
           budgetPrice: cartItem.customOptions.budgetPrice,
           note: cartItem.customOptions.note,
-          uploadedImage: cartItem.customOptions.uploadedImage, // For souvenir type
+          uploadedLogo: cartItem.customOptions.uploadedLogo || null, // Changed from uploadedImage to uploadedLogo and added default null
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -97,6 +97,7 @@ export const useCartStore = defineStore('cart', () => {
       return { success: true }
     } catch (err) {
       error.value = err.message
+      console.error('Error adding item to cart:', err)
       toast.error('Gagal menambahkan item: ' + err.message)
       return { success: false, error: err.message }
     } finally {
