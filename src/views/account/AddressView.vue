@@ -732,8 +732,8 @@ const validateZipCode = (event) => {
 /* Floating add button for mobile */
 .floating-add-btn {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: 5rem;
+  right: 1rem;
   width: 56px;
   height: 56px;
   border-radius: 50%;

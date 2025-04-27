@@ -15,10 +15,155 @@
             <img src="../assets/Logo_Difia_Haki.png" alt="Difia Logo" class="logo-image" />
           </div>
 
-          <!-- Center - Navigation links with improved interaction -->
-          <div class="nav-links-container">
-            <div class="nav-links-backdrop" :class="{ active: isMobileMenuOpen }"></div>
-            <ul class="nav-links" :class="{ 'menu-active': isMobileMenuOpen }">
+          <!-- Right side - Mobile Profile Display -->
+          <div class="mobile-profile-display" v-if="authStore.isLoggedIn && !isMobileMenuOpen">
+            <div
+              class="profile-container"
+              @click.stop="toggleMobileProfileDropdown"
+              :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+              aria-label="User Profile"
+              role="button"
+            >
+              <div class="profile-accent"></div>
+            </div>
+
+            <!-- Mobile Mini Dropdown -->
+            <div v-if="showMobileProfileDropdown" class="mobile-dropdown" @click.stop>
+              <div class="dropdown-user-info">
+                <div
+                  class="dropdown-avatar"
+                  :style="{ backgroundImage: `url(${userProfilePhoto})` }"
+                ></div>
+                <div class="dropdown-user-details">
+                  <p class="dropdown-username">{{ authStore.currentUser?.name }}</p>
+                  <p class="dropdown-email">{{ authStore.currentUser?.email }}</p>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <ul class="dropdown-menu">
+                <li @click="navigateToAccount('orders')">
+                  <i class="fas fa-shopping-bag"></i> Pesanan
+                  <i class="fas fa-chevron-right menu-arrow"></i>
+                </li>
+                <li @click="navigateToAccount('profile')">
+                  <i class="fas fa-user"></i> Profil
+                  <i class="fas fa-chevron-right menu-arrow"></i>
+                </li>
+                <li @click="navigateToAccount('address')">
+                  <i class="fas fa-map-marker-alt"></i> Alamat
+                  <i class="fas fa-chevron-right menu-arrow"></i>
+                </li>
+                <li @click="showLogoutModal = true">
+                  <i class="fas fa-sign-out-alt"></i> Keluar
+                  <i class="fas fa-chevron-right menu-arrow"></i>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Right side - Mobile Menu Toggle -->
+          <button class="menu-toggle" @click="toggleMobileMenu" aria-label="Toggle Menu">
+            <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </button>
+
+          <!-- Mobile Menu Dropdown -->
+          <div class="mobile-menu-container" :class="{ active: isMobileMenuOpen }">
+            <div class="mobile-menu-header">
+              <img src="../assets/Logo_Difia_Haki.png" alt="Difia Logo" class="logo-image" />
+            </div>
+
+            <!-- Main Content Area with Sections -->
+            <div class="mobile-menu-content">
+              <!-- Main Navigation -->
+              <div class="menu-section">
+                <h3 class="section-title">Menu</h3>
+                <ul class="menu-list">
+                  <li v-for="(item, index) in navItems" :key="index" class="menu-item">
+                    <a
+                      @click.prevent="navigateTo(item.path, item.section)"
+                      :href="item.href"
+                      class="menu-link"
+                      :class="{ active: isActiveLink(item.section) }"
+                    >
+                      <span>{{ item.text }}</span>
+                    </a>
+                  </li>
+                  <li v-if="authStore.currentUser?.isAdmin" class="menu-item">
+                    <router-link to="/admin" class="menu-link admin-menu-link">
+                      <i class="fas fa-chart-line"></i>
+                      <span>Dashboard Admin</span>
+                    </router-link>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Account Section (only shown if logged in) -->
+              <div v-if="authStore.isLoggedIn" class="menu-section">
+                <h3 class="section-title">Akun Saya</h3>
+                <ul class="menu-list">
+                  <li class="menu-item">
+                    <a @click.prevent="navigateToAccount('profile')" class="menu-link">
+                      <i class="fas fa-user"></i>
+                      <span>Profil</span>
+                    </a>
+                  </li>
+                  <li class="menu-item">
+                    <a @click.prevent="navigateToAccount('orders')" class="menu-link">
+                      <i class="fas fa-shopping-bag"></i>
+                      <span>Pesanan</span>
+                    </a>
+                  </li>
+                  <li class="menu-item">
+                    <a @click.prevent="navigateToAccount('address')" class="menu-link">
+                      <i class="fas fa-map-marker-alt"></i>
+                      <span>Alamat</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Bottom Action Bar -->
+            <div class="mobile-menu-footer">
+              <div class="quick-actions">
+                <button class="action-circle" @click="handleNotificationClick">
+                  <i class="fas fa-bell"></i>
+                  <span v-if="notificationStore.unreadCount > 0" class="action-badge">
+                    {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
+                  </span>
+                </button>
+
+                <button class="action-circle" @click="navigateToCart">
+                  <i class="fas fa-shopping-cart"></i>
+                  <span v-if="cartItemCount > 0" class="action-badge">
+                    {{ cartItemCount > 99 ? '99+' : cartItemCount }}
+                  </span>
+                </button>
+              </div>
+
+              <button
+                v-if="!authStore.isLoggedIn"
+                class="mobile-auth-button login-btn"
+                @click="navigateToLogin"
+              >
+                <span>Login / Daftar</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+
+              <button v-else class="mobile-auth-button logout-btn" @click="showLogoutModal = true">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Keluar Akun</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden on mobile: Desktop Center - Navigation links -->
+          <div class="nav-links-container desktop-only">
+            <ul class="nav-links">
               <li v-for="(item, index) in navItems" :key="index" class="nav-item">
                 <a
                   @click.prevent="navigateTo(item.path, item.section)"
@@ -38,7 +183,8 @@
             </ul>
           </div>
 
-          <div class="user-actions">
+          <!-- Hidden on mobile: Desktop User Actions -->
+          <div class="user-actions desktop-only">
             <button
               class="action-button notification-button"
               @click="handleNotificationClick"
@@ -116,15 +262,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Mobile menu toggle with improved animations -->
-            <button class="menu-toggle" @click="toggleMobileMenu" aria-label="Toggle Menu">
-              <div class="menu-icon" :class="{ open: isMobileMenuOpen }">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </button>
           </div>
         </div>
       </nav>
@@ -182,6 +319,7 @@ const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
 const activeSection = ref('home')
 const showProfileDropdown = ref(false)
+const showMobileProfileDropdown = ref(false)
 
 // Navigation items
 const navItems = [
@@ -191,12 +329,12 @@ const navItems = [
   { text: 'Artikel', path: '/', section: 'articel', href: '#articel' },
 ]
 
-// Check if a link is active - New function
+// Check if a link is active
 const isActiveLink = (section) => {
   return activeSection.value === section
 }
 
-// Update active section based on scroll position - New function
+// Update active section based on scroll position
 const updateActiveSection = () => {
   const sections = navItems.map((item) => item.section)
 
@@ -278,6 +416,17 @@ const toggleMobileMenu = () => {
   }
 }
 
+const toggleMobileProfileDropdown = (event) => {
+  event.stopPropagation()
+  showMobileProfileDropdown.value = !showMobileProfileDropdown.value
+
+  // Close the main mobile menu if it's open
+  if (isMobileMenuOpen.value) {
+    isMobileMenuOpen.value = false
+    document.body.style.overflow = ''
+  }
+}
+
 const navigateTo = async (path, section = null) => {
   // Close mobile menu
   isMobileMenuOpen.value = false
@@ -314,18 +463,20 @@ const navigateTo = async (path, section = null) => {
 
 const navigateToLogin = () => {
   router.push('/login')
+  isMobileMenuOpen.value = false
 }
 
 const navigateToCart = () => {
   router.push('/cart')
+  isMobileMenuOpen.value = false
 }
 
 const handleNotificationClick = () => {
-  // Fix: Replace resetCount with markAllAsRead
   if (notificationStore.unreadCount > 0) {
     notificationStore.markAllAsRead()
   }
   router.push('/notification')
+  isMobileMenuOpen.value = false
 }
 
 const handleLogout = async () => {
@@ -347,22 +498,43 @@ const toggleProfileDropdown = () => {
 const navigateToAccount = (section) => {
   router.push(`/my-account/${section}`)
   showProfileDropdown.value = false
+  isMobileMenuOpen.value = false
 }
 
 // Close menu when clicking outside
 const handleClickOutside = (event) => {
   if (isMobileMenuOpen.value) {
     const navElement = document.querySelector('nav')
-    if (navElement && !navElement.contains(event.target)) {
-      isMobileMenuOpen.value = false
-      document.body.style.overflow = ''
+    const menuToggle = document.querySelector('.menu-toggle')
+    if (
+      (navElement && !navElement.contains(event.target)) ||
+      (menuToggle && menuToggle.contains(event.target))
+    ) {
+      // Don't close when clicking the toggle itself - that's handled by toggleMobileMenu
+      if (!(menuToggle && menuToggle.contains(event.target))) {
+        isMobileMenuOpen.value = false
+        document.body.style.overflow = ''
+      }
     }
   }
 
   if (showProfileDropdown.value) {
     const profileDropdown = document.querySelector('.user-profile')
-    if (profileDropdown && !profileDropdown.contains(event.target)) {
+    const mobileProfileDropdown = document.querySelector('.mobile-user-profile')
+    if (
+      profileDropdown &&
+      !profileDropdown.contains(event.target) &&
+      mobileProfileDropdown &&
+      !mobileProfileDropdown.contains(event.target)
+    ) {
       showProfileDropdown.value = false
+    }
+  }
+
+  if (showMobileProfileDropdown.value) {
+    const mobileProfileDisplay = document.querySelector('.mobile-profile-display')
+    if (mobileProfileDisplay && !mobileProfileDisplay.contains(event.target)) {
+      showMobileProfileDropdown.value = false
     }
   }
 }
@@ -388,7 +560,6 @@ onMounted(() => {
   if (authStore.isLoggedIn) {
     cartStore.fetchCartItems()
 
-    // Fix: Replace trackStatusUpdates with listenToNotifications
     if (authStore.currentUser?.id) {
       notificationStore.listenToNotifications()
     }
@@ -478,22 +649,7 @@ nav {
   transform: scale(1.05);
 }
 
-/* Ensure consistent dimensions on mobile devices */
-@media (max-width: 768px) {
-  .logo-image {
-    height: 120px;
-    width: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .logo-image {
-    height: 120px;
-    width: 200px;
-  }
-}
-
-/* Improved navigation links - CENTERED */
+/* Desktop Navigation Links */
 .nav-links-container {
   position: absolute;
   left: 50%;
@@ -821,108 +977,92 @@ nav {
   border-color: #e8ba38;
 }
 
+/* Improved mobile menu transitions & aesthetics */
 .profile-accent {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, rgba(232, 186, 56, 0.7), transparent);
+  background: linear-gradient(to top, rgba(232, 186, 56, 0.7), transparent 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .profile-container:hover .profile-accent {
-  opacity: 0.7;
+  opacity: 1;
 }
 
-.logout-button {
-  background-color: transparent;
-  border: 1px solid #e1e1e1;
-  color: #555;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.logout-button:hover {
-  background-color: #f6f6f6;
-  border-color: #e8ba38;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-}
-
-.logout-button i {
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.logout-button:hover i {
-  color: #e8ba38;
-  transform: scale(1.1);
-}
-
-/* Profile dropdown styles */
+/* Profile dropdown styling */
 .profile-dropdown {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
   width: 280px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  padding: 1.2rem;
   z-index: 100;
-  overflow: hidden;
-  animation: fadeIn 0.2s ease-out;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  animation: fadeInDown 0.3s ease;
+  transform-origin: top right;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .dropdown-user-info {
   display: flex;
   align-items: center;
-  padding: 15px;
-  gap: 12px;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .dropdown-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background-size: cover;
   background-position: center;
   border: 2px solid #e8ba38;
 }
 
 .dropdown-user-details {
+  flex: 1;
   overflow: hidden;
 }
 
 .dropdown-username {
   font-weight: 600;
   margin: 0;
-  font-size: 0.95rem;
-  color: #333;
-}
-
-.dropdown-email {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #666;
+  color: #02163b;
+  font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 190px;
+}
+
+.dropdown-email {
+  margin: 0.2rem 0 0;
+  color: #666;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dropdown-divider {
   height: 1px;
   background-color: #eee;
-  margin: 0;
+  margin: 0.8rem 0;
 }
 
 .dropdown-menu {
@@ -932,285 +1072,588 @@ nav {
 }
 
 .dropdown-menu li {
-  padding: 15px;
   display: flex;
   align-items: center;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
   color: #333;
-  position: relative;
   font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 0.3rem;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.dropdown-menu li:hover {
-  background-color: #f9f9f9;
+.dropdown-menu li:last-child {
+  margin-bottom: 0;
 }
 
 .dropdown-menu li i:first-child {
-  margin-right: 12px;
-  width: 16px;
+  margin-right: 0.8rem;
+  width: 20px;
+  text-align: center;
   color: #02163b;
 }
 
-.menu-arrow {
+.dropdown-menu .menu-arrow {
   position: absolute;
-  right: 15px;
-  color: #999;
-  font-size: 0.7rem;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: all 0.2s ease;
+  color: #e8ba38;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.dropdown-menu li:hover {
+  background-color: #f8f8f8;
+  color: #02163b;
 }
 
-/* Modern mobile menu toggle */
+.dropdown-menu li:hover .menu-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Enhanced Mobile Menu Styling */
 .menu-toggle {
   display: none;
   background: transparent;
   border: none;
-  width: 45px;
-  height: 45px;
-  border-radius: 12px;
-  justify-content: center;
-  align-items: center;
+  width: 48px;
+  height: 48px;
+  position: relative;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.menu-toggle:hover {
-  background-color: rgba(232, 186, 56, 0.12);
+  z-index: 110;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .menu-icon {
   width: 24px;
-  height: 20px;
+  height: 18px;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  margin: 0 auto;
+  transform: rotate(0deg);
+  transition: 0.5s ease-in-out;
 }
 
 .menu-icon span {
   display: block;
+  position: absolute;
+  height: 3px;
   width: 100%;
-  height: 2px;
-  background-color: #02163b;
-  border-radius: 3px;
-  transition: all 0.4s ease;
+  background: #02163b;
+  border-radius: 9px;
+  opacity: 1;
+  left: 0;
+  transform: rotate(0deg);
+  transition: 0.25s ease-in-out;
+}
+
+.menu-icon span:nth-child(1) {
+  top: 0;
+}
+
+.menu-icon span:nth-child(2) {
+  top: 8px;
+  width: 80%;
+}
+
+.menu-icon span:nth-child(3) {
+  top: 16px;
 }
 
 .menu-icon.open span:nth-child(1) {
-  transform: rotate(45deg) translate(6px, 6px);
-  background-color: #e8ba38;
+  top: 8px;
+  transform: rotate(135deg);
 }
 
 .menu-icon.open span:nth-child(2) {
   opacity: 0;
-  transform: translateX(-10px);
+  width: 0;
 }
 
 .menu-icon.open span:nth-child(3) {
-  transform: rotate(-45deg) translate(6px, -6px);
-  background-color: #e8ba38;
+  top: 8px;
+  transform: rotate(-135deg);
 }
 
-/* Enhanced responsive adaptations */
-@media (max-width: 1024px) {
-  .nav-link {
-    padding: 0.6rem 1rem;
+.menu-toggle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(232, 186, 56, 0.12);
+  border-radius: 12px;
+  transform: scale(0);
+  transition: transform 0.4s ease;
+}
+
+.menu-toggle:hover::before {
+  transform: scale(1);
+}
+
+/* Completely redesigned mobile menu */
+.mobile-menu-container {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 100%;
+  height: 100vh;
+  background-color: #fff;
+  z-index: 100;
+  transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-menu-container.active {
+  right: 0;
+}
+
+/* Clean header with logo */
+.mobile-menu-header {
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mobile-menu-header .logo-image {
+  height: 60px;
+  width: 120px;
+  object-fit: contain;
+}
+
+/* Scrollable content area */
+.mobile-menu-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Section styling */
+.menu-section:not(:last-child) {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #888;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+/* Menu item styling */
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-item {
+  margin-bottom: 0.5rem;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.menu-link i {
+  width: 24px;
+  font-size: 1.1rem;
+  color: #02163b;
+  text-align: center;
+}
+
+.menu-link.active {
+  background-color: rgba(232, 186, 56, 0.1);
+  color: #02163b;
+  font-weight: 600;
+}
+
+.admin-menu-link {
+  background-color: rgba(232, 186, 56, 0.15);
+}
+
+.admin-menu-link i {
+  color: #e8ba38;
+}
+
+/* Bottom action bar */
+.mobile-menu-footer {
+  padding: 1.25rem;
+  border-top: 1px solid #f0f0f0;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quick-actions {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: white;
+  color: #02163b;
+  font-size: 1.2rem;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.action-circle:active {
+  transform: scale(0.95);
+}
+
+.action-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #e8ba38;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid white;
+}
+
+.mobile-auth-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.login-btn {
+  background-color: #02163b;
+  color: white;
+}
+
+.logout-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.login-btn:active,
+.logout-btn:active {
+  transform: scale(0.98);
+}
+
+/* Mobile profile photo in navbar - Add this to your existing CSS */
+.mobile-profile-display {
+  display: none;
+  margin-right: -100px;
+}
+
+.mobile-profile-display .profile-container {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.mobile-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 1rem;
+  width: 220px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  animation: fadeInDown 0.25s ease;
+  padding: 0.8rem;
+}
+
+.mobile-dropdown .dropdown-user-info {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.mobile-dropdown .dropdown-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.mobile-dropdown .dropdown-username,
+.mobile-dropdown .dropdown-email {
+  font-size: 0.8rem;
+}
+
+.mobile-dropdown .dropdown-menu li {
+  padding: 0.7rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+/* Update the existing media query */
+@media screen and (max-width: 992px) {
+  /* Other media query styles remain the same */
+
+  /* Modify this section to reduce the size of menu items */
+  .mobile-nav-links .nav-link {
+    height: 50px; /* Change from 100% to auto */
+    padding: 0.7rem 0.3rem; /* Reduce padding from 1.2rem 0.5rem */
+    gap: 0.3rem; /* Reduce gap from 0.5rem */
+    font-size: 0.9rem; /* Add this to make the text smaller */
+  }
+
+  /* Add this to reduce the space between menu items */
+  .mobile-nav-links {
+    height: 50px;
+    gap: 0.5rem; /* Reduce from 0.75rem */
+  }
+
+  /* Optional: Make the active state background smaller */
+  .mobile-nav-links .nav-link.active {
+    background-color: rgba(232, 186, 56, 0.1);
+    height: 50px;
+    padding: 0.6rem 0.3rem; /* Even smaller padding for active items */
+  }
+
+  .mobile-profile-display {
+    display: block;
+    margin-right: 10px; /* Replace negative margin with positive */
+    transition: all 0.3s ease;
+  }
+
+  /* Fix positioning in navbar */
+  .nav-container {
+    position: relative;
+    justify-content: space-between;
+  }
+
+  /* Logo adjustments when scrolled */
+  .nav-scrolled .logo-image {
+    height: 80px; /* Smaller when scrolled on mobile */
+    width: 120px;
+    transition: all 0.3s ease;
+  }
+
+  /* Adjust right side spacing */
+  .menu-toggle {
+    margin-left: 5px;
+  }
+
+  /* Fix profile position when scrolled */
+  .nav-scrolled .mobile-profile-display {
+    position: relative;
+    z-index: 111; /* Above the menu toggle */
+  }
+
+  /* When navbar is scrolled, adjust container width */
+  .nav-scrolled .nav-container {
+    padding: 0 1rem;
+  }
+
+  /* Ensure flex layout doesn't push elements */
+  .nav-container {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-logo {
+    flex: 1;
+  }
+
+  /* Create a container for the right-side elements */
+  .mobile-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .navbar-wrapper {
+    top: 0;
+  }
+
+  nav {
+    height: 60px;
   }
 
   .nav-container {
     padding: 0 1.5rem;
   }
 
-  .nav-links-container {
-    position: relative;
-    left: 0;
-    transform: none;
-    margin: 0 auto;
+  .logo-image {
+    height: 100px;
+    width: 160px;
   }
-}
 
-@media (max-width: 768px) {
-  .menu-toggle {
+  .mobile-user-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .action-button {
+    margin-right: auto;
+  }
+
+  .mobile-user-section {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  /* Enhanced bottom nav drawer feel */
+  .mobile-nav-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 90px 1.5rem 1.5rem;
+  }
+
+  .mobile-nav-links .nav-item {
+    margin-bottom: 0;
+  }
+
+  .mobile-nav-links .nav-link {
+    height: 100%;
     display: flex;
-  }
-
-  .nav-logo {
-    order: 2; /* Reposition logo to center on mobile */
-    margin: 0 auto;
-  }
-
-  .nav-links-container {
-    position: static;
-    margin-right: 0;
-    transform: none;
-  }
-
-  .nav-links-backdrop {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    width: 100%;
-    height: 0;
-    background-color: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    overflow: hidden;
-    transition: height 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 1;
-  }
-
-  .nav-links-backdrop.active {
-    height: calc(100vh - 60px);
-  }
-
-  .nav-links {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    width: 100%;
-    padding: 2rem 0;
-    flex-direction: column;
-    align-items: center;
-    transform: translateY(-20px);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 2;
-  }
-
-  .nav-links.menu-active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-
-  .nav-link {
-    padding: 1rem 0;
-    width: 100%;
-    max-width: 250px;
-    text-align: center;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-  }
-
-  .nav-link:before {
-    bottom: -3px;
-  }
-
-  .admin-link {
-    margin: 1rem 0 0 0;
     justify-content: center;
-    width: 100%;
-    max-width: 250px;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.2rem 0.5rem;
+    gap: 0.5rem;
   }
 
-  .user-actions {
-    justify-content: flex-end;
-    flex-grow: 1;
+  /* Mobile optimized dropdown menu items */
+  .dropdown-menu li {
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.4rem;
   }
 
-  .login-button {
-    padding: 0.6rem 1.2rem;
+  /* Improve scroll experience */
+  .mobile-nav-links {
+    -webkit-overflow-scrolling: touch;
+    /* For momentum scrolling on iOS */
+    scrollbar-width: none;
   }
 
-  .nav-container {
-    justify-content: space-between;
+  .mobile-nav-links::-webkit-scrollbar {
+    display: none;
   }
 }
 
-@media (max-width: 480px) {
+/* Extra small devices */
+@media screen and (max-width: 360px) {
+  /* Further reduce sizes for very small screens */
+  .nav-scrolled .logo-image {
+    height: 70px;
+    width: 100px;
+  }
+
+  .mobile-profile-display .profile-container {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Small mobile devices */
+@media screen and (max-width: 576px) {
+  .mobile-nav-links {
+    grid-template-columns: 1fr;
+    padding-top: 80px;
+  }
+
   .nav-container {
     padding: 0 1rem;
   }
 
-  .action-button {
-    width: 40px;
-    height: 40px;
-  }
-
   .logo-image {
-    height: 32px;
-    width: 32px;
+    height: 90px;
+    width: 140px;
   }
 
-  .user-actions {
-    gap: 1rem;
-  }
-
-  .login-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .profile-container {
-    width: 38px;
-    height: 38px;
-  }
-
-  .logout-button {
-    width: 36px;
-    height: 36px;
+  .dropdown-menu li {
+    padding: 12px;
   }
 }
 
-/* Fluid animation for mobile menu items */
-@keyframes fadeSlideIn {
-  from {
+/* Add bouncy animation for menu items */
+@keyframes bounceIn {
+  0% {
     opacity: 0;
-    transform: translateY(-15px);
+    transform: translateY(20px);
   }
-  to {
+  60% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.nav-links.menu-active .nav-item {
-  animation: fadeSlideIn 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
+.mobile-menu-container.active .nav-item {
+  animation: bounceIn 0.5s forwards;
+  opacity: 0;
 }
 
-.nav-links.menu-active .nav-item:nth-child(1) {
+/* Stagger animation for each menu item */
+.mobile-menu-container.active .nav-item:nth-child(1) {
   animation-delay: 0.1s;
 }
-.nav-links.menu-active .nav-item:nth-child(2) {
+.mobile-menu-container.active .nav-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.mobile-menu-container.active .nav-item:nth-child(3) {
   animation-delay: 0.2s;
 }
-.nav-links.menu-active .nav-item:nth-child(3) {
+.mobile-menu-container.active .nav-item:nth-child(4) {
+  animation-delay: 0.25s;
+}
+.mobile-menu-container.active .nav-item:nth-child(5) {
   animation-delay: 0.3s;
-}
-.nav-links.menu-active .nav-item:nth-child(4) {
-  animation-delay: 0.4s;
-}
-.nav-links.menu-active .nav-item:nth-child(5) {
-  animation-delay: 0.5s;
-}
-
-/* Notification icon styles */
-.notification-icon {
-  position: relative;
-  cursor: pointer;
-  margin-right: 15px;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
 }
 </style>

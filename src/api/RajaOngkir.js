@@ -6,13 +6,11 @@ const BOGOR_CITY_ID = '79'
 class RajaOngkir {
   constructor() {
     // Determine if we're in production based on hostname
-    const isProduction = window.location.hostname === 'difia.kuadratdev.com';
-    
+    const isProduction = window.location.hostname === 'difia.kuadratdev.com'
+
     // Use different base URL for production vs development
-    const baseURL = isProduction 
-      ? '/api/rajaongkir' 
-      : '/api/rajaongkir';
-    
+    const baseURL = isProduction ? '/api/rajaongkir' : '/api/rajaongkir'
+
     this.axios = axios.create({
       baseURL,
       headers: {
@@ -44,14 +42,21 @@ class RajaOngkir {
   }
 
   // Calculate shipping cost from Bogor
-  async calculateShipping(destinationId, weight, courier) {
+  async calculateShipping(destinationId, weight, courier, service = null) {
     try {
-      const response = await this.axios.post('/cost', {
+      const payloadData = {
         origin: BOGOR_CITY_ID, // From Bogor
         destination: destinationId,
         weight: weight, // in grams
         courier: courier, // 'jne', 'pos', or 'tiki'
-      })
+      }
+
+      // Add service if provided
+      if (service) {
+        payloadData.service = service
+      }
+
+      const response = await this.axios.post('/cost', payloadData)
       return response.data.rajaongkir.results[0].costs
     } catch (error) {
       console.error('Error calculating shipping:', error)

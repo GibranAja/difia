@@ -54,7 +54,6 @@
                 <ul class="price-features">
                   <li>Bahan premium, hasil cetakan tajam</li>
                   <li>Gratis kemasan exclusive</li>
-                  <li>Garansi produk 1 bulan</li>
                 </ul>
               </div>
 
@@ -62,7 +61,7 @@
                 <h3>Budgeting: {{ katalog?.harga?.budgetting }}</h3>
                 <ul class="price-features">
                   <li>Dapat disesuaikan dengan budget</li>
-                  <li>Minimum order 100 pcs</li>
+                  <li>Untuk minimal budget itu dari harga Satuan</li>
                 </ul>
               </div>
             </div>
@@ -86,8 +85,7 @@
               </li>
               <li>Bahan Luar: {{ katalog?.detail?.bahanLuar || '-' }}</li>
               <li>Bahan Dalam: {{ katalog?.detail?.bahanDalam || '-' }}</li>
-              <li>Berat: 250 gram per pcs</li>
-              <li>Ketebalan: 2-3 mm</li>
+              <li>Berat: {{ katalog?.detail?.berat + ' Gram' || '0 gram' }}</li>
             </ul>
           </div>
           <div class="specs-column">
@@ -95,9 +93,7 @@
             <ul>
               <li>Aksesoris: {{ katalog?.detail?.aksesoris || '-' }}</li>
               <li>Warna: {{ katalog?.detail?.warna || '-' }}</li>
-              <li>Cetak Logo: Tersedia (min. order 100)</li>
-              <li>Personalisasi: Nama/Inisial tersedia</li>
-              <li>Kemasan: Box Premium/Pouch/Paper Bag</li>
+              <li>Cetak Logo: Tersedia (Khusus untuk pembelian souvenir)</li>
             </ul>
           </div>
         </div>
@@ -783,6 +779,9 @@ const navigateToCustom = () => {
   font-size: 13px;
   color: #666;
   margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .breadcrumbs a {
@@ -817,6 +816,7 @@ const navigateToCustom = () => {
 .stars {
   color: #ffc107;
   margin-right: 5px;
+  display: flex;
 }
 
 .stars i {
@@ -848,6 +848,7 @@ const navigateToCustom = () => {
   flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 30px;
+  align-items: stretch;
 }
 
 .product-images {
@@ -859,13 +860,15 @@ const navigateToCustom = () => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
   display: flex;
-  justify-content: center; /* Center carousel horizontally */
+  justify-content: center;
   align-items: center;
 }
 
 .product-details {
   flex: 1;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
 }
 
 .price-section {
@@ -873,6 +876,9 @@ const navigateToCustom = () => {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .price-section h2 {
@@ -881,21 +887,29 @@ const navigateToCustom = () => {
   margin: 0;
   padding: 15px 0;
   text-align: center;
-  font-size: 22px; /* Increased font size */
+  font-size: 22px;
 }
 
 .price-info {
   padding: 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
 }
 
 .price-tier {
-  margin-bottom: 24px; /* Increased spacing */
+  margin-bottom: 24px;
+}
+
+.price-tier:last-child {
+  margin-bottom: 0;
 }
 
 .price-tier h3 {
-  font-size: 18px; /* Increased font size */
+  font-size: 18px;
   font-weight: bold;
-  margin-bottom: 8px; /* Increased spacing */
+  margin-bottom: 8px;
 }
 
 .price-features {
@@ -907,9 +921,9 @@ const navigateToCustom = () => {
 .price-features li {
   position: relative;
   padding-left: 15px;
-  font-size: 14px; /* Increased font size */
-  color: #555; /* Darker color for better readability */
-  margin-bottom: 8px; /* Increased spacing */
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
 }
 
 .price-features li::before {
@@ -923,13 +937,13 @@ const navigateToCustom = () => {
   display: block;
   width: calc(100% - 40px);
   margin: 0 20px 20px;
-  padding: 14px 0; /* Increased padding */
+  padding: 14px 0;
   background-color: #ffc107;
   color: #333;
   border: none;
   border-radius: 20px;
   font-weight: bold;
-  font-size: 16px; /* Increased font size */
+  font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;
 }
@@ -960,12 +974,14 @@ const navigateToCustom = () => {
   display: flex;
   flex-wrap: wrap;
   padding: 20px;
+  justify-content: space-around;
 }
 
 .specs-column {
   flex: 1;
-  min-width: 300px;
+  min-width: 280px;
   padding: 0 15px;
+  margin-bottom: 15px;
 }
 
 .specs-column h3 {
@@ -1008,7 +1024,7 @@ const navigateToCustom = () => {
   margin: 0;
   padding: 15px 0;
   text-align: center;
-  font-size: 20px; /* Increased font size */
+  font-size: 20px;
 }
 
 .materials-content {
@@ -1016,23 +1032,29 @@ const navigateToCustom = () => {
   flex-wrap: wrap;
   padding: 20px;
   gap: 20px;
+  justify-content: center;
 }
 
 .material-type {
   flex: 1;
   min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .material-type h3 {
-  font-size: 18px; /* Increased font size */
+  font-size: 18px;
   font-weight: bold;
   margin-bottom: 15px;
+  text-align: center;
 }
 
 .material-samples {
   display: flex;
   gap: 15px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .material-sample {
@@ -1042,12 +1064,12 @@ const navigateToCustom = () => {
 }
 
 .material-image {
-  width: 140px; /* Increased size */
-  height: 110px; /* Increased size */
+  width: 140px;
+  height: 110px;
   border-radius: 5px;
   overflow: hidden;
   border: 2px solid #e0e0e0;
-  margin-bottom: 12px; /* Increased spacing */
+  margin-bottom: 12px;
 }
 
 .material-image img {
@@ -1064,7 +1086,7 @@ const navigateToCustom = () => {
 }
 
 .material-name {
-  font-size: 15px; /* Increased font size */
+  font-size: 15px;
   text-align: center;
   font-weight: 500;
   color: #444;
@@ -1072,25 +1094,28 @@ const navigateToCustom = () => {
 
 .material-info {
   padding: 0 20px 20px;
+  text-align: center;
 }
 
 .material-info h3 {
-  font-size: 16px; /* Increased font size */
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 12px; /* Increased spacing */
+  margin-bottom: 12px;
 }
 
 .material-info ul {
   list-style-type: none;
   padding-left: 0;
+  display: inline-block;
+  text-align: left;
 }
 
 .material-info li {
   position: relative;
   padding-left: 15px;
-  margin-bottom: 10px; /* Increased spacing */
-  font-size: 14px; /* Increased font size */
-  color: #555; /* Darker color for better readability */
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
   line-height: 1.5;
 }
 
@@ -1170,9 +1195,14 @@ const navigateToCustom = () => {
 .timeline-notes {
   padding: 0 20px 20px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   font-size: 12px;
   color: #666;
+  align-items: center;
+}
+
+.timeline-notes p {
+  margin: 5px 0;
 }
 
 /* Reviews Section */
@@ -1198,6 +1228,9 @@ const navigateToCustom = () => {
   padding: 20px;
   align-items: center;
   border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
 }
 
 .average-rating {
@@ -1228,6 +1261,7 @@ const navigateToCustom = () => {
 
 .rating-bars {
   flex: 1;
+  min-width: 250px;
 }
 
 .rating-bar-row {
@@ -1271,6 +1305,7 @@ const navigateToCustom = () => {
   align-items: center;
   gap: 0.6rem;
   margin: 1rem;
+  justify-content: center;
 }
 
 .filter-label {
@@ -1313,6 +1348,7 @@ const navigateToCustom = () => {
   display: flex;
   align-items: center;
   margin-bottom: 0.8rem;
+  flex-wrap: wrap;
 }
 
 .reviewer-avatar {
@@ -1331,6 +1367,7 @@ const navigateToCustom = () => {
 
 .reviewer-info {
   flex: 1;
+  min-width: 120px;
 }
 
 .reviewer-name {
@@ -1345,6 +1382,8 @@ const navigateToCustom = () => {
 
 .review-rating {
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
 }
 
 .review-content {
@@ -1358,6 +1397,7 @@ const navigateToCustom = () => {
   flex-wrap: wrap;
   gap: 0.6rem;
   margin-bottom: 0.8rem;
+  justify-content: center;
 }
 
 .review-images img {
@@ -1378,6 +1418,8 @@ const navigateToCustom = () => {
   justify-content: space-between;
   align-items: center;
   margin-top: 0.6rem;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .helpful-btn {
@@ -1455,7 +1497,7 @@ const navigateToCustom = () => {
   font-style: italic;
 }
 
-/* Image modal (keeping existing implementation) */
+/* Image modal */
 .image-modal {
   position: fixed;
   top: 0;
@@ -1475,6 +1517,7 @@ const navigateToCustom = () => {
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .modal-close {
@@ -1486,6 +1529,7 @@ const navigateToCustom = () => {
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
+  z-index: 10;
 }
 
 .modal-image-container {
@@ -1493,6 +1537,7 @@ const navigateToCustom = () => {
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
 }
 
 .modal-image-container img {
@@ -1513,6 +1558,7 @@ const navigateToCustom = () => {
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
+  z-index: 5;
 }
 
 .modal-nav:hover {
@@ -1532,6 +1578,7 @@ const navigateToCustom = () => {
   justify-content: center;
   gap: 0.8rem;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .modal-thumbnail {
@@ -1570,12 +1617,23 @@ const navigateToCustom = () => {
     left: 5%;
     right: 5%;
   }
+  
+  .product-header {
+    justify-content: center;
+  }
+  
+  .product-header h1 {
+    text-align: center;
+    margin-bottom: 15px;
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
   .reviews-summary {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
   }
 
   .average-rating {
@@ -1586,6 +1644,10 @@ const navigateToCustom = () => {
   .rating-stars {
     margin-bottom: 20px;
     margin-right: 0;
+  }
+  
+  .rating-bars {
+    width: 100%;
   }
 
   .timeline-point {
@@ -1598,32 +1660,72 @@ const navigateToCustom = () => {
   }
 
   .modal-nav.prev {
-    left: -40px;
+    left: 10px;
   }
 
   .modal-nav.next {
-    right: -40px;
+    right: 10px;
+  }
+  
+  .material-type {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  .specs-column {
+    text-align: center;
+  }
+  
+  .specs-column ul {
+    display: inline-block;
+    text-align: left;
   }
 }
 
 @media (max-width: 576px) {
+  .content-wrapper {
+    padding: 15px;
+    padding-top: 70px;
+  }
+  
+  .content-wrapper.has-voucher {
+    padding-top: 110px;
+  }
+
   .product-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
   }
 
   .product-header h1 {
     margin-bottom: 10px;
     margin-right: 0;
+    font-size: 20px;
+    text-align: center;
   }
 
   .rating-display {
     margin-bottom: 10px;
     margin-right: 0;
+    justify-content: center;
+  }
+  
+  .badges {
+    justify-content: center;
   }
 
   .timeline {
     padding: 60px 10px 30px;
+  }
+
+  .timeline-points {
+    margin: 0;
+  }
+  
+  .timeline-track {
+    left: 0;
+    right: 0;
   }
 
   .timeline-point {
@@ -1633,7 +1735,7 @@ const navigateToCustom = () => {
   .point-label {
     font-size: 10px;
     margin-bottom: 30px;
-    transform: rotate(-45deg);
+    white-space: nowrap;
   }
 
   .point-marker {
@@ -1643,37 +1745,137 @@ const navigateToCustom = () => {
 
   .point-time {
     font-size: 10px;
-    transform: rotate(-45deg);
   }
 
   .timeline-notes {
     flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 
   .review-header {
     flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .reviewer-info {
+    text-align: center;
+    margin-bottom: 10px;
   }
 
   .review-rating {
     width: 100%;
     margin-top: 0.5rem;
+    justify-content: center;
   }
 
   .review-images img {
     width: 60px;
     height: 60px;
   }
+  
+  .review-content {
+    text-align: center;
+  }
+  
+  .review-footer {
+    justify-content: center;
+  }
 
   .modal-thumbnails {
     display: none;
   }
-
-  .modal-nav.prev {
-    left: 10px;
+  
+  .price-section h2,
+  .specs-section h2,
+  .materials-section h2,
+  .processing-section h2,
+  .reviews-section h2 {
+    font-size: 16px;
+    padding: 12px 0;
   }
+  
+  .price-tier h3 {
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  .price-features {
+    display: inline-block;
+    text-align: left;
+  }
+  
+  .price-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .breadcrumbs {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .product-images {
+    padding: 10px;
+  }
+}
 
-  .modal-nav.next {
-    right: 10px;
+/* Extra small devices */
+@media (max-width: 375px) {
+  .content-wrapper {
+    padding: 10px;
+    padding-top: 65px;
+  }
+  
+  .content-wrapper.has-voucher {
+    padding-top: 105px;
+  }
+  
+  .product-header h1 {
+    font-size: 18px;
+  }
+  
+  .stars i {
+    font-size: 14px;
+  }
+  
+  .review-count {
+    font-size: 12px;
+  }
+  
+  .bestseller-badge {
+    font-size: 10px;
+    padding: 4px 12px;
+  }
+  
+  .order-now-btn {
+    font-size: 14px;
+    padding: 12px 0;
+  }
+  
+  .timeline-point {
+    transform: scale(0.8);
+  }
+  
+  .review-images {
+    gap: 5px;
+  }
+  
+  .review-images img {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .filter-chip {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+  
+  .material-image {
+    width: 120px;
+    height: 90px;
   }
 }
 </style>
