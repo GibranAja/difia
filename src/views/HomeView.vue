@@ -4,6 +4,7 @@
   <header id="home" :class="{ 'header-at-top': isAtTop }">
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
+  <main>
     <section class="popular">
       <div class="product-card">
         <i class="fas fa-solid fa-trophy right"></i>
@@ -57,6 +58,7 @@
       </div>
       <CardUlasan></CardUlasan>
     </section>
+  </main>
   <FooterComponent />
 </template>
 
@@ -325,6 +327,7 @@ header {
   width: 100%;
   height: 100%;
 }
+
 .popular {
   display: flex;
   justify-content: space-around;
@@ -413,6 +416,7 @@ header {
   bottom: 100px;
   background-color: #ffbb00;
 }
+
 .katalog .box-left {
   position: absolute;
   right: -70px;
@@ -562,10 +566,6 @@ header {
   color: white;
   border-color: #e8ba38;
 }
-.populer, .katalog, .blog, .partner, .ulasan {
-  width: 100%;
-
-}
 
 /* Add these responsive styles to your <style> section */
 
@@ -615,6 +615,7 @@ header {
     margin-top: 1rem;
     /* position: relative; */
   }
+
   .catalog-grid {
     gap: 1rem;
   }
@@ -622,6 +623,7 @@ header {
   .line {
     display: none;
   }
+
   .dot {
     display: none;
   }
@@ -629,10 +631,13 @@ header {
   .carousel-container {
     width: 100%;
   }
-  .right , .left {
-    display:none;
+
+  .right,
+  .left {
+    display: none;
   }
-  .load-more-container{
+
+  .load-more-container {
     width: 100%;
     margin-top: 0;
   }
