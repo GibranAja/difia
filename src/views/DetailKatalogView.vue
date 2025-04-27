@@ -551,30 +551,11 @@ const formatPrice = (price) => {
   return price ? price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '0'
 }
 
-// Function to save catalog to localStorage
-const saveCatalogToCache = (catalogData) => {
-  if (catalogData) {
-    localStorage.setItem(`catalog-${catalogData.id}`, JSON.stringify(catalogData))
-  }
-}
-
-// Function to get catalog from localStorage
-const getCatalogFromCache = (id) => {
-  const cached = localStorage.getItem(`catalog-${id}`)
-  return cached ? JSON.parse(cached) : null
-}
-
-// Load data on component mount
+// Load data on component mount without using localStorage
 onMounted(async () => {
   const id = route.params.id
 
-  // First try to get from cache
-  const cachedItem = getCatalogFromCache(id)
-  if (cachedItem) {
-    katalog.value = cachedItem
-  }
-
-  // Then try to find in existing store items
+  // Try to find in existing store items directly
   let item = katalogStore.katalogItems.find((k) => k.id === id)
 
   if (!item) {
@@ -585,8 +566,6 @@ onMounted(async () => {
 
   if (item) {
     katalog.value = item
-    // Save to cache for future use
-    saveCatalogToCache(item)
   }
 
   // Set up real-time reviews listener

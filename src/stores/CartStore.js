@@ -59,6 +59,22 @@ export const useCartStore = defineStore('cart', () => {
       const minQuantity = cartItem.customOptions.purchaseType === 'Satuan' ? 1 : 20
       const quantity = Math.max(cartItem.quantity || minQuantity, minQuantity)
 
+      // Create a sanitized version of customOptions to avoid Firestore errors
+      const sanitizedOptions = {
+        priceType: cartItem.customOptions.priceType,
+        bahanLuar: cartItem.customOptions.bahanLuar,
+        bahanDalam: cartItem.customOptions.bahanDalam,
+        aksesoris: cartItem.customOptions.aksesoris,
+        color: cartItem.customOptions.color,
+        purchaseType: cartItem.customOptions.purchaseType,
+        budgetPrice: cartItem.customOptions.budgetPrice,
+        note: cartItem.customOptions.note,
+        // Handle the logo reference but not the actual data
+        hasLogo: cartItem.customOptions.uploadedLogo ? true : false,
+        logoFileName: cartItem.customOptions.uploadedLogo ? 
+          `logo_${Date.now()}_${authStore.currentUser?.id?.substring(0, 5)}` : null
+      }
+
       const newItem = {
         userId: authStore.currentUser?.id,
         productId: cartItem.productId,
@@ -66,17 +82,7 @@ export const useCartStore = defineStore('cart', () => {
         image: cartItem.image,
         price: cartItem.price,
         quantity: quantity,
-        customOptions: {
-          priceType: cartItem.customOptions.priceType,
-          bahanLuar: cartItem.customOptions.bahanLuar,
-          bahanDalam: cartItem.customOptions.bahanDalam,
-          aksesoris: cartItem.customOptions.aksesoris,
-          color: cartItem.customOptions.color,
-          purchaseType: cartItem.customOptions.purchaseType,
-          budgetPrice: cartItem.customOptions.budgetPrice,
-          note: cartItem.customOptions.note,
-          uploadedLogo: cartItem.customOptions.uploadedLogo || null, // Changed from uploadedImage to uploadedLogo and added default null
-        },
+        customOptions: sanitizedOptions,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }
@@ -91,7 +97,17 @@ export const useCartStore = defineStore('cart', () => {
       }
 
       const docRef = await addDoc(collection(db, 'cart'), newItem)
-      cartItems.value.push({ id: docRef.id, ...newItem })
+      
+      // For UI purposes, we'll keep the logo in the local state but not in Firestore
+      cartItems.value.push({ 
+        id: docRef.id, 
+        ...newItem,
+        customOptions: {
+          ...newItem.customOptions,
+          // Keep the logo data in local state only
+          uploadedLogo: cartItem.customOptions.uploadedLogo
+        }
+      })
 
       toast.success('Item berhasil ditambahkan ke keranjang')
       return { success: true }
@@ -114,7 +130,6 @@ export const useCartStore = defineStore('cart', () => {
       await deleteDoc(doc(db, 'cart', itemId))
       cartItems.value = cartItems.value.filter((item) => item.id !== itemId)
 
-      toast.success('Item removed from cart')
       return { success: true }
     } catch (err) {
       error.value = err.message

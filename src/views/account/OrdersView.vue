@@ -209,7 +209,7 @@
                 <div v-if="order.status === 'complete'" class="completed-actions">
                   <router-link
                     :to="{
-                      path: '/checkout',
+                      path: `/custom/${order.productId}`,
                       query: { reorder: true, orderId: order.id },
                     }"
                     class="buy-again-btn"
@@ -1447,3 +1447,4 @@ input:focus {
   }
 }
 </style>
+```

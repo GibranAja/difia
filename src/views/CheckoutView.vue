@@ -158,6 +158,16 @@
           </div>
         </div>
 
+        <div v-if="discountAmount > 0" class="summary-item discount">
+          <span>Diskon Voucher</span>
+          <span class="discount-amount">-Rp {{ formatPrice(discountAmount) }}</span>
+        </div>
+
+        <div class="summary-item total">
+          <span>Total</span>
+          <span>Rp {{ formatPrice(finalTotal) }}</span>
+        </div>
+
         <div class="terms-checkbox">
           <label class="custom-checkbox">
             <input type="checkbox" v-model="acceptedTerms" id="termsCheckbox" />
