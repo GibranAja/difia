@@ -403,6 +403,23 @@ watch(purchaseType, (newType) => {
   }
   // No need to reset Satuan quantities, as they can be any value ≥ 1
 })
+
+// Add this computed property to determine if action buttons should be disabled
+const isActionDisabled = computed(() => {
+  // Basic validation checks
+  const basicValidation =
+    isSubmitting.value ||
+    !selectedBahanLuar.value ||
+    !selectedBahanDalam.value ||
+    !selectedAksesoris.value.length
+
+  // Additional logo check for Souvenir type
+  if (purchaseType.value === 'Souvenir' && !uploadedLogo.value) {
+    return true
+  }
+
+  return basicValidation
+})
 </script>
 
 <template>
@@ -720,22 +737,10 @@ watch(purchaseType, (newType) => {
 
       <!-- Action Buttons -->
       <div class="action-buttons">
-        <button
-          class="action-btn cart"
-          @click="addToCart"
-          :disabled="
-            isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
-          "
-        >
+        <button class="action-btn cart" @click="addToCart" :disabled="isActionDisabled">
           {{ isSubmitting ? 'Menambahkan...' : 'Masukan keranjang' }}
         </button>
-        <button
-          class="action-btn buy"
-          @click="handleBuyNow"
-          :disabled="
-            isSubmitting || !selectedBahanLuar || !selectedBahanDalam || !selectedAksesoris.length
-          "
-        >
+        <button class="action-btn buy" @click="handleBuyNow" :disabled="isActionDisabled">
           {{ isSubmitting ? 'Menambahkan...' : 'Beli Sekarang' }}
         </button>
       </div>

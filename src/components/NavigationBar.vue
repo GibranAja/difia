@@ -296,6 +296,8 @@ import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
+import { onSnapshot, collection, query, where } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 
 // Define props and emits
 defineProps({
@@ -545,6 +547,25 @@ const handleClickOutside = (event) => {
   }
 }
 
+// Set up real-time notification listener
+const setupNotificationListener = () => {
+  if (!authStore.isLoggedIn || !authStore.currentUser?.id) return null
+
+  // Create a query for this user's notifications
+  const notificationsRef = collection(db, 'notifications')
+  const userNotificationsQuery = query(
+    notificationsRef,
+    where('userId', '==', authStore.currentUser.id),
+    where('read', '==', false), // Only get unread notifications
+  )
+
+  // Set up real-time listener that updates the badge count
+  return onSnapshot(userNotificationsQuery, (snapshot) => {
+    // Update the unread count in real time
+    notificationStore.unreadCount = snapshot.docs.length
+  })
+}
+
 // Lifecycle hooks
 onMounted(() => {
   // Initialize scroll handler with throttle
@@ -566,10 +587,34 @@ onMounted(() => {
   if (authStore.isLoggedIn) {
     cartStore.fetchCartItems()
 
-    if (authStore.currentUser?.id) {
-      notificationStore.listenToNotifications()
-    }
+    // Set up real-time notification listener
+    const unsubscribeNotifications = setupNotificationListener()
+
+    // Store the unsubscribe function for cleanup
+    onUnmounted(() => {
+      if (unsubscribeNotifications) {
+        unsubscribeNotifications()
+      }
+    })
   }
+
+  // Watch for auth state changes
+  watch(
+    () => authStore.isLoggedIn,
+    (isLoggedIn) => {
+      if (isLoggedIn && authStore.currentUser?.id) {
+        // Set up real-time listener when user logs in
+        const unsubscribeNotifications = setupNotificationListener()
+
+        // Clean up on next login change
+        onUnmounted(() => {
+          if (unsubscribeNotifications) {
+            unsubscribeNotifications()
+          }
+        })
+      }
+    },
+  )
 
   // Fetch vouchers
   voucherStore.fetchVouchers()
@@ -578,6 +623,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
 
+// Ensure we clean up all event listeners
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   document.removeEventListener('click', handleClickOutside)
