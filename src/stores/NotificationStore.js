@@ -1,38 +1,104 @@
 // src/stores/NotificationStore.js
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { rtdb } from '@/config/firebase'
+import { ref } from 'vue'
 import {
   ref as dbRef,
-  onValue,
   push,
-  serverTimestamp as rtdbServerTimestamp,
   update,
-  remove,
+  onValue,
+  query as rtdbQuery,
+  orderByChild,
+  equalTo,
+  serverTimestamp as rtdbServerTimestamp,
 } from 'firebase/database'
+import { rtdb } from '@/config/firebase'
 import { useAuthStore } from './AuthStore'
 
 export const useNotificationStore = defineStore('notification', () => {
+  const authStore = useAuthStore()
   const notifications = ref([])
-  const unreadCount = ref(0)
   const loading = ref(false)
   const error = ref(null)
-  const authStore = useAuthStore()
+  let unsubscribeListener = null
 
-  // Get unread notifications count
-  const getUnreadCount = computed(() => {
-    return notifications.value.filter((notification) => !notification.read).length
-  })
+  // Listen to notifications
+  const listenToNotifications = () => {
+    if (unsubscribeListener) {
+      unsubscribeListener()
+    }
 
-  // Get user-specific notifications
-  const userNotifications = computed(() => {
-    return notifications.value
-      .filter(
-        (notification) =>
-          notification.type === 'global' || notification.userId === authStore.currentUser?.id,
+    loading.value = true
+    let notificationsRef
+
+    if (authStore.isAdmin) {
+      // Admin gets notifications marked with forAdmin = true
+      notificationsRef = dbRef(rtdb, 'notifications')
+
+      // Use onValue to listen for changes
+      unsubscribeListener = onValue(
+        notificationsRef,
+        (snapshot) => {
+          const notificationsData = []
+
+          snapshot.forEach((childSnapshot) => {
+            const notification = childSnapshot.val()
+            // Only include admin notifications
+            if (notification.forAdmin === true) {
+              notificationsData.push({
+                id: childSnapshot.key,
+                ...notification,
+              })
+            }
+          })
+
+          // Sort by timestamp in descending order (newest first)
+          notifications.value = notificationsData.sort((a, b) => b.timestamp - a.timestamp)
+          loading.value = false
+        },
+        (error) => {
+          console.error('Error fetching notifications:', error)
+          loading.value = false
+        },
       )
-      .sort((a, b) => b.timestamp - a.timestamp)
-  })
+    } else {
+      // Regular users get their own notifications
+      const userId = authStore.currentUser?.id
+      if (!userId) {
+        loading.value = false
+        return () => {}
+      }
+
+      notificationsRef = rtdbQuery(
+        dbRef(rtdb, 'notifications'),
+        orderByChild('userId'),
+        equalTo(userId),
+      )
+
+      unsubscribeListener = onValue(
+        notificationsRef,
+        (snapshot) => {
+          const notificationsData = []
+
+          snapshot.forEach((childSnapshot) => {
+            notificationsData.push({
+              id: childSnapshot.key,
+              ...childSnapshot.val(),
+            })
+          })
+
+          // Sort by timestamp in descending order (newest first)
+          notifications.value = notificationsData.sort((a, b) => b.timestamp - a.timestamp)
+          loading.value = false
+        },
+        (error) => {
+          console.error('Error fetching notifications:', error)
+          loading.value = false
+        },
+      )
+    }
+
+    return unsubscribeListener
+  }
 
   // Create notification
   const createNotification = async (data) => {
@@ -48,11 +114,24 @@ export const useNotificationStore = defineStore('notification', () => {
         icon: data.icon || 'fas fa-bell',
         color: data.color || '#e8ba38',
         link: data.link || null,
+        forAdmin: data.forAdmin || false, // Add this flag for admin notifications
         read: false,
         timestamp: rtdbServerTimestamp(),
       }
 
       await push(notificationRef, notification)
+
+      // Also create admin version of notification if this is an order notification
+      if (data.type === 'order' && !data.forAdmin) {
+        const adminNotification = {
+          ...notification,
+          forAdmin: true, // Mark for admin
+          userId: null, // Clear userId for admin notifications
+          title: `${data.title} (#${data.orderId?.slice(-6) || 'N/A'})`,
+        }
+        await push(notificationRef, adminNotification)
+      }
+
       return { success: true }
     } catch (err) {
       error.value = err.message
@@ -93,139 +172,107 @@ export const useNotificationStore = defineStore('notification', () => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const userId = authStore.currentUser?.id
-      if (!userId) return { success: false, error: 'User not authenticated' }
-
-      const userNotifs = notifications.value.filter(
-        (n) => n.userId === userId || n.type === 'global',
-      )
-
       const updates = {}
-      userNotifs.forEach((notification) => {
-        if (!notification.read) {
-          updates[`notifications/${notification.id}/read`] = true
-        }
-      })
 
-      if (Object.keys(updates).length > 0) {
-        await update(dbRef(rtdb), updates)
+      // For admin, mark all admin notifications as read
+      if (authStore.isAdmin) {
+        notifications.value
+          .filter((notification) => notification.forAdmin && !notification.read)
+          .forEach((notification) => {
+            updates[`notifications/${notification.id}/read`] = true
+            updates[`notifications/${notification.id}/readAt`] = rtdbServerTimestamp()
+          })
+      }
+      // For users, mark all their notifications as read
+      else {
+        notifications.value
+          .filter((notification) => !notification.read)
+          .forEach((notification) => {
+            updates[`notifications/${notification.id}/read`] = true
+            updates[`notifications/${notification.id}/readAt`] = rtdbServerTimestamp()
+          })
       }
 
-      // Update local state
-      notifications.value = notifications.value.map((n) => {
-        if (n.userId === userId || n.type === 'global') {
-          return { ...n, read: true }
-        }
-        return n
-      })
+      // If there are updates to make
+      if (Object.keys(updates).length > 0) {
+        await update(dbRef(rtdb), updates)
+
+        // Update local state
+        notifications.value = notifications.value.map((notification) => ({
+          ...notification,
+          read: true,
+        }))
+      }
 
       return { success: true }
-    } catch (err) {
-      error.value = err.message
-      return { success: false, error: err.message }
+    } catch (error) {
+      console.error('Error marking all as read:', error)
+      return { success: false, error: error.message }
     }
   }
 
-  // Set up listener for notifications
-  const listenToNotifications = () => {
-    const userId = authStore.currentUser?.id
-    if (!userId) return
-
-    loading.value = true
-
-    const notificationsRef = dbRef(rtdb, 'notifications')
-
-    onValue(
-      notificationsRef,
-      (snapshot) => {
-        loading.value = false
-        const data = snapshot.val() || {}
-
-        const notificationArray = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-          // Convert Firebase timestamp to JS Date if needed
-          timestamp: data[key].timestamp ? new Date(data[key].timestamp) : new Date(),
-        }))
-
-        // Filter to only include global notifications and user-specific ones
-        notifications.value = notificationArray.filter(
-          (n) => n.type === 'global' || n.userId === userId,
-        )
-
-        // Calculate unread count
-        unreadCount.value = notifications.value.filter((n) => !n.read).length
-      },
-      (err) => {
-        loading.value = false
-        error.value = err.message
-      },
-    )
-  }
-
-  // Get time elapsed since notification
-  const getTimeElapsed = (timestamp) => {
-    if (!timestamp) return 'Just now'
-
-    const now = new Date()
-    const notifTime = timestamp instanceof Date ? timestamp : new Date(timestamp)
-    const diffInMinutes = Math.floor((now - notifTime) / (1000 * 60))
-
-    if (diffInMinutes < 1) return 'Just now'
-    if (diffInMinutes < 60)
-      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`
-
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`
-
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`
-
-    const diffInWeeks = Math.floor(diffInDays / 7)
-    if (diffInWeeks < 4) return `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`
-
-    return notifTime.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
-  }
-
-  // Delete notifications
+  // Delete multiple notifications
   const deleteNotifications = async (notificationIds) => {
-    if (!notificationIds || notificationIds.length === 0) {
-      return { success: false, error: 'No notifications selected' }
+    if (!notificationIds || !notificationIds.length) {
+      return { success: false, error: 'No notification IDs provided' }
     }
 
     try {
-      // Delete notifications from Firebase Realtime Database
-      const deletePromises = notificationIds.map((id) => {
-        const notificationRef = dbRef(rtdb, `notifications/${id}`)
-        return remove(notificationRef)
+      const updates = {}
+
+      // Create batch of delete operations
+      notificationIds.forEach((id) => {
+        updates[`notifications/${id}`] = null
       })
 
-      await Promise.all(deletePromises)
+      // Execute batch delete
+      await update(dbRef(rtdb), updates)
 
-      // Update local state by removing deleted notifications
+      // Update local state by removing the deleted notifications
       notifications.value = notifications.value.filter(
         (notification) => !notificationIds.includes(notification.id),
       )
 
       return { success: true }
-    } catch (error) {
-      console.error('Error deleting notifications:', error)
-      return { success: false, error: error.message }
+    } catch (err) {
+      console.error('Error deleting notifications:', err)
+      error.value = err.message
+      return { success: false, error: err.message }
     }
+  }
+
+  // Format timestamp into human-readable "time ago" format
+  const getTimeElapsed = (timestamp) => {
+    if (!timestamp) return 'Tidak diketahui'
+
+    const now = new Date()
+    const notifTime = new Date(timestamp)
+    const diffInSeconds = Math.floor((now - notifTime) / 1000)
+
+    if (diffInSeconds < 60) return 'Baru saja'
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) return `${diffInMinutes} menit yang lalu`
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours} jam yang lalu`
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 7) return `${diffInDays} hari yang lalu`
+
+    // Format for older notifications
+    return notifTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
   return {
     notifications,
-    unreadCount,
     loading,
     error,
-    userNotifications,
     createNotification,
+    listenToNotifications,
     markAsRead,
     markAllAsRead,
-    listenToNotifications,
+    deleteNotifications, // Add this line
     getTimeElapsed,
-    getUnreadCount,
-    deleteNotifications, // Add this new method
   }
 })

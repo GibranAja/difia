@@ -116,6 +116,17 @@ export const useOrderStore = defineStore('order', () => {
         link: `/my-account/orders?search=${docRef.id}`,
       })
 
+      // Create admin notification for new order
+      await notificationStore.createNotification({
+        title: 'Pesanan Baru Masuk! 🛒',
+        message: `Pesanan baru #${docRef.id.slice(-6)} untuk ${currentOrder.value.name} (${currentOrder.value.quantity} pcs) telah masuk.`,
+        type: 'order',
+        forAdmin: true,
+        orderId: docRef.id,
+        icon: 'fas fa-shopping-bag',
+        color: '#0ea5e9',
+      })
+
       // Clear current order and payment proof after successful creation
       currentOrder.value = null
       paymentProof.value = null
@@ -131,7 +142,7 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  // Add this function to send notifications on order status updates
+  // Update the sendOrderStatusNotification function
   const sendOrderStatusNotification = async (orderId, status, userId) => {
     let notifData = {
       userId: userId,
@@ -139,6 +150,7 @@ export const useOrderStore = defineStore('order', () => {
       type: 'order',
     }
 
+    // Create user notification data
     switch (status) {
       case 'process':
         notifData = {
@@ -180,7 +192,31 @@ export const useOrderStore = defineStore('order', () => {
         return
     }
 
+    // Send user notification
     await notificationStore.createNotification(notifData)
+
+    // Create separate admin notification for specific status changes
+    if (status === 'cancelled') {
+      await notificationStore.createNotification({
+        title: 'Pesanan Dibatalkan ❌',
+        message: `Pesanan #${orderId.slice(-6)} telah dibatalkan oleh pelanggan.`,
+        type: 'order',
+        forAdmin: true,
+        orderId: orderId,
+        icon: 'fas fa-times-circle',
+        color: '#dc2626',
+      })
+    } else if (status === 'complete') {
+      await notificationStore.createNotification({
+        title: 'Pesanan Selesai ✅',
+        message: `Pesanan #${orderId.slice(-6)} telah dikonfirmasi selesai oleh pelanggan.`,
+        type: 'order',
+        forAdmin: true,
+        orderId: orderId,
+        icon: 'fas fa-check-circle',
+        color: '#16a34a',
+      })
+    }
   }
 
   // Get user orders

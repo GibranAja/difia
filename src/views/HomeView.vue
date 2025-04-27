@@ -10,9 +10,9 @@
         <i class="fas fa-solid fa-trophy right"></i>
         <i class="fas fa-solid fa-trophy left"></i>
         <span class="straight"></span>
-        <h1>
-          <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
-        </h1>
+        <div class="popular-section-header">
+          <h1><b>PRODUK P<i class="fas fa-crown"></i>PULER</b></h1>
+        </div>
         <CardPopuler />
       </div>
     </section>
@@ -228,14 +228,6 @@ const loadMoreBlogs = () => {
 const hasMoreBlogItems = computed(() => {
   return blogDisplayCount.value < blogStore.blogItems.length
 })
-
-// const popularKatalog = computed(() => {
-//   if (!katalogStore.katalogItems.length) return []
-//   const sortedKatalog = [...katalogStore.katalogItems].sort(
-//     (a, b) => (b.soldCount || 0) - (a.soldCount || 0),
-//   )
-//   return sortedKatalog.slice(0, 3)
-// })
 </script>
 
 <style scoped>
@@ -262,13 +254,6 @@ header {
   left: 0;
   width: 100%;
   z-index: 100;
-}
-
-@media (max-width: 768px) {
-  .header-at-top {
-    transform: translateY(60px);
-    /* Smaller offset for mobile */
-  }
 }
 
 /* STYLE UNTUK CAROUSEL PENGHARGAAN */
@@ -302,27 +287,6 @@ header {
   margin: 10px 0;
 }
 
-/* Responsive settings */
-@media (max-width: 1200px) {
-  .carousel-item {
-    flex: 0 0 33.33%;
-  }
-}
-
-@media (max-width: 992px) {
-  .carousel-item {
-    flex: 0 0 50%;
-  }
-}
-
-@media (max-width: 576px) {
-  .carousel-item {
-    flex: 0 0 100%;
-  }
-}
-
-/* END OF CAROUSEL STYLES */
-
 .foto-tentang-kami {
   width: 100%;
   height: 100%;
@@ -333,10 +297,9 @@ header {
   justify-content: space-around;
   align-items: center;
   flex-wrap: wrap;
-  /* padding: 10px; */
   position: relative;
   width: 100%;
-  /* height: 100vh */
+  padding: 30px 0;
 }
 
 .popular .right {
@@ -366,12 +329,19 @@ header {
   flex-wrap: wrap;
   width: 100%;
   position: relative;
-  /* height: 100vh; */
+}
+
+.popular-section-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
 }
 
 .product-card h1 {
   font-size: 4rem;
-  width: 100%;
   text-align: center;
   color: black;
 }
@@ -389,6 +359,25 @@ header {
   border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;
   position: absolute;
+}
+
+/* Mobile scroll indicator */
+.scroll-indicator {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(232, 186, 56, 0.12);
+  padding: 6px 12px;
+  border-radius: 20px;
+  position: absolute;
+  right: 20px;
+  font-size: 14px;
+  color: #02163b;
+}
+
+.scroll-indicator i {
+  font-size: 12px;
+  color: #e8ba38;
 }
 
 .katalog {
@@ -426,32 +415,6 @@ header {
   top: 100px;
   background-color: #02163b;
 }
-
-/* .katalog .rounded {
-  position: absolute;
-  right: 20px;
-  height: 150px;
-  width: 150px;
-  z-index: -1;
-  top: 100px;
-  rotate: 50deg;
-  background-color: #ffbb00;
-  border-radius: 100px;
-  border: 15px solid #ffbb00;
-}
-
-.katalog .rounded-left {
-  position: absolute;
-  left: 20px;
-  height: 150px;
-  width: 150px;
-  z-index: -1;
-  top: 100px;
-  rotate: 50deg;
-  background-color: #ffbb00;
-  border-radius: 100px;
-  border: 15px solid #ffbb00;
-} */
 
 .katalog .dot {
   width: 30%;
@@ -567,11 +530,13 @@ header {
   border-color: #e8ba38;
 }
 
-/* Add these responsive styles to your <style> section */
+/* Mobile-only elements */
+.mobile-only {
+  display: none;
+}
 
 /* General responsive adjustments */
 @media (max-width: 1200px) {
-
   .katalog h1,
   .blog h1,
   .partner h1,
@@ -606,6 +571,26 @@ header {
 }
 
 @media (max-width: 768px) {
+  .popular {
+    padding: 15px 0;
+  }
+  
+  .product-card h1 {
+    font-size: 2.2rem;
+  }
+  
+  /* Show scroll indicator on mobile */
+  .mobile-only {
+    display: flex;
+  }
+  
+  .popular-section-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 20px;
+    margin-bottom: 10px;
+  }
 
   .katalog,
   .blog,
@@ -613,7 +598,6 @@ header {
   .ulasan {
     padding: 10px;
     margin-top: 1rem;
-    /* position: relative; */
   }
 
   .catalog-grid {
@@ -641,6 +625,44 @@ header {
     width: 100%;
     margin-top: 0;
   }
+  
+  .product-card .straight {
+    height: 80px; /* Reduced height for mobile */
+  }
+  
+  /* For the popular section */
+  .popular {
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* Add fade gradient for horizontal scroll indication */
+  .popular:after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 40px;
+    background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.8));
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .popular .product-card :deep(.popular-cards-container) {
+    padding-left: 20px; /* Add left padding to the container */
+  }
+  
+  /* If the above doesn't work, you might need to target individual cards */
+  .popular .product-card :deep(.popular-card) {
+    margin-left: 4px; /* Add margin to individual cards */
+  }
+  
+  /* For the scrollable container if it exists */
+  .popular .product-card :deep(.scrollable-container) {
+    padding-left: 20px;
+    padding-right: 10px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -663,6 +685,10 @@ header {
 
   header {
     height: 70vh;
+  }
+  
+  .product-card h1 {
+    font-size: 1.8rem;
   }
 }
 

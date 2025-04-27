@@ -21,7 +21,7 @@
           <span class="review-count">({{ reviews.length }} ulasan)</span>
         </div>
         <div class="badges">
-          <span class="bestseller-badge">BESTSELLER</span>
+          <span class="bestseller-badge" v-if="isBestseller">BESTSELLER</span>
         </div>
       </div>
 
@@ -147,8 +147,22 @@
             <h3>Aksesoris</h3>
             <div class="material-samples">
               <div class="material-sample">
-                <div class="material-image accessory-image">
-                  <!-- Placeholder for aksesoris -->
+                <div
+                  class="material-image accessory-image"
+                  @click="openAccessoryModal"
+                  :class="{ 'has-images': katalog?.detail?.aksesorisImages?.length > 0 }"
+                >
+                  <img
+                    v-if="katalog?.detail?.aksesorisImages?.length > 0"
+                    :src="katalog.detail.aksesorisImages[0]"
+                    alt="Aksesoris"
+                  />
+                  <div
+                    v-if="katalog?.detail?.aksesorisImages?.length > 1"
+                    class="image-count-badge"
+                  >
+                    +{{ katalog.detail.aksesorisImages.length - 1 }}
+                  </div>
                 </div>
                 <span class="material-name">{{ katalog?.detail?.aksesoris || 'Aksesoris' }}</span>
               </div>
@@ -382,6 +396,46 @@
       </div>
     </div>
 
+    <!-- Accessory modal -->
+    <div v-if="showAccessoryModal" class="image-modal" @click="closeAccessoryModal">
+      <div class="modal-content" @click.stop>
+        <button class="modal-close" @click="closeAccessoryModal">
+          <i class="fas fa-times"></i>
+        </button>
+
+        <div class="modal-image-container">
+          <button
+            v-if="accessoryImages.length > 1"
+            class="modal-nav prev"
+            @click="prevAccessoryImage"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </button>
+
+          <img :src="accessoryImages[currentAccessoryIndex]" alt="Aksesoris" />
+
+          <button
+            v-if="accessoryImages.length > 1"
+            class="modal-nav next"
+            @click="nextAccessoryImage"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <div v-if="accessoryImages.length > 1" class="modal-thumbnails">
+          <div
+            v-for="(img, index) in accessoryImages"
+            :key="index"
+            :class="['modal-thumbnail', { active: currentAccessoryIndex === index }]"
+            @click="currentAccessoryIndex = index"
+          >
+            <img :src="img" alt="thumbnail" />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Include your existing footer component here -->
     <Footer />
   </div>
@@ -432,6 +486,41 @@ const hasActiveVouchers = computed(() => {
     return voucher.isActive && isNotExpired && hasRemainingUses
   })
 })
+
+// Add these with your other refs
+const popularProductIds = ref([])
+const isBestseller = computed(() => {
+  return popularProductIds.value.includes(route.params.id)
+})
+
+// Add this function to fetch top selling products
+const fetchPopularProducts = async () => {
+  try {
+    const ordersRef = collection(db, 'orders')
+    const q = query(ordersRef, orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+
+    const productSales = {}
+    snapshot.docs.forEach((doc) => {
+      const order = doc.data()
+      const productId = order.productId
+      const quantity = order.quantity || 1
+
+      if (productId) {
+        productSales[productId] = (productSales[productId] || 0) + quantity
+      }
+    })
+
+    const sortedProducts = Object.entries(productSales)
+      .map(([id, count]) => ({ id, soldCount: count }))
+      .sort((a, b) => b.soldCount - a.soldCount)
+      .slice(0, 3)
+
+    popularProductIds.value = sortedProducts.map((product) => product.id)
+  } catch (error) {
+    console.error('Error fetching popular products:', error)
+  }
+}
 
 // Set up real-time listener for vouchers
 const setupVoucherListener = () => {
@@ -509,6 +598,9 @@ onMounted(async () => {
   // Fetch vouchers and setup real-time listener
   await voucherStore.fetchVouchers()
   setupVoucherListener()
+
+  // Fetch popular products to determine bestsellers
+  await fetchPopularProducts()
 })
 
 // Clean up on component unmount
@@ -746,8 +838,42 @@ const goToModalImage = (index) => {
   currentModalImageIndex.value = index
 }
 
+// Accessory modal functionality
+const showAccessoryModal = ref(false)
+const accessoryImages = ref([])
+const currentAccessoryIndex = ref(0)
+
+const openAccessoryModal = () => {
+  if (katalog.value?.detail?.aksesorisImages?.length) {
+    accessoryImages.value = katalog.value.detail.aksesorisImages
+    currentAccessoryIndex.value = 0
+    showAccessoryModal.value = true
+    document.body.style.overflow = 'hidden' // Prevent background scrolling
+  }
+}
+
+const closeAccessoryModal = () => {
+  showAccessoryModal.value = false
+  document.body.style.overflow = '' // Restore background scrolling
+}
+
+const prevAccessoryImage = () => {
+  currentAccessoryIndex.value =
+    (currentAccessoryIndex.value - 1 + accessoryImages.value.length) % accessoryImages.value.length
+}
+
+const nextAccessoryImage = () => {
+  currentAccessoryIndex.value = (currentAccessoryIndex.value + 1) % accessoryImages.value.length
+}
+
 // Navigation method to custom page
 const navigateToCustom = () => {
+  if (!authStore.isLoggedIn) {
+    toast.warning('Anda harus login terlebih dahulu untuk memesan produk!')
+    router.push('/login')
+    return
+  }
+
   if (katalog.value && katalog.value.id) {
     router.push(`/custom/${katalog.value.id}`)
   }
@@ -771,7 +897,7 @@ const navigateToCustom = () => {
 }
 
 .content-wrapper.has-voucher {
-  padding-top: 115px; 
+  padding-top: 115px;
 }
 
 /* Breadcrumbs */
@@ -1083,6 +1209,41 @@ const navigateToCustom = () => {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.accessory-image.has-images {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.accessory-image.has-images:hover {
+  transform: scale(1.05);
+}
+
+.accessory-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-count-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+@media (max-width: 576px) {
+  .image-count-badge {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
 }
 
 .material-name {
@@ -1617,11 +1778,11 @@ const navigateToCustom = () => {
     left: 5%;
     right: 5%;
   }
-  
+
   .product-header {
     justify-content: center;
   }
-  
+
   .product-header h1 {
     text-align: center;
     margin-bottom: 15px;
@@ -1645,7 +1806,7 @@ const navigateToCustom = () => {
     margin-bottom: 20px;
     margin-right: 0;
   }
-  
+
   .rating-bars {
     width: 100%;
   }
@@ -1666,16 +1827,16 @@ const navigateToCustom = () => {
   .modal-nav.next {
     right: 10px;
   }
-  
+
   .material-type {
     width: 100%;
     margin-bottom: 20px;
   }
-  
+
   .specs-column {
     text-align: center;
   }
-  
+
   .specs-column ul {
     display: inline-block;
     text-align: left;
@@ -1687,7 +1848,7 @@ const navigateToCustom = () => {
     padding: 15px;
     padding-top: 70px;
   }
-  
+
   .content-wrapper.has-voucher {
     padding-top: 110px;
   }
@@ -1710,7 +1871,7 @@ const navigateToCustom = () => {
     margin-right: 0;
     justify-content: center;
   }
-  
+
   .badges {
     justify-content: center;
   }
@@ -1722,7 +1883,7 @@ const navigateToCustom = () => {
   .timeline-points {
     margin: 0;
   }
-  
+
   .timeline-track {
     left: 0;
     right: 0;
@@ -1757,7 +1918,7 @@ const navigateToCustom = () => {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .reviewer-info {
     text-align: center;
     margin-bottom: 10px;
@@ -1773,11 +1934,11 @@ const navigateToCustom = () => {
     width: 60px;
     height: 60px;
   }
-  
+
   .review-content {
     text-align: center;
   }
-  
+
   .review-footer {
     justify-content: center;
   }
@@ -1785,7 +1946,7 @@ const navigateToCustom = () => {
   .modal-thumbnails {
     display: none;
   }
-  
+
   .price-section h2,
   .specs-section h2,
   .materials-section h2,
@@ -1794,29 +1955,29 @@ const navigateToCustom = () => {
     font-size: 16px;
     padding: 12px 0;
   }
-  
+
   .price-tier h3 {
     font-size: 16px;
     text-align: center;
   }
-  
+
   .price-features {
     display: inline-block;
     text-align: left;
   }
-  
+
   .price-info {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  
+
   .breadcrumbs {
     justify-content: center;
     text-align: center;
   }
-  
+
   .product-images {
     padding: 10px;
   }
@@ -1828,51 +1989,51 @@ const navigateToCustom = () => {
     padding: 10px;
     padding-top: 65px;
   }
-  
+
   .content-wrapper.has-voucher {
     padding-top: 105px;
   }
-  
+
   .product-header h1 {
     font-size: 18px;
   }
-  
+
   .stars i {
     font-size: 14px;
   }
-  
+
   .review-count {
     font-size: 12px;
   }
-  
+
   .bestseller-badge {
     font-size: 10px;
     padding: 4px 12px;
   }
-  
+
   .order-now-btn {
     font-size: 14px;
     padding: 12px 0;
   }
-  
+
   .timeline-point {
     transform: scale(0.8);
   }
-  
+
   .review-images {
     gap: 5px;
   }
-  
+
   .review-images img {
     width: 50px;
     height: 50px;
   }
-  
+
   .filter-chip {
     padding: 0.3rem 0.6rem;
     font-size: 0.7rem;
   }
-  
+
   .material-image {
     width: 120px;
     height: 90px;

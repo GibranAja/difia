@@ -22,7 +22,7 @@
         <div class="card-seller__stats">
           <div class="sales">
             <i class="fas fa-shopping-cart"></i>
-            <span>Terjual {{ product.soldCount }}</span>
+            <span>{{ product.soldCount }}</span>
           </div>
           <div class="rating">
             <i class="fas fa-star"></i>
@@ -122,16 +122,6 @@ const getSoldCountClass = (soldCount) => {
   return 'low-sales'
 }
 
-// // Get dynamic style for cards
-// const getCardStyle = (index) => {
-//   const sizes = ['scale(1)', 'scale(0.9)', 'scale(0.8)']
-//   const yOffset = index * 20
-//   return {
-//     transform: `${sizes[index] || 'scale(1)'} translateY(${yOffset}px)`,
-//     zIndex: 1 - index,
-//   }
-// }
-
 const goToDetail = (productId) => {
   router.push(`/detail/${productId}`)
 }
@@ -145,18 +135,13 @@ onMounted(() => {
 .popular-cards-container {
   position: relative;
   display: flex;
-  /* gap: 10px; Jarak horizontal antar kartu */
-  /* justify-content: space-around; */
   gap: 20px;
   align-items: center;
   flex-wrap: wrap;
-  /* align-items: flex-start; Pastikan kartu tidak menumpuk */
-  /* width: 70%; */
 }
 
 .card-seller {
   width: 300px;
-  /* height: 300px; */
   border-radius: 10px;
   overflow: hidden;
   background-color: white;
@@ -165,7 +150,8 @@ onMounted(() => {
     box-shadow 0.3s ease;
   cursor: pointer;
   position: relative;
-  margin-bottom: 0px; /* Jarak vertikal antar kartu */
+  margin-bottom: 0px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card-seller:hover {
@@ -276,20 +262,6 @@ onMounted(() => {
   color: #e8ba38;
 }
 
-/* .high-sales {
-  transform: scale(1);
-  border: 2px solid #e8ba38;
-}
-
-.medium-sales {
-  transform: scale(1.05);
-  border: 2px solid #ccc;
-}
-
-.low-sales {
-  transform: scale(1);
-  border: 2px solid #A76545;
-} */
 .rank-badge {
   position: absolute;
   top: 0px;
@@ -317,18 +289,95 @@ onMounted(() => {
 .rank-color-3 {
   color: #cd7f32; /* Perunggu */
 }
+
+/* Mobile styles - horizontal scrolling */
 @media (max-width: 768px) {
   .popular-cards-container {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 12px 0;
+    margin: 0 -20px;
+    padding-left: 20px;
+    padding-right: 40px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity; /* Changed from mandatory to proximity for smoother scrolling */
+    gap: 15px;
+    position: relative;
+    justify-content: flex-start;
+    /* Hide scrollbar for clean look */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+
+  /* Add margin to first card */
+  .popular-cards-container > .card-seller:first-child {
+    margin-left: 10px; /* Increased from 1rem for better spacing */
+  }
+
+  /* Add margin to last card */
+  .popular-cards-container > .card-seller:last-child {
+    margin-right: 30px;
+  }
+
+  .popular-cards-container::-webkit-scrollbar {
+    display: none;
   }
 
   .card-seller {
-    width: 100%;
-    margin-bottom: 20px; /* Jarak vertikal antar kartu */
+    flex: 0 0 auto;
+    width: 180px; /* Mini cards for mobile */
+    scroll-snap-align: center; /* Changed from start to center for better scroll behavior */
+    margin-bottom: 0;
+    transform: none;
+    margin-right: 0;
+  }
+
+  .card-seller:hover {
+    transform: translateY(-3px); /* Reduced hover effect for touch */
+  }
+
+  .card-seller__image {
+    height: 120px; /* Smaller image height for mobile */
+  }
+
+  .bestseller-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .card-seller__content {
+    padding: 10px;
+  }
+
+  .card-seller__title {
+    font-size: 14px;
+    height: 32px;
+    -webkit-line-clamp: 2;
+    margin-bottom: 5px;
+  }
+
+  .card-seller__stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .sales,
+  .rating {
+    font-size: 14px;
+  }
+
+  .review-count {
+    font-size: 10px;
+  }
+
+  .rank-badge {
+    font-size: 16px;
+    width: 30px;
+    padding: 3px;
   }
 }
 </style>

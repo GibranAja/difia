@@ -78,9 +78,12 @@
 
           <!-- Notification and Profile -->
           <div class="nav-actions">
-            <!-- <button class="icon-btn notification-btn">
+            <button class="icon-btn notification-btn" @click="toggleNotificationModal">
               <i class="fas fa-bell"></i>
-            </button> -->
+              <span v-if="unreadAdminNotificationCount > 0" class="notification-badge">
+                {{ unreadAdminNotificationCount > 99 ? '99+' : unreadAdminNotificationCount }}
+              </span>
+            </button>
             <button class="icon-btn backup-btn" @click="showBackupModal = true">
               <i class="fas fa-cloud-upload-alt"></i>
             </button>
@@ -102,6 +105,11 @@
       @backup-complete="handleBackupComplete"
     />
     <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
+    <AdminNotificationModal
+      v-if="showNotificationModal"
+      :isOpen="showNotificationModal"
+      @close="showNotificationModal = false"
+    />
   </div>
 </template>
 
@@ -109,7 +117,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import SidebarAdmin from '../components/admin/SidebarAdmin.vue'
-import ModalProfile from '../components/ModalProfile.vue'
+import ModalProfile from '@/components/ModalProfile.vue'
 import { useRouter } from 'vue-router'
 
 // Add these imports at the top of your script section
@@ -119,10 +127,17 @@ import { useOrderStore } from '@/stores/OrderStore'
 import { usePartnerStore } from '@/stores/PartnerStore'
 import { useStaffStore } from '@/stores/StaffStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
+import { useNotificationStore } from '@/stores/NotificationStore'
 
 // Add these imports to your existing imports
 import BackupDataModal from '@/components/admin/BackupDataModal.vue'
 import { useToast } from 'vue-toastification'
+import AdminNotificationModal from '@/components/admin/AdminNotificationModal.vue'
+
+// Add these imports
+import { useAuthStore } from '@/stores/AuthStore'
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
@@ -137,6 +152,16 @@ const recentSearches = ref([])
 // Add these refs after your existing refs
 const showBackupModal = ref(false)
 const toast = useToast()
+const showNotificationModal = ref(false)
+
+// Update the computed property for unread notifications
+const unreadAdminNotificationCount = computed(() => {
+  return notificationStore.notifications.filter((notification) => !notification.read).length
+})
+
+const toggleNotificationModal = () => {
+  showNotificationModal.value = !showNotificationModal.value
+}
 
 // Initialize stores
 const katalogStore = useKatalogStore()
@@ -214,6 +239,12 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error fetching data:', error)
   }
+
+  // Set admin status so the notification store knows to fetch admin notifications
+  authStore.setAdminStatus(true)
+
+  // Set up notification listener
+  notificationStore.listenToNotifications()
 })
 
 onUnmounted(() => {
@@ -735,5 +766,28 @@ mark {
   border-top: 1px solid #eee;
   margin-top: 8px;
   padding-top: 16px;
+}
+
+/* Add notification badge styles */
+.notification-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid #e8ba38;
+  font-weight: bold;
 }
 </style>

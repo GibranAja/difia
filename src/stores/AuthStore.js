@@ -58,6 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
   const resetEmail = ref('')
   const verificationCode = ref(null)
   const isEmailVerified = ref(false)
+  const isAdmin = ref(false)
 
   const user = reactive({
     name: '',
@@ -66,6 +67,10 @@ export const useAuthStore = defineStore('auth', () => {
     password: '',
     profilePhoto: '',
   })
+
+  const setAdminStatus = (status) => {
+    isAdmin.value = status
+  }
 
   const redirectAfterAuth = async (isAdmin, router) => {
     try {
@@ -566,6 +571,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     authUser,
     logoutUser,
+    isAdmin,
+    setAdminStatus,
     initializeAuthState,
     signInWithGoogle,
     resetEmail,

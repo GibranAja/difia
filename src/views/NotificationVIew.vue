@@ -138,11 +138,17 @@ const dataLoaded = ref(false) // Flag to track if data was loaded
 
 // Computed properties
 const userNotifications = computed(() => {
-  return notificationStore.userNotifications.slice(0, notificationsLimit.value)
+  // Add a null check to prevent the error
+  if (!notificationStore.notifications) return []
+
+  // Filter for non-admin notifications (those without forAdmin flag)
+  return notificationStore.notifications
+    .filter((notification) => !notification.forAdmin)
+    .slice(0, notificationsLimit.value)
 })
 
 const hasUnread = computed(() => {
-  return notificationStore.getUnreadCount > 0
+  return userNotifications.value.some((notification) => !notification.read)
 })
 
 const isAllSelected = computed(() => {
@@ -271,60 +277,18 @@ const loadMoreNotifications = () => {
 }
 
 onMounted(async () => {
-  loading.value = true
-  let timeoutId = null
-  let unsubscribe = null
-
   try {
-    // Check auth state
-    if (!authStore.currentUser) {
-      await new Promise((resolve) => {
-        const authUnsubscribe = authStore.$subscribe(() => {
-          if (authStore.currentUser) {
-            authUnsubscribe()
-            resolve()
-          }
-        })
-      })
-    }
-
-    // Start listening to notifications
+    // Make sure to initialize the notifications listener
     await notificationStore.listenToNotifications()
 
-    // Check if data is already available (immediate check)
-    if (notificationStore.userNotifications.length > 0) {
-      canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
+    setTimeout(() => {
       loading.value = false
-      return // Skip subscription if we already have data
-    }
-
-    // Set up data subscription to track when data loads
-    unsubscribe = notificationStore.$subscribe(() => {
-      if (notificationStore.userNotifications.length > 0) {
-        // If data arrives before timeout, stop loading immediately
-        if (timeoutId) clearTimeout(timeoutId)
-        canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
-        loading.value = false
-
-        // Clean up subscription since we got data
-        if (unsubscribe) unsubscribe()
-      }
-    })
-
-    // Set a maximum timeout of 5 seconds for loading
-    timeoutId = setTimeout(() => {
-      // If we reach timeout, stop loading regardless
-      canLoadMore.value = notificationsLimit.value < notificationStore.userNotifications.length
-      loading.value = false
-
-      // Clean up subscription after timeout
-      if (unsubscribe) unsubscribe()
-    }, 5000)
+      dataLoaded.value = true
+      canLoadMore.value = notificationsLimit.value < notificationStore.notifications.length
+    }, 1000)
   } catch (error) {
     console.error('Error loading notifications:', error)
     loading.value = false
-    if (timeoutId) clearTimeout(timeoutId)
-    if (unsubscribe) unsubscribe()
   }
 })
 </script>

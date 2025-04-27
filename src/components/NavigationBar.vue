@@ -130,14 +130,18 @@
             <!-- Bottom Action Bar -->
             <div class="mobile-menu-footer">
               <div class="quick-actions">
-                <button class="action-circle" @click="handleNotificationClick">
+                <button
+                  v-if="authStore.isLoggedIn"
+                  class="action-circle"
+                  @click="handleNotificationClick"
+                >
                   <i class="fas fa-bell"></i>
                   <span v-if="notificationStore.unreadCount > 0" class="action-badge">
                     {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
                   </span>
                 </button>
 
-                <button class="action-circle" @click="navigateToCart">
+                <button v-if="authStore.isLoggedIn" class="action-circle" @click="navigateToCart">
                   <i class="fas fa-shopping-cart"></i>
                   <span v-if="cartItemCount > 0" class="action-badge">
                     {{ cartItemCount > 99 ? '99+' : cartItemCount }}
@@ -186,6 +190,7 @@
           <!-- Hidden on mobile: Desktop User Actions -->
           <div class="user-actions desktop-only">
             <button
+              v-if="authStore.isLoggedIn"
               class="action-button notification-button"
               @click="handleNotificationClick"
               aria-label="Notifications"
@@ -199,13 +204,14 @@
             </button>
 
             <button
+              v-if="authStore.isLoggedIn"
               class="action-button cart-button"
               @click="navigateToCart"
               aria-label="Shopping Cart"
             >
               <div class="button-content">
                 <i class="fas fa-shopping-cart"></i>
-                <div v-if="cartItemCount > 0" class="cart-badge">
+                <div v-if="cartItemCount > 0" class="notification-badge">
                   {{ cartItemCount > 99 ? '99+' : cartItemCount }}
                 </div>
               </div>

@@ -654,6 +654,7 @@ const handleGoogleSignIn = async () => {
   font-family: 'Montserrat', sans-serif;
 }
 
+/* Fix container centering */
 .auth-container {
   display: flex;
   width: 100%;
@@ -662,49 +663,34 @@ const handleGoogleSignIn = async () => {
   border-radius: 20px;
   overflow: hidden;
   position: relative;
+  margin: 0 auto; /* Center horizontally */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
+/* Fix content centering */
 .auth-content {
   flex: 1;
   padding: 3rem 4rem;
   max-width: 600px;
   order: 1;
+  margin: 0 auto; /* Center content */
+  width: 100%; /* Ensure full width */
+  box-sizing: border-box; /* Include padding in width */
 }
 
-.auth-title {
-  font-size: 3rem;
-  color: #02163b;
-  margin-bottom: 3rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.auth-form {
-  width: 100%;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-/* Form labels */
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #333;
-}
-
-/* Update input styles */
+/* Fix input styling to prevent truncation */
 .auth-input {
   width: 100%;
   padding: 1rem 1.5rem;
-  border: 2px solid #c2c2c2; /* Light gray border */
+  border: 2px solid #c2c2c2;
   border-radius: 50px;
   background-color: #e8ba38;
   font-size: 1.1rem;
   color: #000000;
   transition: border-color 0.3s ease;
+  box-sizing: border-box; /* Fix sizing calculation */
+  max-width: 100%; /* Prevent overflow */
+  text-overflow: ellipsis; /* Handle text overflow */
 }
 
 .auth-input:focus {
@@ -735,6 +721,29 @@ const handleGoogleSignIn = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Better center form */
+.auth-form {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  width: 100%; /* Full width */
+  position: relative; /* For positioning children */
+}
+
+/* Form labels */
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
 }
 
 .auth-links {
@@ -812,7 +821,8 @@ const handleGoogleSignIn = async () => {
 }
 
 .submit-button {
-  width: 65%;
+  width: 100%; /* Change from 65% to 100% for full width */
+  max-width: 400px; /* Add a maximum width to prevent it from being too wide on large screens */
   margin: 0 auto;
   display: block;
 }
@@ -821,6 +831,7 @@ const handleGoogleSignIn = async () => {
   display: flex;
   justify-content: center;
   margin-top: 2rem;
+  width: 100%; /* Ensure the container is full width */
 }
 
 .google-button:hover,
@@ -1008,65 +1019,108 @@ const handleGoogleSignIn = async () => {
   margin-bottom: 1.5rem;
 }
 
-/* Media query for mobile responsiveness */
+/* Mobile improvements */
 @media (max-width: 768px) {
   .auth-container {
     flex-direction: column;
-  }
-
-  .auth-content,
-  .logo-container,
-  .logo-container.logo-left,
-  .logo-container.logo-left + .auth-content {
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    background-color: #fff;
     width: 100%;
-    order: 0;
-    padding: 2rem;
   }
 
+  /* Hide logo on mobile */
   .logo-container {
-    justify-content: center;
-  }
-
-  .difia-logo {
-    max-width: 200px;
-  }
-
-  .step-indicator {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .step {
-    flex-direction: row;
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-
-  .step-number {
-    margin-bottom: 0;
-    margin-right: 1rem;
-  }
-
-  .step-line {
     display: none;
   }
 
-  .payment-method-options {
-    flex-direction: column;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .back-button {
-    margin-right: 0;
-    margin-bottom: 1rem;
+  .auth-content {
+    padding: 1.5rem;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: 20px;
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 auto; /* Ensure proper centering */
+    order: 1; /* Reset order to ensure proper display */
   }
 
+  /* Add additional centering for auth-title */
+  .auth-title {
+    text-align: center;
+    width: 100%;
+    margin: 1rem 0 2rem;
+  }
+
+  .auth-form {
+    padding: 0;
+    width: 100%;
+    display: flex;
+    align-items: center; /* Center form items */
+  }
+
+  /* Ensure input fields don't get cut off and are centered properly */
+  .auth-input {
+    padding: 0.9rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Fix button widths for mobile */
   .submit-button {
+    max-width: 100%; /* Remove max-width restriction on mobile */
+  }
+
+  /* When there are two buttons in form-actions (back and next) */
+  .form-actions {
     width: 100%;
+    flex-direction: column-reverse; /* Stack buttons with primary action on top */
+    gap: 1rem;
+  }
+
+  /* Make back button full width too when in multi-step form */
+  .back-button {
+    width: 100%;
+    margin-right: 0;
+    margin-top: 0.5rem;
+  }
+
+  /* Register container full width */
+  .register-container {
+    width: 100%;
+  }
+
+  /* Step indicator needs more breathing room */
+  .step-indicator {
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  /* Ensure auth links are centered */
+  .auth-links {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+/* Fix button widths */
+.google-button,
+.submit-button,
+.back-button {
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .submit-button,
+  .back-button {
+    max-width: 100%;
   }
 }
 
