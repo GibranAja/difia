@@ -296,8 +296,9 @@ import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
-import { onSnapshot, collection, query, where } from 'firebase/firestore'
 import { db } from '@/config/firebase'
+import { ref as dbRef, onValue, query as rtdbQuery, orderByChild, equalTo } from 'firebase/database'
+import { rtdb } from '@/config/firebase'
 
 // Define props and emits
 defineProps({
@@ -551,19 +552,38 @@ const handleClickOutside = (event) => {
 const setupNotificationListener = () => {
   if (!authStore.isLoggedIn || !authStore.currentUser?.id) return null
 
-  // Create a query for this user's notifications
-  const notificationsRef = collection(db, 'notifications')
-  const userNotificationsQuery = query(
+  // Use RTDB reference instead of Firestore
+  const notificationsRefPath = 'notifications'
+  const notificationsRef = dbRef(rtdb, notificationsRefPath)
+
+  // Create RTDB query
+  const userNotificationsQuery = rtdbQuery(
     notificationsRef,
-    where('userId', '==', authStore.currentUser.id),
-    where('read', '==', false), // Only get unread notifications
+    orderByChild('userId'),
+    equalTo(authStore.currentUser.id),
   )
 
-  // Set up real-time listener that updates the badge count
-  return onSnapshot(userNotificationsQuery, (snapshot) => {
-    // Update the unread count in real time
-    notificationStore.unreadCount = snapshot.docs.length
-  })
+  // Set up real-time listener with onValue for RTDB
+  return onValue(
+    userNotificationsQuery,
+    (snapshot) => {
+      let unreadCount = 0
+
+      // Count unread notifications
+      snapshot.forEach((childSnapshot) => {
+        const notification = childSnapshot.val()
+        if (notification && notification.read === false) {
+          unreadCount++
+        }
+      })
+
+      // Update the unread count in real time
+      notificationStore.unreadCount = unreadCount
+    },
+    (error) => {
+      console.error('Error fetching notifications:', error)
+    },
+  )
 }
 
 // Lifecycle hooks
@@ -1709,3 +1729,4 @@ nav {
   animation-delay: 0.3s;
 }
 </style>
+```
