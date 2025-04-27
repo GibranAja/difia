@@ -103,7 +103,12 @@ if (!authStore.isAdmin) {
 const adminNotifications = computed(() => {
   // Filter for notifications that have forAdmin=true
   return notificationStore.notifications
-    .filter((notification) => notification.forAdmin === true)
+    .filter(notification => {
+      // Only include notifications explicitly marked for admin
+      return notification.forAdmin === true && 
+             // Exclude any notifications that might have a userId (these are user-specific)
+             (notification.userId === null || notification.userId === undefined)
+    })
     .slice(0, limit.value)
 })
 

@@ -114,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import NavigationBar from '@/components/NavigationBar.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
 import VoucherNotification from '@/components/VoucherNotification.vue'
@@ -278,14 +278,28 @@ const loadMoreNotifications = () => {
 
 onMounted(async () => {
   try {
-    // Make sure to initialize the notifications listener
+    // Initialize notifications listener
     await notificationStore.listenToNotifications()
 
-    setTimeout(() => {
+    // Check if we already have notifications data
+    if (notificationStore.notifications && notificationStore.notifications.length > 0) {
+      // Data already loaded, turn off loading immediately
       loading.value = false
       dataLoaded.value = true
       canLoadMore.value = notificationsLimit.value < notificationStore.notifications.length
-    }, 1000)
+    } else {
+      // Set a shorter timeout or use a watcher
+      const checkDataTimer = setTimeout(() => {
+        loading.value = false
+        dataLoaded.value = true
+        canLoadMore.value = notificationsLimit.value < notificationStore.notifications.length
+      }, 300) // Shorter timeout
+
+      // Clean up the timeout if component unmounts
+      onUnmounted(() => {
+        clearTimeout(checkDataTimer)
+      })
+    }
   } catch (error) {
     console.error('Error loading notifications:', error)
     loading.value = false

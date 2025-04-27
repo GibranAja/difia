@@ -114,7 +114,7 @@ export const useNotificationStore = defineStore('notification', () => {
         icon: data.icon || 'fas fa-bell',
         color: data.color || '#e8ba38',
         link: data.link || null,
-        forAdmin: data.forAdmin || false, // Add this flag for admin notifications
+        forAdmin: data.forAdmin === true, // Explicitly boolean, defaults to false
         read: false,
         timestamp: rtdbServerTimestamp(),
       }
