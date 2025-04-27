@@ -89,7 +89,7 @@ onMounted(async () => {
 }
 @media (max-width: 768px) {
   .card {
-    width: 100%;
+    width: 90%;
     height: auto;
     padding: 0;
   }
