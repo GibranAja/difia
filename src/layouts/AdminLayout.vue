@@ -84,7 +84,7 @@
             <button class="icon-btn backup-btn" @click="showBackupModal = true">
               <i class="fas fa-cloud-upload-alt"></i>
             </button>
-            <button class="icon-btn profile-btn">
+            <button class="icon-btn profile-btn" @click="showProfileModal = true">
               <i class="fas fa-user"></i>
             </button>
           </div>
@@ -101,6 +101,7 @@
       @close="showBackupModal = false"
       @backup-complete="handleBackupComplete"
     />
+    <ModalProfile v-if="showProfileModal" @close="showProfileModal = false" />
   </div>
 </template>
 
@@ -108,6 +109,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import SidebarAdmin from '../components/admin/SidebarAdmin.vue'
+import ModalProfile from '../components/ModalProfile.vue'
 import { useRouter } from 'vue-router'
 
 // Add these imports at the top of your script section
@@ -128,6 +130,7 @@ const isMobile = ref(false)
 const router = useRouter()
 const searchQuery = ref('')
 const showSearchOverlay = ref(false)
+const showProfileModal = ref(false)
 const searchResults = ref([])
 const recentSearches = ref([])
 
@@ -290,7 +293,7 @@ const handleSearch = () => {
           route: '/admin/order',
         })
       }
-      
+
       // Also check if customer name contains query
       if (order.shippingDetails?.name?.toLowerCase().includes(query)) {
         results.push({

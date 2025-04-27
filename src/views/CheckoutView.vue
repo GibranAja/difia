@@ -141,16 +141,21 @@
         </div>
         <div class="summary-item">
           <span>Pengiriman</span>
-          <span v-if="isLoadingShipping">Menghitung...</span>
-          <span v-else>Rp {{ formatPrice(shippingCost) }}</span>
-        </div>
-        <div v-if="discountAmount > 0" class="summary-item discount">
-          <span>Diskon Voucher</span>
-          <span class="discount-amount">-Rp {{ formatPrice(discountAmount) }}</span>
-        </div>
-        <div class="summary-item total">
-          <span>Total</span>
-          <span>Rp {{ formatPrice(finalTotal) }}</span>
+          <div class="shipping-info-column">
+            <span v-if="isLoadingShipping">Menghitung...</span>
+            <template v-else>
+              <span>Rp {{ formatPrice(shippingCost) }}</span>
+              <div class="shipping-details">
+                <span class="shipping-method">
+                  <i class="fas fa-truck"></i>
+                  {{ orderStore.currentOrder?.quantity >= 20 ? 'JNE Cargo' : 'JNE Reguler' }}
+                </span>
+                <span class="shipping-weight" v-if="itemWeight > 0">
+                  Berat: {{ totalWeight }}g
+                </span>
+              </div>
+            </template>
+          </div>
         </div>
 
         <div class="terms-checkbox">
@@ -243,11 +248,62 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile Fixed Order Summary -->
+    <div class="order-summary-mobile-fixed" v-if="checkoutItems.length > 0">
+      <div class="summary-mobile-header">
+        <h3>Total Pembayaran</h3>
+        <button class="summary-mobile-toggle" @click="toggleMobileSummary">
+          {{ isMobileSummaryExpanded ? 'Tutup' : 'Detail' }}
+          <i :class="['fas', isMobileSummaryExpanded ? 'fa-chevron-down' : 'fa-chevron-up']"></i>
+        </button>
+      </div>
+
+      <div :class="['summary-mobile-content', { expanded: isMobileSummaryExpanded }]">
+        <div class="summary-item">
+          <span>Subtotal ({{ totalItems }} item)</span>
+          <span>Rp {{ formatPrice(getTotalSubtotal) }}</span>
+        </div>
+        <div class="summary-item">
+          <span>Pengiriman</span>
+          <span v-if="isLoadingShipping">Menghitung...</span>
+          <span v-else>Rp {{ formatPrice(shippingCost) }}</span>
+        </div>
+        <div v-if="discountAmount > 0" class="summary-item discount">
+          <span>Diskon Voucher</span>
+          <span class="discount-amount">-Rp {{ formatPrice(discountAmount) }}</span>
+        </div>
+
+        <div class="terms-checkbox">
+          <label class="custom-checkbox">
+            <input type="checkbox" v-model="acceptedTerms" id="termsCheckboxMobile" />
+            <span class="checkmark"></span>
+            <span class="terms-text">
+              Saya menyetujui
+              <a href="/terms" target="_blank" class="terms-link">Syarat & Ketentuan</a>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="summary-mobile-bottom">
+        <div class="mobile-total-amount">Rp {{ formatPrice(finalTotal) }}</div>
+        <button
+          class="mobile-checkout-button"
+          :disabled="!isCheckoutEnabled || isProcessing"
+          @click="handleSubmitOrder"
+        >
+          {{ isProcessing ? 'Process...' : 'Bayar' }}
+        </button>
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useOrderStore } from '@/stores/OrderStore'
@@ -374,9 +430,56 @@ const calculateShipping = async (address) => {
     )
 
     if (city) {
-      const weight = orderStore.currentOrder?.quantity * 1000 || 1000
-      const costs = await rajaOngkir.calculateShipping(city.city_id, weight, courier.value)
-      shippingCost.value = costs[0]?.cost[0]?.value || 0
+      // Determine shipping method based on quantity
+      const quantity = orderStore.currentOrder?.quantity || 0
+      const isPurchaseBulk = quantity >= 20
+
+      // Set courier based on order size
+      const shippingCourier = isPurchaseBulk ? 'jne' : courier.value // Use JNE cargo for bulk orders
+      const shippingService = isPurchaseBulk ? 'cargo' : 'reg'
+
+      // Get the item weight from product data (in grams)
+      let itemWeight = 0
+      if (orderStore.currentOrder?.productId) {
+        try {
+          const productRef = doc(db, 'katalog', orderStore.currentOrder.productId)
+          const productDoc = await getDoc(productRef)
+
+          if (productDoc.exists()) {
+            // Get weight from product data - default to 0 if not available
+            itemWeight = productDoc.data().detail?.berat || 0
+          }
+        } catch (err) {
+          console.error('Error fetching product weight:', err)
+          itemWeight = 0
+        }
+      }
+
+      // Calculate total weight in grams
+      const totalWeight = Math.max(itemWeight * quantity, 100) // Minimum 100g
+
+      // Calculate shipping
+      const costs = await rajaOngkir.calculateShipping(
+        city.city_id,
+        totalWeight,
+        shippingCourier,
+        isPurchaseBulk ? shippingService : null,
+      )
+
+      // Select the appropriate cost based on service type
+      if (costs && costs.length > 0) {
+        if (isPurchaseBulk) {
+          // For bulk orders, find cargo service
+          const cargoService = costs.find((c) => c.service.toLowerCase().includes('cargo'))
+          shippingCost.value = cargoService?.cost[0]?.value || costs[0]?.cost[0]?.value || 0
+        } else {
+          // For regular orders, use regular service
+          const regService = costs.find((c) => c.service.toLowerCase().includes('reg'))
+          shippingCost.value = regService?.cost[0]?.value || costs[0]?.cost[0]?.value || 0
+        }
+      } else {
+        shippingCost.value = 0
+      }
     } else {
       console.error('City not found:', address.city)
       shippingCost.value = 0
@@ -405,23 +508,24 @@ const getTotalSubtotal = computed(() => {
 
 const getOrderFromLocal = () => {
   try {
-    const checkoutData = localStorage.getItem('checkout_items')
+    const checkoutData = localStorage.getItem('currentOrder')
     if (!checkoutData) return null
 
     const data = JSON.parse(checkoutData)
-    if (Date.now() - data.timestamp > 30 * 60 * 1000) {
-      localStorage.removeItem('checkout_items')
+
+    // Only check timestamp if we're validating age
+    // Don't reject the order if it has valid product data
+    if (!data || (!data.productId && !data.name)) return null
+
+    // Check if data is too old (> 24 hours) if timestamp exists
+    if (data.timestamp && Date.now() - data.timestamp > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('currentOrder')
       return null
     }
 
-    if (data.userId !== authStore.currentUser?.id) {
-      localStorage.removeItem('checkout_items')
-      return null
-    }
-
-    return data.items[0]
+    return data
   } catch (error) {
-    console.error('Error getting order from local:', error)
+    console.error('Error loading current order:', error)
     return null
   }
 }
@@ -815,6 +919,14 @@ onBeforeRouteLeave((to, from, next) => {
   localStorage.removeItem('currentOrder')
   next()
 })
+
+// Add these new data properties for mobile
+const isMobileSummaryExpanded = ref(false)
+
+// Add this new method for mobile
+const toggleMobileSummary = () => {
+  isMobileSummaryExpanded.value = !isMobileSummaryExpanded.value
+}
 
 onMounted(async () => {
   try {
@@ -1313,8 +1425,15 @@ onMounted(async () => {
 .upload-area i {
   font-size: 3rem;
   color: #ccc;
-  margin-bottom: 1rem;
   transition: transform 0.3s;
+  margin-bottom: 0; /* Remove margin-bottom as we're using gap now */
+}
+
+.upload-area div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem; /* Add gap between icon and text */
 }
 
 .upload-area:hover i {
@@ -1635,13 +1754,16 @@ onMounted(async () => {
 }
 
 @keyframes dots {
-  0% {
+  0%,
+  20% {
     content: '.';
   }
-  33% {
+  40%,
+  60% {
     content: '..';
   }
-  66% {
+  80%,
+  100% {
     content: '...';
   }
 }
@@ -1952,6 +2074,10 @@ onMounted(async () => {
   text-decoration: none;
 }
 
+.order-summary-mobile-fixed {
+  display: none; /* Hidden by default with higher specificity */
+}
+
 .return-cart-btn:hover {
   background-color: #032968;
   transform: translateY(-2px);
@@ -1972,35 +2098,276 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .checkout-header {
+  .checkout-container {
+    margin: 1rem auto 8rem; /* Keep vertical margins */
+    padding: 0; /* Remove horizontal padding */
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .checkout-section {
+    padding: 1.25rem;
     margin-bottom: 1.5rem;
+    width: 100%; /* Ensure full width */
+    box-sizing: border-box; /* Include padding in width calculation */
   }
 
-  .header-title h1 {
-    font-size: 1.5rem;
+  /* Center all content sections */
+  .checkout-section > * {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%; /* Ensure full width */
   }
 
-  .address-labels {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  /* All elements should be full width */
+  .address-card,
+  .voucher-input,
+  .qr-code,
+  .upload-area {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
+
+  .order-summary-mobile-fixed {
+    display: none; /* Hidden by default, will show in mobile */
   }
 }
 
+/* Smaller mobile screens */
 @media (max-width: 576px) {
   .checkout-container {
-    margin: 1rem auto 3rem;
-    padding: 0 1rem;
+    margin: 0.5rem auto 8rem; /* Keep vertical margins */
+    padding: 0; /* Remove horizontal padding */
   }
 
   .modal-content {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    width: 95%;
   }
 
   .modal-title {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .address-labels {
+    grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .label-option {
+    padding: 0.7rem 0.4rem;
+  }
+
+  .label-option i {
+    font-size: 1.2rem;
   }
 
   .upload-area {
-    min-height: 150px;
+    min-height: 120px;
+  }
+
+  .upload-area div {
+    gap: 0.75rem; /* Slightly smaller gap for mobile */
+  }
+
+  .upload-area i {
+    font-size: 2.5rem;
+  }
+
+  .voucher-input {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .voucher-input input {
+    flex: 1;
+    height: 44px;
+  }
+
+  .voucher-button {
+    width: auto;
+    min-width: 90px;
+    padding: 0 0.8rem;
+    white-space: nowrap;
+    height: 44px;
+  }
+
+  /* More compact address cards */
+  .address-card {
+    padding: 1rem;
+  }
+
+  .recipient {
+    font-size: 0.95rem;
+  }
+
+  .full-address {
+    font-size: 0.85rem;
+  }
+
+  /* Enhanced mobile order summary */
+  .order-summary {
+    display: none; /* Hide the original order summary */
+  }
+
+  .order-summary-mobile-fixed {
+    display: flex; /* Show the mobile fixed version */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    z-index: 100;
+    flex-direction: column;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+  }
+
+  .summary-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .summary-mobile-toggle {
+    background: none;
+    border: none;
+    color: #02163b;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .summary-mobile-content {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+  }
+
+  .summary-mobile-content.expanded {
+    max-height: 300px;
+  }
+
+  .summary-mobile-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .mobile-total-amount {
+    font-weight: 700;
+    color: #02163b;
+    font-size: 1.1rem;
+  }
+
+  .mobile-checkout-button {
+    padding: 0.75rem 1.25rem;
+    background-color: #e8ba38;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    width: 60%;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+  }
+
+  /* Improved touch targets for mobile */
+  button,
+  .label-option,
+  .address-card,
+  .custom-checkbox {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+  }
+
+  /* Improve spacing for terms checkbox on mobile */
+  .terms-checkbox {
+    margin: 1rem 0;
+    width: 100%;
+  }
+
+  .custom-checkbox {
+    padding: 0.5rem 0;
+  }
+
+  .terms-text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+}
+
+/* Animation for mobile summary */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Shipping Info Column */
+.shipping-info-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.shipping-details {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  color: #666;
+}
+
+.shipping-method {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shipping-method i {
+  color: #02163b;
+}
+
+.shipping-weight {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Media query adjustments */
+@media (max-width: 576px) {
+  .shipping-details {
+    flex-direction: row;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .order-summary-mobile-fixed .shipping-info-column {
+    align-items: flex-end;
+  }
+
+  .order-summary-mobile-fixed .shipping-details {
+    font-size: 0.7rem;
+    opacity: 0.8;
   }
 }
 </style>

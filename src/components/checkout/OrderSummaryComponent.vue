@@ -20,6 +20,10 @@
             <span>{{ item.customOptions.priceType }}</span>
           </div>
           <div class="spec-item">
+            <span class="spec-label">Berat produk:</span>
+            <span>{{ getItemWeight(item) }} gram</span>
+          </div>
+          <div class="spec-item">
             <span class="spec-label">Bahan Luar:</span>
             <span>{{ item.customOptions.bahanLuar }}</span>
           </div>
@@ -63,6 +67,10 @@
               <span>{{ item.customOptions.priceType }}</span>
             </div>
             <div class="spec-item">
+              <span class="spec-label">Berat:</span>
+              <span>{{ getItemWeight(item) }} gram</span>
+            </div>
+            <div class="spec-item">
               <span class="spec-label">Bahan Luar:</span>
               <span>{{ item.customOptions.bahanLuar }}</span>
             </div>
@@ -82,7 +90,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useKatalogStore } from '@/stores/KatalogStore'
+
+const katalogStore = useKatalogStore()
 
 const props = defineProps({
   checkoutItems: {
@@ -118,6 +129,29 @@ const toggleShowMore = () => {
 const formatPrice = (price) => {
   return price.toLocaleString('id-ID')
 }
+
+// Helper function to get item weight from catalog
+const getItemWeight = (item) => {
+  // Try to get weight from the item itself first
+  if (item.detail?.berat) return item.detail.berat
+  if (item.customOptions?.weight) return item.customOptions.weight
+  if (item.weight) return item.weight
+
+  // If not found, try to find the original katalog item
+  const katalogItem = katalogStore.katalogItems.find((k) => k.id === item.productId)
+  if (katalogItem?.detail?.berat) return katalogItem.detail.berat
+
+  // Default fallback
+  return 0
+}
+
+// Load katalog data if needed
+onMounted(async () => {
+  // If the katalog store is empty, fetch the data
+  if (katalogStore.katalogItems.length === 0) {
+    await katalogStore.fetchKatalog()
+  }
+})
 </script>
 
 <style scoped>

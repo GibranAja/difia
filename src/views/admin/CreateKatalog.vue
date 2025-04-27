@@ -250,6 +250,31 @@
                 rows="3"
               ></textarea>
             </div>
+            <div class="material-image-section">
+              <label>Contoh Aksesoris <span class="image-limit">(Maksimal 3 foto)</span></label>
+              <div class="material-image-upload">
+                <input
+                  type="file"
+                  @change="(e) => handleAksesorisImageUpload(e)"
+                  accept="image/*"
+                  multiple
+                  :disabled="formData.detail.aksesorisImages.length >= 3"
+                />
+
+                <div class="aksesori-images-container">
+                  <div
+                    v-for="(image, index) in formData.detail.aksesorisImages"
+                    :key="`aksesori-${index}`"
+                    class="material-preview"
+                  >
+                    <img :src="image" alt="Contoh Aksesoris" />
+                    <button type="button" @click="removeAksesorisImage(index)" class="remove-image">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -375,6 +400,7 @@ const formData = ref({
     bahanDalamImage: null,
     aksesoris: '',
     warna: '',
+    aksesorisImages: [], // Add this new field
   },
   waktuPengerjaan: {
     pcs50_100: '',
@@ -409,6 +435,7 @@ const loadKatalogData = () => {
         bahanDalamImage: katalog.detail.bahanDalamImage || null,
         aksesoris: katalog.detail.aksesoris || '',
         warna: katalog.detail.warna || '',
+        aksesorisImages: katalog.detail.aksesorisImages || [], // Add this line to load aksesoris images
       },
       waktuPengerjaan: katalog.waktuPengerjaan,
       images: [], // New images to be uploaded
@@ -626,6 +653,50 @@ const handleMaterialImageUpload = async (event, type) => {
   }
 }
 
+// Function to handle accessory images upload
+const handleAksesorisImageUpload = async (event) => {
+  const files = Array.from(event.target.files)
+  errors.value.aksesorisImages = ''
+
+  // Check if adding these files would exceed the 3 image limit
+  if (formData.value.detail.aksesorisImages.length + files.length > 3) {
+    errors.value.aksesorisImages = 'Maksimal 3 foto aksesoris dapat diunggah'
+    return
+  }
+
+  try {
+    for (const file of files) {
+      // Validate image type (same as other images)
+      const fileExtension = file.name.split('.').pop().toLowerCase()
+      const isHeicOrHeif = ['heic', 'heif'].includes(fileExtension)
+
+      if (!ALLOWED_TYPES.includes(file.type) && !isHeicOrHeif) {
+        errors.value.aksesorisImages =
+          'Hanya file JPEG, PNG, GIF, WebP, HEIC, dan HEIF yang diperbolehkan'
+        return
+      }
+
+      // Validate image size
+      if (file.size > MAX_IMAGE_SIZE) {
+        errors.value.aksesorisImages = 'Ukuran foto tidak boleh melebihi 5MB'
+        return
+      }
+
+      // Use the same compression function as catalog images
+      const base64String = await resizeImage(file)
+      formData.value.detail.aksesorisImages.push(base64String)
+    }
+  } catch (error) {
+    console.error('Error processing accessory images:', error)
+    errors.value.aksesorisImages = 'Error saat memproses foto. Silakan coba lagi.'
+  }
+}
+
+// Function to remove accessory images
+const removeAksesorisImage = (index) => {
+  formData.value.detail.aksesorisImages.splice(index, 1)
+}
+
 // Function to remove material images
 const removeMaterialImage = (type) => {
   if (type === 'luar') {
@@ -740,6 +811,7 @@ const handleSubmit = async () => {
         bahanDalamDesc: formData.value.detail.bahanDalamDesc.trim(),
         bahanDalamImage: formData.value.detail.bahanDalamImage,
         aksesoris: formData.value.detail.aksesoris.trim(),
+        aksesorisImages: formData.value.detail.aksesorisImages, // Add this line
         warna: formData.value.detail.warna.trim(),
       },
       waktuPengerjaan: formData.value.waktuPengerjaan,
@@ -1094,6 +1166,25 @@ watch(
   object-fit: cover;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.aksesori-images-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.image-limit {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: normal;
+}
+
+.aksesori-images-container {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .error-message.material-error {
