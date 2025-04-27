@@ -4,20 +4,7 @@
   <header id="home" :class="{ 'header-at-top': isAtTop }">
     <HeroSwiper :sliderItems="sliderStore.sliderItems" />
   </header>
-  <main>
     <section class="popular">
-      <!-- <div class="video-ad">
-        <iframe
-          width="560"
-          height="315"
-          src="https://www.youtube.com/embed/zkaYFSB-5og?si=ZCt9odiscNqcLabv"
-          title="YouTube video player"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen
-        ></iframe>
-      </div> -->
       <div class="product-card">
         <i class="fas fa-solid fa-trophy right"></i>
         <i class="fas fa-solid fa-trophy left"></i>
@@ -25,15 +12,12 @@
         <h1>
           <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
         </h1>
-        <!-- <p v-if="!popularKatalog.length">Produk populer tidak tersedia.</p> -->
         <CardPopuler />
       </div>
     </section>
     <section class="katalog" id="catalog">
       <span class="box"></span>
       <span class="box-left"></span>
-      <span class="rounded"></span>
-      <span class="rounded-left"></span>
       <span class="dot"></span>
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
@@ -73,7 +57,6 @@
       </div>
       <CardUlasan></CardUlasan>
     </section>
-  </main>
   <FooterComponent />
 </template>
 
@@ -342,7 +325,6 @@ header {
   width: 100%;
   height: 100%;
 }
-
 .popular {
   display: flex;
   justify-content: space-around;
@@ -354,13 +336,6 @@ header {
   /* height: 100vh */
 }
 
-/* .video-ad {
-  width: 20%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-} */
 .popular .right {
   position: absolute;
   left: -25%;
@@ -587,6 +562,10 @@ header {
   color: white;
   border-color: #e8ba38;
 }
+.populer, .katalog, .blog, .partner, .ulasan {
+  width: 100%;
+
+}
 
 /* Add these responsive styles to your <style> section */
 
@@ -632,19 +611,30 @@ header {
   .blog,
   .partner,
   .ulasan {
-    padding: 40px 20px;
+    padding: 10px;
+    margin-top: 1rem;
+    /* position: relative; */
   }
-
   .catalog-grid {
-    gap: 2rem;
+    gap: 1rem;
   }
 
   .line {
-    width: 30%;
+    display: none;
+  }
+  .dot {
+    display: none;
   }
 
   .carousel-container {
     width: 100%;
+  }
+  .right , .left {
+    display:none;
+  }
+  .load-more-container{
+    width: 100%;
+    margin-top: 0;
   }
 }
 
@@ -680,7 +670,8 @@ header {
 .katalog h1,
 .blog h1,
 .partner h1,
-.ulasan h1 {
+.ulasan h1,
+.product-card h1 {
   font-size: clamp(2rem, 5vw, 4rem);
 }
 

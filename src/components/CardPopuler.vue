@@ -317,4 +317,18 @@ onMounted(() => {
 .rank-color-3 {
   color: #cd7f32; /* Perunggu */
 }
+@media (max-width: 768px) {
+  .popular-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card-seller {
+    width: 100%;
+    margin-bottom: 20px; /* Jarak vertikal antar kartu */
+  }
+}
 </style>

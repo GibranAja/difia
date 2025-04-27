@@ -87,4 +87,11 @@ onMounted(async () => {
 .card:hover .image-container::after {
   opacity: 0;
 }
+@media (max-width: 768px) {
+  .card {
+    width: 100%;
+    height: auto;
+    padding: 0;
+  }
+}
 </style>

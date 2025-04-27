@@ -117,4 +117,21 @@ onMounted(async () => {
   border: 1px solid #000;
   margin-bottom: 10px;
 }
+@media (max-width: 768px) {
+  .card {
+    flex-direction: column;
+    align-items: center;
+    width: 90%;
+  }
+
+  .keterangan {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .card img {
+    width: 100%;
+    height: auto;
+  }
+}
 </style>

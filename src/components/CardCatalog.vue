@@ -330,4 +330,24 @@ const formatPrice = (price) => {
 .order-btn:hover i {
   transform: translateX(5px);
 }
+@media (max-width: 768px) {
+  .card {
+    width: 90%;
+    padding: 10px;
+  }
+
+  .product-name {
+    font-size: 1.1rem;
+  }
+
+  .price-section {
+    padding: 8px;
+  }
+
+  .order-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+}
 </style>

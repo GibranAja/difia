@@ -509,8 +509,8 @@ onUnmounted(() => {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .card {
-    max-width: 100%;
-    margin: 1rem 0;
+    max-width: 90%;
+    margin: 1rem;
   }
 
   .carousel-item {
