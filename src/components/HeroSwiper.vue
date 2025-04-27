@@ -18,7 +18,7 @@
             <span>Lihat Katalog</span>
             <i class="fas fa-arrow-right"></i>
           </button>
-          <button class="secondary-btn" @click="scrollToSection('custom')">
+          <button class="secondary-btn" @click="navigateToChat">
             <span>Chat Kami</span>
             <!-- <i class="fas fa-palette"></i> -->
           </button>
@@ -132,6 +132,9 @@ import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules'
 import defaultLogo from '@/assets/Logo Difia Haki.png'
 import { db } from '@/config/firebase'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
+import { useRouter } from 'vue-router' // Add this import
+
+const router = useRouter() // Add router instance
 
 // Props for flexibility
 const props = defineProps({
@@ -159,6 +162,11 @@ const activeIndex = ref(0)
 // Add this function to handle slide changes
 const onSlideChange = (swiper) => {
   activeIndex.value = swiper.realIndex
+}
+
+// Add this function to navigate to chat page
+const navigateToChat = () => {
+  router.push('/chat')
 }
 
 // Load images from cache first for instant display

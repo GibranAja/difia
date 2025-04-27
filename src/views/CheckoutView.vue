@@ -532,16 +532,30 @@ const getOrderFromLocal = () => {
 
 const loadCheckoutItems = () => {
   try {
-    const checkoutData = localStorage.getItem('checkout_items')
-    if (!checkoutData) return []
-
-    const data = JSON.parse(checkoutData)
-    if (Date.now() - data.timestamp > 30 * 60 * 1000 || data.userId !== authStore.currentUser?.id) {
-      localStorage.removeItem('checkout_items')
-      return []
+    // Try to get items from sessionStorage first (where we stored the full data)
+    const checkoutData = sessionStorage.getItem('checkout_items_data')
+    if (checkoutData) {
+      const data = JSON.parse(checkoutData)
+      // Clean up sessionStorage after reading
+      sessionStorage.removeItem('checkout_items_data')
+      return data.items || []
     }
 
-    return data.items || []
+    // Fallback to the old method if needed
+    const oldCheckoutData = localStorage.getItem('checkout_items')
+    if (oldCheckoutData) {
+      const data = JSON.parse(oldCheckoutData)
+      if (
+        Date.now() - data.timestamp > 30 * 60 * 1000 ||
+        data.userId !== authStore.currentUser?.id
+      ) {
+        localStorage.removeItem('checkout_items')
+        return []
+      }
+      return data.items || []
+    }
+
+    return []
   } catch (error) {
     console.error('Error loading checkout items:', error)
     return []
