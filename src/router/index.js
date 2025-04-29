@@ -175,6 +175,15 @@ const router = createRouter({
           name: 'Address',
           component: AddressView,
         },
+        {
+          path: 'payment',
+          name: 'AccountPayment',
+          component: () => import('@/views/account/PaymentView.vue'),
+          meta: {
+            requiresAuth: true,
+            layout: 'account',
+          },
+        },
         // Default redirect
         {
           path: '',

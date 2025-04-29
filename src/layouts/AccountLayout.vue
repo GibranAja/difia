@@ -39,6 +39,15 @@
             <i class="fas fa-map-marker-alt"></i>
             <span>Alamat</span>
           </router-link>
+          <!-- Add this new payment link -->
+          <router-link
+            to="/my-account/payment"
+            class="nav-item"
+            :class="{ active: $route.path.includes('/payment') }"
+          >
+            <i class="fas fa-credit-card"></i>
+            <span>Pembayaran</span>
+          </router-link>
         </nav>
       </div>
       <div class="account-content">

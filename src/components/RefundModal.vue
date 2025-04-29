@@ -88,6 +88,9 @@
         </div>
 
         <div class="button-group">
+          <button type="button" class="edit-btn" @click="navigateToPaymentEdit">
+            <i class="fas fa-edit"></i> Edit Informasi Pembayaran
+          </button>
           <button type="button" class="cancel-btn" @click="close">Batal</button>
           <button type="submit" class="submit-btn" :disabled="isSubmitting">
             <span v-if="isSubmitting"><i class="fas fa-spinner fa-spin"></i></span>
@@ -114,7 +117,9 @@ import { db } from '@/config/firebase'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
 import { useNotificationStore } from '@/stores/NotificationStore'
+import { useRouter } from 'vue-router' // Add this import
 
+const router = useRouter() // Initialize router
 const props = defineProps({
   order: {
     type: Object,
@@ -262,6 +267,16 @@ const submitForm = async () => {
 
 const close = () => {
   emit('close')
+}
+
+const navigateToPaymentEdit = () => {
+  close() // Close the modal first
+
+  // Add a flag to localStorage to signal that edit mode should be opened
+  localStorage.setItem('payment_edit_mode', 'true')
+
+  // Navigate to payment page with edit parameter
+  router.push('/my-account/payment?edit=true')
 }
 </script>
 
@@ -454,11 +469,12 @@ const close = () => {
   display: flex;
   gap: 0.9rem; /* Increased from 0.75rem */
   margin-top: 0.75rem; /* Increased from 0.5rem */
-  justify-content: flex-end;
+  justify-content: space-between; /* Adjust layout for the three buttons */
 }
 
 .cancel-btn,
-.submit-btn {
+.submit-btn,
+.edit-btn {
   padding: 0.6rem 1.2rem; /* Increased from 0.5rem 1rem */
   border-radius: 6px;
   font-weight: 500;
@@ -483,6 +499,27 @@ const close = () => {
   gap: 0.4rem;
 }
 
+.edit-btn {
+  background-color: #3b82f6;
+  border: none;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Montserrat', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto; /* Push other buttons to the right */
+}
+
+.edit-btn:hover {
+  background-color: #2563eb;
+}
+
 .submit-btn:disabled {
   background-color: #f1f1f1;
   color: #999;
@@ -498,5 +535,29 @@ const close = () => {
   .form-group {
     width: 100%;
   }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .edit-btn,
+  .cancel-btn,
+  .submit-btn {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .edit-btn {
+    order: 1;
+  }
+
+  .submit-btn {
+    order: 2;
+  }
+
+  .cancel-btn {
+    order: 3;
+  }
 }
 </style>
+```

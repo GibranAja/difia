@@ -1,7 +1,7 @@
 <template>
-  <div class="product-name-wrapper">
+  <div class="product-name-wrapper" ref="tooltipWrapper">
     <span class="product-name" v-html="highlightedName"></span>
-    <div class="product-details-tooltip">
+    <div class="product-details-tooltip" :class="{ 'tooltip-top': shouldShowAbove }">
       <div class="tooltip-content">
         <!-- Main product info -->
         <div class="product-header">
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watchEffect } from 'vue'
 
 const props = defineProps({
   order: {
@@ -66,6 +66,52 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  isLastItem: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const tooltipWrapper = ref(null)
+const shouldShowAbove = ref(false)
+
+// Check if tooltip should appear above based on position in viewport
+const checkPosition = () => {
+  if (!tooltipWrapper.value) return
+
+  // If explicitly marked as last item, always show above
+  if (props.isLastItem) {
+    shouldShowAbove.value = true
+    return
+  }
+
+  const rect = tooltipWrapper.value.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+
+  // If the element is in the bottom 30% of the viewport, show tooltip above
+  shouldShowAbove.value = rect.bottom > viewportHeight * 0.7
+}
+
+// Watch for changes to isLastItem prop
+watchEffect(() => {
+  if (props.isLastItem) {
+    shouldShowAbove.value = true
+  } else {
+    checkPosition()
+  }
+})
+
+onMounted(() => {
+  window.addEventListener('scroll', checkPosition)
+  window.addEventListener('resize', checkPosition)
+
+  // Initial check
+  setTimeout(checkPosition, 100)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', checkPosition)
+  window.removeEventListener('resize', checkPosition)
 })
 
 const highlightedName = computed(() => {
@@ -301,5 +347,27 @@ const highlightedName = computed(() => {
   font-weight: 500;
   padding: 0 1px;
   border-radius: 2px;
+}
+
+/* Add new tooltip-top class */
+.product-details-tooltip.tooltip-top {
+  bottom: 100%;
+  top: auto;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.product-details-tooltip.tooltip-top::before {
+  top: auto;
+  bottom: -9px;
+  border: none;
+  border-right: 2px solid #02163b;
+  border-bottom: 2px solid #02163b;
+  transform: rotate(45deg);
+}
+
+.product-name-wrapper:hover .product-details-tooltip.tooltip-top {
+  transform: translateY(-5px);
+  animation: tooltipBounceReverse 0.3s ease;
 }
 </style>

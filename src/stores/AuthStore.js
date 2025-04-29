@@ -562,6 +562,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Refresh user data after profile updates
+  const refreshUserData = async () => {
+    try {
+      if (!currentUser.value || !currentUser.value.id) return
+
+      const userRef = collection(db, 'users')
+      const q = query(userRef, where('uid', '==', currentUser.value.id))
+      const querySnapshot = await getDocs(q)
+
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data()
+
+        // Update current user with new data
+        currentUser.value = {
+          ...currentUser.value,
+          paymentInfo: userData.paymentInfo || {},
+          // Update other fields as needed
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+    }
+  }
+
   return {
     user,
     isLoggedIn,
@@ -584,5 +608,6 @@ export const useAuthStore = defineStore('auth', () => {
     isEmailVerified,
     checkEmailVerification,
     resendVerificationEmail,
+    refreshUserData,
   }
 })

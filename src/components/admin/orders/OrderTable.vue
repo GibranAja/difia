@@ -9,14 +9,14 @@
             <!-- New column for row numbers -->
             <th>Order ID</th>
             <th>Customer</th>
-            <th>Address</th>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Total Amount</th>
-            <th>Payment Proof</th>
-            <th v-if="showEmbossColumn">Emboss</th>
+            <th>Alamat</th>
+            <th>Produk</th>
+            <th>Kuantitas</th>
+            <th>Total Harga</th>
+            <th>Bukti Pembayaran</th>
+            <th v-if="showEmbossColumn">Logo</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th>Aksi</th>
           </tr>
         </thead>
         <tbody>

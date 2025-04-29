@@ -296,15 +296,30 @@
 
           <div class="form-group">
             <label>{{ paymentMethod === 'bank' ? 'Nama Bank' : 'Nama E-Wallet' }}</label>
-            <input
-              type="text"
-              v-model="paymentDetails.name"
-              :placeholder="
-                paymentMethod === 'bank' ? 'Contoh: BCA, Mandiri' : 'Contoh: OVO, GoPay'
-              "
-              class="auth-input"
-              required
-            />
+            <div class="custom-dropdown" :class="{ active: isDropdownOpen }">
+              <div class="selected-option" @click="isDropdownOpen = !isDropdownOpen">
+                <span>{{
+                  paymentDetails.name ||
+                  (paymentMethod === 'bank' ? 'Pilih Bank' : 'Pilih E-Wallet')
+                }}</span>
+                <i
+                  class="fas fa-chevron-down dropdown-icon"
+                  :class="{ rotate: isDropdownOpen }"
+                ></i>
+              </div>
+              <div class="dropdown-menu" v-if="isDropdownOpen">
+                <div
+                  v-for="option in paymentMethod === 'bank' ? bankOptions : ewalletOptions"
+                  :key="option"
+                  class="dropdown-item"
+                  :class="{ selected: paymentDetails.name === option }"
+                  @click="selectOption(option)"
+                >
+                  <i class="fas fa-check check-icon" v-if="paymentDetails.name === option"></i>
+                  {{ option }}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="form-group">
@@ -410,11 +425,19 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
+
+// Add this line to load Font Awesome
+onMounted(() => {
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  document.head.appendChild(link)
+})
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -442,6 +465,11 @@ const paymentDetails = ref({
   ownerName: '',
 })
 const accountNumberError = ref('')
+const isDropdownOpen = ref(false)
+
+// Options for banks and e-wallets
+const bankOptions = ref(['BCA', 'Mandiri', 'BNI', 'BRI'])
+const ewalletOptions = ref(['OVO', 'GoPay', 'DANA', 'Shopee'])
 
 // Computed property for email/phone input
 const emailOrPhone = computed({
@@ -578,6 +606,15 @@ watch([() => user.value.password, confirmPassword], ([password, confirm]) => {
   }
 })
 
+// Add this watch to reset the name when payment method changes
+watch(
+  () => paymentMethod.value,
+  () => {
+    // Reset the payment name when method changes
+    paymentDetails.value.name = ''
+  },
+)
+
 // Navigation between steps
 const nextStep = () => {
   if (currentStep.value === 1 && !isStep1Valid.value) {
@@ -646,6 +683,25 @@ const handleGoogleSignIn = async () => {
     isLoading.value = false
   }
 }
+
+const selectOption = (option) => {
+  paymentDetails.value.name = option
+  isDropdownOpen.value = false
+}
+
+// Optional: Close dropdown when clicking outside
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const dropdown = document.querySelector('.custom-dropdown')
+    if (dropdown && !dropdown.contains(e.target)) {
+      isDropdownOpen.value = false
+    }
+  })
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', () => {})
+})
 </script>
 
 <style scoped>
@@ -963,7 +1019,7 @@ const handleGoogleSignIn = async () => {
 .payment-option {
   flex: 1;
   padding: 1rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid rgba(2, 22, 59, 0.3); /* Changed from #e0e0e0 to blue with opacity */
   border-radius: 10px;
   text-align: center;
   cursor: pointer;
@@ -979,6 +1035,7 @@ const handleGoogleSignIn = async () => {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
   display: block;
+  color: #02163b; /* Add blue color to icons */
 }
 
 /* Review section styles */
@@ -1017,6 +1074,22 @@ const handleGoogleSignIn = async () => {
   border-radius: 8px;
   color: #1976d2;
   margin-bottom: 1.5rem;
+}
+
+/* Dropdown styles */
+.dropdown-icon {
+  color: #02163b; /* Make dropdown icon blue */
+}
+
+.dropdown-item.selected {
+  background-color: rgba(2, 22, 59, 0.1);
+  font-weight: 500;
+}
+
+.check-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: #02163b; /* Ensure check icon is blue */
 }
 
 /* Mobile improvements */
@@ -1148,5 +1221,103 @@ const handleGoogleSignIn = async () => {
 .button-loading:hover {
   transform: none !important;
   background-color: #0f3172 !important;
+}
+
+/* Add to your existing style section */
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2.5rem;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #02163b;
+}
+
+.custom-select select:focus + .select-arrow i {
+  transform: rotate(180deg);
+}
+
+/* Style for when dropdown is open */
+.custom-select select:focus {
+  border-color: #8b7355;
+  outline: none;
+}
+
+/* Custom dropdown styles */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.selected-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border: 2px solid #c2c2c2;
+  border-radius: 50px;
+  background-color: #e8ba38; /* Changed from white to match other inputs */
+  font-size: 1.1rem;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selected-option:hover {
+  border-color: #02163b;
+}
+
+.custom-dropdown.active .selected-option {
+  border-color: #02163b;
+  box-shadow: 0 0 0 2px rgba(2, 22, 59, 0.1);
+}
+
+/* The dropdown menu itself remains white */
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  position: relative;
+  padding-left: 2.5rem;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(2, 22, 59, 0.05);
+}
+
+.dropdown-item.selected {
+  background-color: rgba(2, 22, 59, 0.1);
+  font-weight: 500;
+}
+
+.check-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: #02163b;
 }
 </style>
