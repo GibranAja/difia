@@ -332,22 +332,37 @@ const formatPrice = (price) => {
 }
 @media (max-width: 768px) {
   .card {
-    width: 90%;
+    width: 200px;
     padding: 10px;
+  }
+  .product-stats{
+    font-size: 0.8rem;
+    display: none;
+  }
+  .price-section::before{
+    display: none;
   }
 
   .product-name {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
   }
 
   .price-section {
-    padding: 8px;
+    padding: 4px;
+    border: none;
+    gap: 10px;
+  }
+  .price{
+    font-size: 0.8rem;
+  }
+  .price-label{
+    font-size: 0.8rem;
   }
 
   .order-btn {
     width: 100%;
     padding: 12px;
-    font-size: 0.9rem;
+    font-size: 0.5rem;
   }
 }
 </style>

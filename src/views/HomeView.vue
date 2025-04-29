@@ -574,16 +574,16 @@ header {
   .popular {
     padding: 15px 0;
   }
-  
+
   .product-card h1 {
     font-size: 2.2rem;
   }
-  
+
   /* Show scroll indicator on mobile */
   .mobile-only {
     display: flex;
   }
-  
+
   .popular-section-header {
     display: flex;
     justify-content: space-between;
@@ -598,6 +598,9 @@ header {
   .ulasan {
     padding: 10px;
     margin-top: 1rem;
+  }
+  .box, .box-left{
+    display: none;
   }
 
   .catalog-grid {
@@ -625,17 +628,17 @@ header {
     width: 100%;
     margin-top: 0;
   }
-  
+
   .product-card .straight {
     height: 80px; /* Reduced height for mobile */
   }
-  
+
   /* For the popular section */
   .popular {
     overflow: hidden;
     position: relative;
   }
-  
+
   /* Add fade gradient for horizontal scroll indication */
   .popular:after {
     content: "";
@@ -652,12 +655,12 @@ header {
   .popular .product-card :deep(.popular-cards-container) {
     padding-left: 20px; /* Add left padding to the container */
   }
-  
+
   /* If the above doesn't work, you might need to target individual cards */
   .popular .product-card :deep(.popular-card) {
     margin-left: 4px; /* Add margin to individual cards */
   }
-  
+
   /* For the scrollable container if it exists */
   .popular .product-card :deep(.scrollable-container) {
     padding-left: 20px;
@@ -686,7 +689,7 @@ header {
   header {
     height: 70vh;
   }
-  
+
   .product-card h1 {
     font-size: 1.8rem;
   }
