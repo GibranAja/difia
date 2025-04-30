@@ -421,6 +421,7 @@ header {
   border: 1px solid #e8ba38;
 }
 
+/* CATALOG GRID - UPDATED FOR BETTER MOBILE EXPERIENCE */
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -429,7 +430,6 @@ header {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  /* Tambahkan properti berikut */
   justify-items: center;
 }
 
@@ -555,6 +555,9 @@ header {
 @media (max-width: 992px) {
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    justify-items: center;
+    justify-content: center;
   }
 
   .katalog h1,
@@ -570,6 +573,7 @@ header {
   }
 }
 
+/* UPDATED MOBILE STYLES FOR CATALOG SECTION */
 @media (max-width: 768px) {
   .popular {
     padding: 15px 0;
@@ -596,15 +600,37 @@ header {
   .blog,
   .partner,
   .ulasan {
-    padding: 10px;
+    padding: 40px 20px; /* Increased padding for better spacing */
     margin-top: 1rem;
   }
-  .box, .box-left{
+
+  .katalog h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .box, .box-left {
     display: none;
   }
 
+  /* Improved catalog grid for mobile - 2 cards per row */
   .catalog-grid {
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px; /* Reduced gap for tighter layout on mobile */
+    padding: 10px;
+    width: calc(100% - 20px);
+    margin: 0 auto;
+  }
+
+  /* Ensure catalog cards look good on mobile */
+  .catalog-grid :deep(.card-catalog) {
+    width: 100%; /* Make cards take full width of their grid cell */
+    margin-bottom: 0; /* Remove any bottom margin that might be set */
+  }
+
+  /* Remove special positioning for last item on mobile */
+  .catalog-grid>*:last-child:nth-child(3n - 2) {
+    grid-column: auto;
   }
 
   .line {
@@ -626,7 +652,7 @@ header {
 
   .load-more-container {
     width: 100%;
-    margin-top: 0;
+    margin-top: 1.5rem;
   }
 
   .product-card .straight {
@@ -669,9 +695,10 @@ header {
 }
 
 @media (max-width: 576px) {
+  /* Keep 2 cards per row even on smaller phones */
   .catalog-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px; /* Even smaller gap for very small screens */
   }
 
   .katalog h1,
@@ -692,6 +719,11 @@ header {
 
   .product-card h1 {
     font-size: 1.8rem;
+  }
+  
+  /* Add breathing room at the bottom of the last row */
+  .catalog-grid > *:nth-last-child(-n+2) {
+    margin-bottom: 10px;
   }
 }
 
@@ -738,11 +770,35 @@ header {
   min-height: 150px;
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments for blog grid */
 @media (max-width: 768px) {
   .blog-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+}
+
+/* Add better touch targets for mobile */
+@media (max-width: 768px) {
+  .load-more-btn {
+    min-height: 44px; /* Apple's recommendation for minimum tap target size */
+    min-width: 140px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Add pull-to-refresh hint for touch devices */
+  .katalog:before {
+    content: '';
+    display: block;
+    height: 8px;
+    width: 40px;
+    background-color: #e8ba38;
+    opacity: 0.4;
+    border-radius: 4px;
+    margin: 0 auto 20px;
   }
 }
 </style>
