@@ -1,47 +1,46 @@
 <template>
   <div class="card" v-if="item">
-    <!-- Image Section - Full width for mobile -->
-    <div class="image-wrapper">
-      <router-link :to="`/detail/${item.id}`" class="image-container">
-        <img
-          :src="item.images[0]"
-          alt="foto-produk"
-          v-if="item.images && item.images.length > 0"
-        />
-        <div class="rating-badge">
-          <i class="fas fa-star"></i>
-          <span>{{ averageRating.toFixed(1) }}</span>
-        </div>
-      </router-link>
-    </div>
-
-    <!-- Content Section -->
     <div class="card-content">
+      <div class="image-wrapper">
+        <router-link :to="`/detail/${item.id}`" class="image-container">
+          <img
+            :src="item.images[0]"
+            alt="foto-produk"
+            v-if="item.images && item.images.length > 0"
+          />
+          <div class="overlay">
+            <div class="overlay-content">
+              <span class="view-details">Lihat Detail</span>
+              <p class="hover-desc">Klik untuk melihat informasi lengkap produk</p>
+            </div>
+          </div>
+        </router-link>
+      </div>
+
       <div class="product-info">
         <h1 class="product-name">{{ item.nama }}</h1>
-        
-        <!-- Combined Product Stats Row -->
+
+        <!-- Product Stats: Sold count and Rating -->
         <div class="product-stats">
           <div class="sold-count">
-            <i class="fas fa-shopping-bag"></i>
-            <span>{{ soldCount }} terjual</span>
+            <span>Terjual {{ soldCount }}</span>
           </div>
-          <div class="reviews">
-            <span>{{ reviewsCount }} ulasan</span>
+          <div class="rating">
+            <i class="fas fa-star"></i>
+            <span>{{ averageRating.toFixed(1) }}</span>
+            <span class="review-count">({{ reviewsCount }})</span>
           </div>
         </div>
 
-        <!-- Price and CTA Row -->
-        <div class="action-row">
-          <div class="price-section">
-            <span class="price-label">Mulai dari</span>
-            <p class="price">Rp {{ formatPrice(item.harga.standar) }}</p>
-          </div>
-          
-          <button @click="handleBuyClick" class="order-btn">
-            <i class="fas fa-shopping-cart"></i>
-          </button>
+        <div class="price-section">
+          <span class="price-label">Harga Mulai Dari</span>
+          <p class="price">Rp {{ formatPrice(item.harga.standar) }}</p>
         </div>
+
+        <button @click="handleBuyClick" class="order-btn">
+          <span>Pesan Sekarang</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -130,12 +129,11 @@ const formatPrice = (price) => {
 </script>
 
 <style scoped>
-/* Desktop styles (default) */
 .card {
   width: 300px;
   background-color: #fafafa;
   border-radius: 16px;
-  overflow: hidden;
+  padding: 20px;
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
@@ -147,16 +145,25 @@ const formatPrice = (price) => {
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .image-wrapper {
-  position: relative;
-  width: 100%;
-  height: 240px;
+  padding: 10px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: inset 0 0 10px rgba(2, 22, 59, 0.05);
 }
 
 .image-container {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 240px;
+  overflow: hidden;
+  border-radius: 8px;
   display: block;
 }
 
@@ -167,17 +174,56 @@ const formatPrice = (price) => {
   transition: transform 0.5s ease;
 }
 
-.card-content {
-  padding: 20px;
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(2, 22, 59, 0.7), rgba(232, 186, 56, 0.7));
   display: flex;
-  flex-direction: column;
-  gap: 15px;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.overlay-content {
+  text-align: center;
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.view-details {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.hover-desc {
+  color: white;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.image-container:hover .overlay {
+  opacity: 1;
+}
+
+.image-container:hover img {
+  transform: scale(1.1);
+}
+
+.image-container:hover .overlay-content {
+  transform: translateY(0);
 }
 
 .product-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
 }
 
 .product-name {
@@ -186,172 +232,195 @@ const formatPrice = (price) => {
   font-weight: 600;
   line-height: 1.4;
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
+/* New styles for product stats */
 .product-stats {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start; /* Changed from space-between to flex-start */
   align-items: center;
   font-size: 0.85rem;
   color: #666;
-}
-
-.rating-badge {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  border-radius: 12px;
-  padding: 4px 10px;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.rating-badge i {
-  color: #e8ba38;
+  gap: 8px; /* Add a small controlled gap */
 }
 
 .sold-count {
+  background-color: rgba(2, 22, 59, 0.05);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.rating {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.reviews {
-  font-size: 0.8rem;
+.rating i {
+  color: #e8ba38; /* This makes the star icon yellow/gold */
+}
+
+.review-count {
+  color: #888;
+}
+
+.price-section {
+  background-color: white;
+  border: 2px solid #e8ba38;
+  border-radius: 12px;
+  padding: 12px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.price-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #e8ba38;
 }
 
 .price-label {
   display: block;
-  color: #666;
-  font-size: 0.75rem;
-  margin-bottom: 2px;
+  color: #02163b;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  opacity: 0.8;
 }
 
 .price {
   color: #02163b;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
+  line-height: 1.2;
 }
 
 .order-btn {
   background-color: #e8ba38;
   color: #02163b;
   border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  border-radius: 100px;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  gap: 10px;
+  margin-top: 5px;
 }
 
 .order-btn:hover {
   background-color: #02163b;
   color: #e8ba38;
+  transform: translateX(5px);
 }
 
-.action-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-top: 5px;
+.order-btn i {
+  transition: transform 0.3s ease;
 }
 
-/* Mobile Styles */
+.order-btn:hover i {
+  transform: translateX(5px);
+}
+
+/* MOBILE OPTIMIZATION STYLES */
 @media (max-width: 768px) {
   .card {
-    width: 160px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  }
-  
-  /* Full-width image on mobile */
-  .image-wrapper {
-    position: relative;
-    width: calc(100% + 0px);
-    height: 180px;
-    margin: 0;
-    border-radius: 12px 12px 0 0;
-    overflow: hidden;
-  }
-  
-  .image-container {
-    height: 100%;
     width: 100%;
-  }
-  
-  .image-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .rating-badge {
-    bottom: 8px;
-    right: 8px;
-    padding: 3px 8px;
-    font-size: 0.7rem;
+    padding: 0;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-  
+
   .card-content {
-    padding: 10px;
+    gap: 10px;
   }
-  
+
+  .image-wrapper {
+    padding: 0;
+    border-radius: 8px 8px 0 0;
+    box-shadow: none;
+  }
+
+  .image-container {
+    height: 180px;
+    border-radius: 8px 8px 0 0;
+  }
+
   .product-info {
-    gap: 6px;
+    padding: 10px;
+    gap: 8px;
   }
-  
+
   .product-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-    -webkit-line-clamp: 2;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  
+
   .product-stats {
     font-size: 0.7rem;
+    margin-top: -2px;
   }
-  
-  .sold-count i, .reviews i {
-    font-size: 0.7rem;
+
+  .sold-count {
+    padding: 2px 6px;
   }
-  
-  .action-row {
-    margin-top: 6px;
-  }
-  
+
   .price-section {
-    display: flex;
-    flex-direction: column;
+    padding: 6px 10px;
+    border-width: 1px;
+    border-radius: 6px;
   }
-  
+
+  .price-section::before {
+    width: 2px;
+  }
+
   .price-label {
     font-size: 0.65rem;
-    color: #888;
+    margin-bottom: 0;
   }
-  
+
   .price {
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: 0.9rem;
   }
-  
+
   .order-btn {
-    width: 32px;
-    height: 32px;
+    padding: 6px 12px;
     font-size: 0.75rem;
+    border-radius: 6px;
+    margin-top: 0;
+  }
+
+  .order-btn i {
+    font-size: 0.7rem;
+  }
+}
+
+/* Additional tweaks for very small screens */
+@media (max-width: 480px) {
+  .card {
+    min-width: 140px; /* Ensure minimum width */
+  }
+
+  .image-container {
+    height: 140px;
+  }
+
+  .product-stats {
+    display: none; /* Hide stats completely on very small screens */
   }
 }
 </style>
