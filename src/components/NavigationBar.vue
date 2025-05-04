@@ -92,12 +92,6 @@
                       <span>{{ item.text }}</span>
                     </a>
                   </li>
-                  <li v-if="authStore.currentUser?.isAdmin" class="menu-item">
-                    <router-link to="/admin" class="menu-link admin-menu-link">
-                      <i class="fas fa-chart-line"></i>
-                      <span>Dashboard Admin</span>
-                    </router-link>
-                  </li>
                 </ul>
               </div>
 
@@ -296,7 +290,7 @@ import NegativeModal from './NegativeModal.vue'
 import defaultAvatarImage from '../assets/default-avatar-wm14gXiP.png'
 import { useNotificationStore } from '@/stores/NotificationStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
-import { db } from '@/config/firebase'
+// import { db } from '@/config/firebase'
 import { ref as dbRef, onValue, query as rtdbQuery, orderByChild, equalTo } from 'firebase/database'
 import { rtdb } from '@/config/firebase'
 

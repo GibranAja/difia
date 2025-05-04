@@ -384,6 +384,9 @@ const getLabelIcon = (label) => {
   return option ? option.icon : 'fas fa-map-marker-alt'
 }
 
+const itemWeight = ref(0)
+const totalWeight = ref(0)
+
 const loadProvinces = async () => {
   try {
     isLoadingProvinces.value = true
@@ -449,7 +452,7 @@ const calculateShipping = async (address) => {
       const shippingService = isPurchaseBulk ? 'cargo' : 'reg'
 
       // Get the item weight from product data (in grams)
-      let itemWeight = 0
+      itemWeight.value = 0
       if (orderStore.currentOrder?.productId) {
         try {
           const productRef = doc(db, 'katalog', orderStore.currentOrder.productId)
@@ -457,42 +460,59 @@ const calculateShipping = async (address) => {
 
           if (productDoc.exists()) {
             // Get weight from product data - default to 0 if not available
-            itemWeight = productDoc.data().detail?.berat || 0
+            itemWeight.value = productDoc.data().detail?.berat || 0
           }
         } catch (err) {
           console.error('Error fetching product weight:', err)
-          itemWeight = 0
+          itemWeight.value = 0
         }
       }
 
-      // Calculate total weight in grams
-      const totalWeight = Math.max(itemWeight * quantity, 100) // Minimum 100g
+      // Calculate total weight in grams - gunakan ref totalWeight yang sudah didefinisikan
+      totalWeight.value = Math.max(itemWeight.value * quantity, 100) // Minimum 100g
 
       // Calculate shipping
       const costs = await rajaOngkir.calculateShipping(
         city.city_id,
-        totalWeight,
+        totalWeight.value,
         shippingCourier,
         isPurchaseBulk ? shippingService : null,
       )
 
-      // Select the appropriate cost based on service type
+      console.log('Shipping response costs:', costs)
+
       if (costs && costs.length > 0) {
-        if (isPurchaseBulk) {
-          // For bulk orders, find cargo service
-          const cargoService = costs.find((c) => c.service.toLowerCase().includes('cargo'))
-          shippingCost.value = cargoService?.cost[0]?.value || costs[0]?.cost[0]?.value || 0
+        // Jika service adalah cargo atau ada service spesifik yang ditentukan
+        if (isPurchaseBulk && shippingService) {
+          // Temukan service yang sesuai (cargo)
+          const serviceData = costs.find(
+            (service) => service.service.toLowerCase() === shippingService.toLowerCase(),
+          )
+          if (serviceData && serviceData.cost && serviceData.cost.length > 0) {
+            shippingCost.value = serviceData.cost[0].value
+          } else {
+            // Fallback ke service pertama jika tidak menemukan cargo
+            shippingCost.value = costs[0].cost[0].value
+          }
         } else {
-          // For regular orders, use regular service
-          const regService = costs.find((c) => c.service.toLowerCase().includes('reg'))
-          shippingCost.value = regService?.cost[0]?.value || costs[0]?.cost[0]?.value || 0
+          // Untuk reguler, gunakan service REG atau service pertama
+          const regService = costs.find((service) => service.service === 'REG')
+
+          // Gunakan REG jika ada, jika tidak gunakan service pertama
+          if (regService && regService.cost && regService.cost.length > 0) {
+            shippingCost.value = regService.cost[0].value
+          } else if (costs[0].cost && costs[0].cost.length > 0) {
+            shippingCost.value = costs[0].cost[0].value
+          } else {
+            shippingCost.value = 0
+          }
         }
+
+        console.log('Selected shipping cost:', shippingCost.value)
       } else {
+        console.error('No shipping costs returned', costs)
         shippingCost.value = 0
       }
-    } else {
-      console.error('City not found:', address.city)
-      shippingCost.value = 0
     }
   } catch (error) {
     console.error('Error calculating shipping:', error)
@@ -853,17 +873,16 @@ const processOrderAfterConfirmation = async () => {
   try {
     isProcessing.value = true
 
-    if (appliedVoucher.value) {
-      const result = await processVoucherUsage()
-      if (!result.success) return
-    }
-
     const address = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
     if (!address) {
       toast.error('Alamat pengiriman tidak valid')
       return
     }
 
+    // Array untuk menyimpan ID pesanan yang berhasil dibuat
+    const successfulOrders = []
+
+    // Membuat pesanan terlebih dahulu tanpa memproses voucher
     for (const item of checkoutItems.value) {
       await orderStore.setCurrentOrder(item)
 
@@ -884,16 +903,28 @@ const processOrderAfterConfirmation = async () => {
       const result = await orderStore.createOrder(orderDetails)
       if (!result.success) {
         toast.error(`Gagal membuat pesanan untuk ${item.name}`)
+      } else if (result.orderId) {
+        successfulOrders.push(result.orderId)
       }
 
       currentItemIndex.value++
     }
 
-    showConfirmationModal.value = false
+    // Setelah pesanan berhasil dibuat, proses voucher
+    if (successfulOrders.length > 0 && appliedVoucher.value) {
+      const voucherResult = await voucherStore.updateVoucherUsage(
+        appliedVoucher.value.id,
+        authStore.currentUser?.id,
+      )
 
+      if (!voucherResult.success) {
+        toast.warning('Pesanan berhasil dibuat tetapi terjadi masalah saat memproses voucher')
+      }
+    }
+
+    showConfirmationModal.value = false
     localStorage.removeItem('checkout_items')
     localStorage.removeItem('currentOrder')
-
     router.push('/notification')
   } catch (error) {
     console.error('Error processing orders:', error)
