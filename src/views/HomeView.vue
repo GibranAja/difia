@@ -11,7 +11,9 @@
         <i class="fas fa-solid fa-trophy left"></i>
         <span class="straight"></span>
         <div class="popular-section-header">
-          <h1><b>PRODUK P<i class="fas fa-crown"></i>PULER</b></h1>
+          <h1>
+            <b>PRODUK P<i class="fas fa-crown"></i>PULER</b>
+          </h1>
         </div>
         <CardPopuler />
       </div>
@@ -23,7 +25,12 @@
       <h1><b>KATALOG</b></h1>
       <span class="dot"></span>
       <div class="catalog-grid">
-        <CardCatalog v-for="(katalog, index) in visibleKatalog" :key="katalog.id" :item="katalog" :index="index" />
+        <CardCatalog
+          v-for="(katalog, index) in visibleKatalog"
+          :key="katalog.id"
+          :item="katalog"
+          :index="index"
+        />
       </div>
       <div class="load-more-container" v-if="hasMoreItems">
         <button @click="loadMore" class="load-more-btn">See More</button>
@@ -434,7 +441,7 @@ header {
 }
 
 /* Tambahkan style baru untuk card terakhir ketika jumlah item tidak habis dibagi 3 */
-.catalog-grid>*:last-child:nth-child(3n - 2) {
+.catalog-grid > *:last-child:nth-child(3n - 2) {
   grid-column: 2;
 }
 
@@ -609,7 +616,8 @@ header {
     margin-bottom: 1.5rem;
   }
 
-  .box, .box-left {
+  .box,
+  .box-left {
     display: none;
   }
 
@@ -629,7 +637,7 @@ header {
   }
 
   /* Remove special positioning for last item on mobile */
-  .catalog-grid>*:last-child:nth-child(3n - 2) {
+  .catalog-grid > *:last-child:nth-child(3n - 2) {
     grid-column: auto;
   }
 
@@ -667,13 +675,13 @@ header {
 
   /* Add fade gradient for horizontal scroll indication */
   .popular:after {
-    content: "";
+    content: '';
     position: absolute;
     right: 0;
     top: 0;
     height: 100%;
     width: 40px;
-    background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.8));
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8));
     pointer-events: none;
     z-index: 2;
   }
@@ -720,9 +728,9 @@ header {
   .product-card h1 {
     font-size: 1.8rem;
   }
-  
+
   /* Add breathing room at the bottom of the last row */
-  .catalog-grid > *:nth-last-child(-n+2) {
+  .catalog-grid > *:nth-last-child(-n + 2) {
     margin-bottom: 10px;
   }
 }
@@ -766,39 +774,75 @@ header {
 }
 
 /* Make sure all cards maintain consistent height */
-.blog-grid>* {
+.blog-grid > * {
   min-height: 150px;
 }
 
 /* Responsive adjustments for blog grid */
 @media (max-width: 768px) {
   .blog-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr); /* Keep 2 columns on mobile */
+    gap: 12px; /* Smaller gap for mobile */
+    justify-content: center;
+    width: 95%; /* Slightly smaller width to avoid overflow */
+  }
+
+  /* Target the CardBlog component to make it mini */
+  .blog-grid :deep(.card) {
+    padding: 8px;
+    min-height: auto;
+  }
+
+  .blog-grid :deep(.card img) {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+  }
+
+  .blog-grid :deep(.keterangan) {
+    padding: 8px 0;
+  }
+
+  .blog-grid :deep(.keterangan h1) {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 40px;
+  }
+
+  .blog-grid :deep(.keterangan p) {
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    line-height: 1.2;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .blog-grid :deep(.read-more-btn) {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+
+  .blog-grid :deep(.creation-date) {
+    font-size: 0.7rem;
   }
 }
 
-/* Add better touch targets for mobile */
-@media (max-width: 768px) {
-  .load-more-btn {
-    min-height: 44px; /* Apple's recommendation for minimum tap target size */
-    min-width: 140px;
-    font-size: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Smaller screens - make cards even more compact */
+@media (max-width: 480px) {
+  .blog-grid {
+    width: 100%;
+    padding: 10px;
+    gap: 10px;
   }
-  
-  /* Add pull-to-refresh hint for touch devices */
-  .katalog:before {
-    content: '';
-    display: block;
-    height: 8px;
-    width: 40px;
-    background-color: #e8ba38;
-    opacity: 0.4;
-    border-radius: 4px;
-    margin: 0 auto 20px;
+
+  .blog-grid :deep(.card img) {
+    height: 90px;
   }
 }
 </style>

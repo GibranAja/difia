@@ -3,7 +3,7 @@
     <div class="carousel-container">
       <div class="carousel-track" ref="carouselTrack">
         <div v-for="(item, index) in reviews" :key="`review-${index}`" class="carousel-item">
-          <div class="card">
+          <div class="card" :class="{'card-mini': isMobileOrTablet}">
             <div class="card-header">
               <div class="avatar">
                 <img
@@ -18,14 +18,14 @@
                   <i v-for="star in 5" :key="star" class="fas fa-star"></i>
                 </div>
               </div>
-              <div class="review-date">{{ formatDate(item.createdAt) }}</div>
+              <div class="review-date" v-if="!isMobileOrTablet">{{ formatDate(item.createdAt) }}</div>
             </div>
 
             <div class="review-content">
-              <p>{{ item.review || 'No review content' }}</p>
+              <p>{{ isMobileOrTablet ? truncateText(item.review || 'No review content', 80) : (item.review || 'No review content') }}</p>
             </div>
 
-            <div class="review-images" v-if="item.images && item.images.length > 0">
+            <div class="review-images" v-if="!isMobileOrTablet && item.images && item.images.length > 0">
               <img
                 v-for="(image, imgIndex) in item.images"
                 :key="imgIndex"
@@ -42,7 +42,7 @@
                 @error="handleProductImageError"
               />
               <div class="product-details">
-                <h4>{{ item.productName || 'Product' }}</h4>
+                <h4>{{ isMobileOrTablet ? truncateText(item.productName || 'Product', 25) : (item.productName || 'Product') }}</h4>
               </div>
             </div>
           </div>
@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import {
   collection,
   query,
@@ -85,9 +85,30 @@ const reviews = ref([])
 const unsubscribe = ref(null)
 const carouselTrack = ref(null)
 const isLoading = ref(true)
+const windowWidth = ref(window.innerWidth)
 let animationId = null
 let position = 0
 const speed = 0.8 // Increased speed for faster scrolling
+
+// Responsive breakpoints
+const MOBILE_BREAKPOINT = 482
+const TABLET_BREAKPOINT = 900
+
+// Compute whether the current device is mobile or tablet
+const isMobileOrTablet = computed(() => {
+  return windowWidth.value <= TABLET_BREAKPOINT
+})
+
+// Helper function to truncate text for mobile/tablet
+const truncateText = (text, maxLength) => {
+  if (!text) return ''
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
+
+// Update window width on resize
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
 
 // Caching mechanism to improve performance
 const reviewCache = new Map()
@@ -145,6 +166,14 @@ const formatDate = (timestamp) => {
     month: 'long',
     year: 'numeric',
   }).format(date)
+}
+
+// Filter out reviews with images for mobile/tablet
+const filterReviews = (reviewsList) => {
+  if (isMobileOrTablet.value) {
+    return reviewsList.filter(review => !review.images || review.images.length === 0)
+  }
+  return reviewsList
 }
 
 // Optimized function to get user data with caching
@@ -251,6 +280,12 @@ onMounted(() => {
   console.log('Mounting CardUlasan component')
   isLoading.value = true
 
+  // Add resize event listener
+  window.addEventListener('resize', handleResize)
+  
+  // Initialize window width
+  windowWidth.value = window.innerWidth
+
   // Limit to 15 reviews for better performance
   const MAX_REVIEWS = 15
   let reviewsQuery
@@ -288,12 +323,15 @@ onMounted(() => {
       }
 
       // Process reviews in batches to improve UI responsiveness
-      const processedReviews = []
+      let processedReviews = []
       for (const doc of snapshot.docs) {
         const processedReview = await processReview(doc.data(), doc.id)
         processedReviews.push(processedReview)
       }
 
+      // Filter reviews for mobile/tablet
+      processedReviews = filterReviews(processedReviews)
+      
       reviews.value = processedReviews
 
       // If not enough reviews, duplicate them to ensure smooth carousel
@@ -327,6 +365,15 @@ watch(reviews, (newReviews) => {
   console.log(`Reviews updated: ${newReviews.length} items`)
 })
 
+// Watch for changes in screen width to refilter reviews when needed
+watch(isMobileOrTablet, (isMobile) => {
+  if (unsubscribe.value) {
+    // Re-fetch reviews when changing between desktop and mobile/tablet
+    unsubscribe.value()
+    onMounted()
+  }
+})
+
 // Clean up listener and animation when component unmounts
 onUnmounted(() => {
   console.log('Unmounting CardUlasan component')
@@ -337,11 +384,14 @@ onUnmounted(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
+  
+  // Remove resize event listener
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
-/* Original card styles preserved */
+/* Original card styles preserved for desktop */
 .card {
   display: flex;
   flex-direction: column;
@@ -352,7 +402,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin: 1rem;
-  transition:
+  transition: 
     transform 0.3s ease,
     box-shadow 0.3s ease;
   height: calc(100% - 2rem); /* Ensure consistent height */
@@ -506,20 +556,140 @@ onUnmounted(() => {
   color: #e8ba38;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .card {
-    max-width: 90%;
-    margin: 1rem;
-  }
+/* Mini card styles for mobile and tablet */
+.card-mini {
+  max-width: 280px;
+  padding: 1rem;
+  margin: 0.5rem 0.5rem;
+  border-radius: 12px;
+}
 
+.card-mini .card-header {
+  margin-bottom: 0.75rem;
+}
+
+.card-mini .avatar {
+  width: 40px;
+  height: 40px;
+  margin-right: 0.75rem;
+  border-width: 1.5px;
+}
+
+.card-mini .username {
+  font-size: 0.9rem;
+}
+
+.card-mini .rating i {
+  font-size: 0.8rem;
+}
+
+.card-mini .review-content {
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.card-mini .product-info {
+  padding: 0.5rem;
+}
+
+.card-mini .product-info img {
+  width: 30px;
+  height: 30px;
+  margin-right: 0.5rem;
+}
+
+.card-mini .product-details h4 {
+  font-size: 0.8rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 482px) {
   .carousel-item {
-    flex: 0 0 100%;
-    padding: 0 20px; /* Adjusted for mobile */
+    flex: 0 0 80%;
+    padding: 0 8px; /* Reduced spacing for all mobile devices */
+  }
+  
+  .carousel-container {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  }
+  
+  /* Mobile-specific card styling */
+  .card-mini {
+    max-width: 220px; /* Reduced max width for mobile */
+    padding: 0.75rem;
+    margin: 0.25rem;
+    min-height: 180px; /* Set minimum height */
   }
 }
 
-@media (min-width: 769px) and (max-width: 1200px) {
+/* Special handling for smaller Android devices */
+@media (max-width: 400px) {
+  .carousel-item {
+    padding: 0 12px; /* More spacing for Android devices */
+  }
+}
+
+/* Special handling for iPhone devices (typically wider) */
+@media (min-width: 401px) and (max-width: 482px) {
+  .carousel-item {
+    padding: 0; /* Reduced spacing for iPhone */
+    flex: 0 0 68%; /* Slightly smaller cards on iPhone */
+  }
+}
+  
+  .card-mini .avatar {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .card-mini .username {
+    font-size: 0.85rem;
+  }
+  
+  .card-mini .rating i {
+    font-size: 0.7rem;
+  }
+  
+  .card-mini .review-content {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    max-height: 50px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  
+  .card-mini .product-info {
+    padding: 0.4rem;
+  }
+  
+  .card-mini .product-info img {
+    width: 25px;
+    height: 25px;
+    margin-right: 0.4rem;
+  }
+  
+  .card-mini .product-details h4 {
+    font-size: 0.75rem;
+  }
+
+@media (min-width: 483px) and (max-width: 900px) {
+  .carousel-item {
+    flex: 0 0 45%;
+    padding: 0 15px; /* Increased spacing between cards */
+  }
+  
+  .carousel-container {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
   .carousel-item {
     flex: 0 0 50%;
     padding: 0 25px; /* Adjusted for tablets */
