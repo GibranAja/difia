@@ -805,6 +805,14 @@ onUnmounted(() => {
 .auth-links {
   text-align: left;
   margin: 1rem 0 2rem;
+    width: 100%; /* Ensure full width */
+}
+
+.auth-redirect {
+  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .redirect-link {
@@ -1178,7 +1186,7 @@ onUnmounted(() => {
 
   /* Ensure auth links are centered */
   .auth-links {
-    text-align: center;
+    text-align: left; /* Changed from center to left */
     width: 100%;
   }
 }

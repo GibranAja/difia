@@ -361,6 +361,26 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
+  // Check if user is in Google sign-in completion flow
+  const isInGoogleFlow = sessionStorage.getItem('googleSignInFlow') === 'true'
+
+  // If in Google flow and trying to navigate away from profile completion
+  if (isInGoogleFlow && to.name !== 'CompleteProfile') {
+    // Force redirect back to profile completion
+    next({ name: 'CompleteProfile' })
+    return
+  }
+
+  // For the profile completion page itself
+  if (to.name === 'CompleteProfile') {
+    // Allow access to profile completion page if in Google flow
+    // even if auth state is temporarily lost due to refresh
+    if (isInGoogleFlow) {
+      next()
+      return
+    }
+  }
+
   if ((to.path === '/login' || to.path === '/register') && authStore.isLoggedIn) {
     if (authStore.currentUser?.isAdmin || authStore.currentUser?.isStaff) {
       next({ name: 'DashboardView' })

@@ -113,25 +113,48 @@
                 {{ profileData.paymentMethod === 'bank' ? 'Nama Bank' : 'Nama E-Wallet' }}
                 <span class="required">*</span>
               </label>
-              <div class="input-wrapper">
-                <i
-                  :class="[
-                    'input-icon',
-                    profileData.paymentMethod === 'bank' ? 'fas fa-landmark' : 'fas fa-mobile-alt',
-                  ]"
-                ></i>
-                <input
-                  id="paymentName"
-                  type="text"
-                  v-model="profileData.paymentName"
-                  :placeholder="
-                    profileData.paymentMethod === 'bank'
-                      ? 'Contoh: BCA, Mandiri'
-                      : 'Contoh: OVO, GoPay'
-                  "
-                  class="form-input with-icon"
-                  required
-                />
+              <div class="custom-dropdown" :class="{ active: isPaymentDropdownOpen }">
+                <div
+                  class="selected-option"
+                  @click="togglePaymentDropdown"
+                  @keydown="handleDropdownKeydown"
+                >
+                  <i
+                    :class="[
+                      'input-icon',
+                      profileData.paymentMethod === 'bank'
+                        ? 'fas fa-landmark'
+                        : 'fas fa-mobile-alt',
+                    ]"
+                  ></i>
+                  <span>{{
+                    profileData.paymentName ||
+                    (profileData.paymentMethod === 'bank' ? 'Pilih Bank' : 'Pilih E-Wallet')
+                  }}</span>
+                  <i
+                    class="fas fa-chevron-down dropdown-icon"
+                    :class="{ rotate: isPaymentDropdownOpen }"
+                  ></i>
+                </div>
+                <transition name="dropdown-fade">
+                  <div class="dropdown-menu" v-if="isPaymentDropdownOpen" ref="dropdownMenu">
+                    <div
+                      v-for="option in paymentOptions"
+                      :key="option"
+                      class="dropdown-option"
+                      :class="{ 'option-selected': profileData.paymentName === option }"
+                      @click="selectPaymentOption(option)"
+                      tabindex="0"
+                      @keydown.enter="selectPaymentOption(option)"
+                    >
+                      <i
+                        class="fas fa-check check-icon"
+                        v-if="profileData.paymentName === option"
+                      ></i>
+                      {{ option }}
+                    </div>
+                  </div>
+                </transition>
               </div>
             </div>
 
@@ -204,7 +227,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -385,6 +408,122 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
+
+// Add this in the onMounted hook
+onMounted(async () => {
+  const isInGoogleFlow = sessionStorage.getItem('googleSignInFlow') === 'true'
+
+  // If we're in Google flow but the auth state appears logged out after refresh
+  if (isInGoogleFlow && !authStore.currentUser) {
+    try {
+      // Try to reinitialize auth state
+      await authStore.initializeAuthState()
+
+      // If still not logged in, redirect to login
+      if (!authStore.currentUser) {
+        toast.error('Sesi Anda telah berakhir. Silakan login kembali.')
+        router.push('/login')
+        // Clear the flow to prevent redirect loops
+        sessionStorage.removeItem('googleSignInFlow')
+      }
+    } catch (error) {
+      console.error('Auth reinitialization error:', error)
+      toast.error('Terjadi kesalahan. Silakan login kembali.')
+      router.push('/login')
+      sessionStorage.removeItem('googleSignInFlow')
+    }
+  }
+})
+
+const isPaymentDropdownOpen = ref(false)
+const dropdownMenu = ref(null)
+const activeOptionIndex = ref(-1)
+
+// Bank and e-wallet options
+const bankOptions = ['BNI', 'BCA', 'BRI', 'BTN', 'Mega', 'Permata', 'Danamon', 'Bukopin', 'Seabank']
+const ewalletOptions = ['Dana', 'OVO', 'GoPay', 'ShopeePay']
+
+// Computed property to get the appropriate options based on selected payment method
+const paymentOptions = computed(() => {
+  return profileData.value.paymentMethod === 'bank' ? bankOptions : ewalletOptions
+})
+
+// Toggle dropdown visibility
+const togglePaymentDropdown = () => {
+  isPaymentDropdownOpen.value = !isPaymentDropdownOpen.value
+  if (isPaymentDropdownOpen.value) {
+    // Reset active index when opening
+    activeOptionIndex.value = -1
+    // Focus the dropdown after it opens
+    nextTick(() => {
+      const options = dropdownMenu.value?.querySelectorAll('.dropdown-option')
+      if (options && options.length) {
+        options[0].focus()
+      }
+    })
+  }
+}
+
+// Handle option selection
+const selectPaymentOption = (option) => {
+  profileData.value.paymentName = option
+  isPaymentDropdownOpen.value = false
+}
+
+// Handle keyboard navigation
+const handleDropdownKeydown = (event) => {
+  if (!isPaymentDropdownOpen.value) {
+    // Open dropdown on arrow down/up
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      togglePaymentDropdown()
+    }
+    return
+  }
+
+  const options = dropdownMenu.value?.querySelectorAll('.dropdown-option')
+  if (!options || !options.length) return
+
+  switch (event.key) {
+    case 'Escape':
+      event.preventDefault()
+      isPaymentDropdownOpen.value = false
+      break
+    case 'ArrowDown':
+      event.preventDefault()
+      activeOptionIndex.value = Math.min(activeOptionIndex.value + 1, options.length - 1)
+      options[activeOptionIndex.value].focus()
+      break
+    case 'ArrowUp':
+      event.preventDefault()
+      activeOptionIndex.value = Math.max(activeOptionIndex.value - 1, 0)
+      options[activeOptionIndex.value].focus()
+      break
+    case 'Enter':
+      event.preventDefault()
+      if (activeOptionIndex.value >= 0) {
+        selectPaymentOption(paymentOptions.value[activeOptionIndex.value])
+      }
+      break
+  }
+}
+
+// Add outside click handler
+const handleClickOutside = (event) => {
+  if (isPaymentDropdownOpen.value && !event.target.closest('.custom-dropdown')) {
+    isPaymentDropdownOpen.value = false
+  }
+}
+
+// Add event listeners when component is mounted
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+// Clean up event listeners when component is unmounted
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
@@ -814,50 +953,152 @@ const handleSubmit = async () => {
   margin-left: 0;
 }
 
-/* Responsive styles */
-@media (max-width: 992px) {
-  .profile-completion-content {
-    flex-direction: column;
-    max-width: 600px;
-  }
-
-  .info-section {
-    width: 100%;
-    padding: 2rem;
-  }
-
-  .form-section {
-    padding: 2rem;
-  }
+/* Custom Dropdown Styling */
+.custom-dropdown {
+  position: relative;
+  max-width: 24.7rem;
+  width: 100%;
 }
 
-@media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .payment-method-options {
-    flex-direction: column;
-  }
-
-  .payment-option {
-    margin-bottom: 1rem;
-  }
+.selected-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 15px 12px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
 }
 
+.selected-option:hover {
+  border-color: #02163b;
+}
+
+.custom-dropdown.active .selected-option {
+  border-color: #02163b;
+  box-shadow: 0 0 0 2px rgba(2, 22, 59, 0.1);
+  background-color: white;
+}
+
+.dropdown-icon {
+  margin-left: auto;
+  color: #02163b;
+  transition: transform 0.3s ease;
+}
+
+.dropdown-icon.rotate {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  padding-left: 40px;
+}
+
+.dropdown-option:hover,
+.dropdown-option:focus {
+  background-color: #f5f5f5;
+  outline: none;
+}
+
+.dropdown-option.option-selected {
+  background-color: rgba(2, 22, 59, 0.05);
+  font-weight: 500;
+  color: #02163b;
+}
+
+.check-icon {
+  position: absolute;
+  left: 15px;
+  color: #02163b;
+}
+
+/* Custom scrollbar */
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Transition animations */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+/* Ensure proper positioning of the icon */
+.selected-option .input-icon {
+  position: absolute;
+  left: 12px;
+}
+
+/* Responsive adjustments */
 @media (max-width: 480px) {
-  .profile-completion-container {
-    padding: 1rem;
+  .dropdown-menu {
+    max-height: 180px;
   }
+}
 
-  .form-section {
-    padding: 1.5rem;
+@media (min-height: 900px) {
+  .dropdown-menu {
+    max-height: 260px;
   }
+}
 
-  .progress-line {
-    width: 30px;
+/* Fix focus styles */
+.dropdown-option:focus-visible {
+  outline: 2px solid #02163b;
+  outline-offset: -2px;
+}
+
+/* Support for ultra-wide screens */
+@media (min-width: 1920px) {
+  .custom-dropdown,
+  .dropdown-menu {
+    max-width: 100%;
   }
 }
 </style>
-```

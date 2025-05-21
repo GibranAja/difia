@@ -3,7 +3,7 @@
     <div class="carousel-container">
       <div class="carousel-track" ref="carouselTrack">
         <div v-for="(item, index) in reviews" :key="`review-${index}`" class="carousel-item">
-          <div class="card" :class="{'card-mini': isMobileOrTablet}">
+          <div class="card" :class="{ 'card-mini': isMobileOrTablet }">
             <div class="card-header">
               <div class="avatar">
                 <img
@@ -18,14 +18,25 @@
                   <i v-for="star in 5" :key="star" class="fas fa-star"></i>
                 </div>
               </div>
-              <div class="review-date" v-if="!isMobileOrTablet">{{ formatDate(item.createdAt) }}</div>
+              <div class="review-date" v-if="!isMobileOrTablet">
+                {{ formatDate(item.createdAt) }}
+              </div>
             </div>
 
             <div class="review-content">
-              <p>{{ isMobileOrTablet ? truncateText(item.review || 'No review content', 80) : (item.review || 'No review content') }}</p>
+              <p>
+                {{
+                  isMobileOrTablet
+                    ? truncateText(item.review || 'No review content', 80)
+                    : item.review || 'No review content'
+                }}
+              </p>
             </div>
 
-            <div class="review-images" v-if="!isMobileOrTablet && item.images && item.images.length > 0">
+            <div
+              class="review-images"
+              v-if="!isMobileOrTablet && item.images && item.images.length > 0"
+            >
               <img
                 v-for="(image, imgIndex) in item.images"
                 :key="imgIndex"
@@ -42,7 +53,13 @@
                 @error="handleProductImageError"
               />
               <div class="product-details">
-                <h4>{{ isMobileOrTablet ? truncateText(item.productName || 'Product', 25) : (item.productName || 'Product') }}</h4>
+                <h4>
+                  {{
+                    isMobileOrTablet
+                      ? truncateText(item.productName || 'Product', 25)
+                      : item.productName || 'Product'
+                  }}
+                </h4>
               </div>
             </div>
           </div>
@@ -91,7 +108,7 @@ let position = 0
 const speed = 0.8 // Increased speed for faster scrolling
 
 // Responsive breakpoints
-const MOBILE_BREAKPOINT = 482
+// const MOBILE_BREAKPOINT = 482
 const TABLET_BREAKPOINT = 900
 
 // Compute whether the current device is mobile or tablet
@@ -170,10 +187,8 @@ const formatDate = (timestamp) => {
 
 // Filter out reviews with images for mobile/tablet
 const filterReviews = (reviewsList) => {
-  if (isMobileOrTablet.value) {
-    return reviewsList.filter(review => !review.images || review.images.length === 0)
-  }
-  return reviewsList
+  // Remove the conditional and always filter out reviews with images
+  return reviewsList.filter((review) => !review.images || review.images.length === 0)
 }
 
 // Optimized function to get user data with caching
@@ -282,7 +297,7 @@ onMounted(() => {
 
   // Add resize event listener
   window.addEventListener('resize', handleResize)
-  
+
   // Initialize window width
   windowWidth.value = window.innerWidth
 
@@ -331,7 +346,7 @@ onMounted(() => {
 
       // Filter reviews for mobile/tablet
       processedReviews = filterReviews(processedReviews)
-      
+
       reviews.value = processedReviews
 
       // If not enough reviews, duplicate them to ensure smooth carousel
@@ -366,7 +381,7 @@ watch(reviews, (newReviews) => {
 })
 
 // Watch for changes in screen width to refilter reviews when needed
-watch(isMobileOrTablet, (isMobile) => {
+watch(isMobileOrTablet, () => {
   if (unsubscribe.value) {
     // Re-fetch reviews when changing between desktop and mobile/tablet
     unsubscribe.value()
@@ -384,7 +399,7 @@ onUnmounted(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
-  
+
   // Remove resize event listener
   window.removeEventListener('resize', handleResize)
 })
@@ -402,7 +417,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin: 1rem;
-  transition: 
+  transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
   height: calc(100% - 2rem); /* Ensure consistent height */
@@ -610,12 +625,12 @@ onUnmounted(() => {
     flex: 0 0 80%;
     padding: 0 8px; /* Reduced spacing for all mobile devices */
   }
-  
+
   .carousel-container {
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
   }
-  
+
   /* Mobile-specific card styling */
   .card-mini {
     max-width: 220px; /* Reduced max width for mobile */
@@ -639,50 +654,50 @@ onUnmounted(() => {
     flex: 0 0 68%; /* Slightly smaller cards on iPhone */
   }
 }
-  
-  .card-mini .avatar {
-    width: 35px;
-    height: 35px;
-  }
-  
-  .card-mini .username {
-    font-size: 0.85rem;
-  }
-  
-  .card-mini .rating i {
-    font-size: 0.7rem;
-  }
-  
-  .card-mini .review-content {
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-    max-height: 50px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-  }
-  
-  .card-mini .product-info {
-    padding: 0.4rem;
-  }
-  
-  .card-mini .product-info img {
-    width: 25px;
-    height: 25px;
-    margin-right: 0.4rem;
-  }
-  
-  .card-mini .product-details h4 {
-    font-size: 0.75rem;
-  }
+
+.card-mini .avatar {
+  width: 35px;
+  height: 35px;
+}
+
+.card-mini .username {
+  font-size: 0.85rem;
+}
+
+.card-mini .rating i {
+  font-size: 0.7rem;
+}
+
+.card-mini .review-content {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  max-height: 50px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.card-mini .product-info {
+  padding: 0.4rem;
+}
+
+.card-mini .product-info img {
+  width: 25px;
+  height: 25px;
+  margin-right: 0.4rem;
+}
+
+.card-mini .product-details h4 {
+  font-size: 0.75rem;
+}
 
 @media (min-width: 483px) and (max-width: 900px) {
   .carousel-item {
     flex: 0 0 45%;
     padding: 0 15px; /* Increased spacing between cards */
   }
-  
+
   .carousel-container {
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
     mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);

@@ -422,8 +422,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       // If profile is incomplete, redirect to profile completion page
       if (needsProfileCompletion) {
+        // Mark that this user needs to complete their profile
+        sessionStorage.setItem('googleSignInFlow', 'true')
         toast.info('Silahkan lengkapi informasi profil Anda')
-        // Return info that profile needs completion
         return { success: true, needsProfileCompletion: true }
       } else {
         if (isAdmin) {

@@ -1,4 +1,7 @@
 <template>
+  <!-- Loading component dengan z-index tinggi saat data masih di-load -->
+  <LoadComponent v-if="isLoading" />
+
   <VoucherNotification />
   <NavigationBar :showLogout="isLoggedIn" @logout="handleLogout" class="navbar" />
   <header id="home" :class="{ 'header-at-top': isAtTop }">
@@ -77,7 +80,8 @@ import { usePartnerStore } from '@/stores/PartnerStore'
 import { useSliderStore } from '@/stores/SliderStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useVoucherStore } from '@/stores/VoucherStore'
-import { useBlogStore } from '@/stores/BlogStore' // Add this import
+import { useBlogStore } from '@/stores/BlogStore'
+import LoadComponent from '@/components/LoadComponent.vue' // Import LoadComponent
 
 import CardCatalog from '@/components/CardCatalog.vue'
 import CardBlog from '@/components/CardBlog.vue'
@@ -88,7 +92,6 @@ import CardUlasan from '@/components/CardUlasan.vue'
 import CardMitra from '@/components/CardMitra.vue'
 import HeroSwiper from '@/components/HeroSwiper.vue'
 import CardPopuler from '@/components/CardPopuler.vue'
-// import TentangKamiSection from '@/components/TentangKamiSection.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -97,7 +100,10 @@ const katalogStore = useKatalogStore()
 const partnerStore = usePartnerStore()
 const sliderStore = useSliderStore()
 const voucherStore = useVoucherStore()
-const blogStore = useBlogStore() // Add this line
+const blogStore = useBlogStore()
+
+// Add loading state to track data loading
+const isLoading = ref(true)
 
 // Array untuk endless carousel penghargaan (minimal 8 item)
 const achievementItems = ref([])
@@ -163,11 +169,24 @@ const checkScrollPosition = () => {
 }
 
 onMounted(async () => {
-  await katalogStore.fetchKatalog()
-  await partnerStore.fetchPartners()
-  await sliderStore.fetchSliders()
-  await voucherStore.fetchVouchers()
-  await blogStore.fetchBlogs() // Add this line to fetch blog data
+  isLoading.value = true
+
+  try {
+    // Optimasi: load semua data secara paralel dengan Promise.all
+    // untuk mempercepat proses loading tanpa menunggu satu-persatu
+    await Promise.all([
+      katalogStore.fetchKatalog(),
+      partnerStore.fetchPartners(),
+      sliderStore.fetchSliders(),
+      voucherStore.fetchVouchers(),
+      blogStore.fetchBlogs(),
+    ])
+  } catch (error) {
+    console.error('Error loading data:', error)
+  } finally {
+    // Sembunyikan loading setelah data dimuat
+    isLoading.value = false
+  }
 
   window.addEventListener('scroll', () => {
     if (!ticking) {
@@ -844,5 +863,28 @@ header {
   .blog-grid :deep(.card img) {
     height: 90px;
   }
+}
+
+/* Ensure LoadComponent appears on top of everything */
+:deep(.loading-overlay) {
+  z-index: 9999 !important; /* Nilai z-index tinggi untuk memastikan tampil di atas semua elemen */
+  position: fixed !important; /* Fixed position untuk menutupi seluruh viewport */
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important; /* Full viewport width */
+  height: 100vh !important; /* Full viewport height */
+  background-color: rgba(255, 255, 255, 0.95) !important; /* Latar belakang hampir solid */
+}
+
+/* Also update the spinner to be more prominent */
+:deep(.spinner) {
+  width: 60px !important;
+  height: 60px !important;
+  border-width: 5px !important;
+}
+
+:deep(.loading-text) {
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
 }
 </style>
