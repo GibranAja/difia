@@ -1,4 +1,3 @@
-// main.js - Kembali ke versi original Anda (tanpa Service Worker)
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
