@@ -1075,30 +1075,355 @@ onUnmounted(() => {
   left: 12px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 480px) {
+/* ================================ */
+/* RESPONSIVE DESIGN STARTS HERE */
+/* ================================ */
+
+/* Tablet Responsive - 768px to 1024px */
+@media (max-width: 1024px) {
+  .profile-completion-container {
+    padding: 1.5rem;
+  }
+
+  .profile-completion-content {
+    max-width: 900px;
+  }
+
+  .info-section {
+    width: 35%;
+    padding: 2.5rem 1.5rem;
+  }
+
+  .form-section {
+    padding: 2.5rem;
+  }
+
+  .logo-wrapper {
+    width: 85%;
+    margin-bottom: 1.5rem;
+  }
+
+  .difia-logo {
+    max-height: 180px;
+  }
+
+  .info-text h2 {
+    font-size: 1.6rem;
+  }
+
+  .form-header h1 {
+    font-size: 1.6rem;
+  }
+}
+
+/* Mobile Landscape - 768px and below */
+@media (max-width: 768px) {
+  .profile-completion-container {
+    padding: 1rem;
+    align-items: flex-start;
+    min-height: 100vh;
+  }
+
+  .profile-completion-content {
+    flex-direction: column;
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  /* Info section adjustments for mobile */
+  .info-section {
+    width: 100%;
+    padding: 2rem 1.5rem;
+    min-height: auto;
+    display: flex;
+    flex-direction: column; /* Pastikan arah kolom */
+    justify-content: center; /* Center secara vertikal */
+    align-items: center; /* Center secara horizontal - PERBAIKAN UTAMA */
+    text-align: center; /* Center semua teks */
+  }
+
+  /* Logo wrapper - pastikan benar-benar center */
+  .logo-wrapper {
+    width: 60%;
+    margin: 0 auto 1rem; /* Center horizontal dengan margin auto */
+    padding: 1rem;
+    display: flex; /* Tambahkan flex */
+    justify-content: center; /* Center konten logo */
+    align-items: center; /* Center vertikal logo */
+  }
+
+  /* Logo image - pastikan responsive dan center */
+  .difia-logo {
+    max-height: 120px;
+    width: auto; /* Maintain aspect ratio */
+    display: block; /* Block untuk centering yang lebih baik */
+    margin: 0 auto; /* Center horizontal */
+  }
+
+  /* Info text - pastikan semua teks center */
+  .info-text {
+    padding: 0;
+    text-align: center;
+    width: 100%; /* Full width untuk centering yang optimal */
+    display: flex; /* Flex container */
+    flex-direction: column; /* Kolom layout */
+    align-items: center; /* Center horizontal semua child elements */
+  }
+
+  /* Heading - center dengan margin auto */
+  .info-text h2 {
+    font-size: 1.4rem;
+    margin: 0 auto 1rem auto; /* Center dengan margin auto */
+    text-align: center;
+    width: 100%;
+  }
+
+  /* Paragraph - center dengan optimal */
+  .info-text p {
+    font-size: 0.9rem;
+    margin: 0 auto 1rem auto; /* Center dengan margin auto */
+    text-align: center;
+    max-width: 90%; /* Limit width untuk readability */
+    line-height: 1.5; /* Better line height untuk mobile */
+  }
+
+  /* Form section adjustments for mobile */
+  .form-section {
+    padding: 2rem 1.5rem;
+  }
+
+  .form-header h1 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Progress indicator mobile adjustments */
+  .progress-indicator {
+    margin-bottom: 1.5rem;
+  }
+
+  .step-number {
+    width: 25px;
+    height: 25px;
+    font-size: 0.8rem;
+  }
+
+  .step-label {
+    font-size: 0.7rem;
+  }
+
+  .progress-line {
+    width: 40px;
+    margin: 0 5px;
+    margin-bottom: 20px;
+  }
+
+  /* Form adjustments */
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-section-title {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Payment method options for mobile */
+  .payment-method-options {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .payment-option {
+    padding: 1rem;
+  }
+
+  .payment-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    margin-right: 0.8rem;
+  }
+
+  .payment-name {
+    font-size: 0.9rem;
+  }
+
+  .payment-desc {
+    font-size: 0.8rem;
+  }
+
+  /* Form row adjustments for mobile */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .payment-details-inputs {
+    padding: 1rem;
+  }
+
+  /* Input adjustments for mobile */
+  .form-input {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .form-input.with-prefix {
+    padding-left: 50px;
+  }
+
+  .form-input.with-icon {
+    padding-left: 35px;
+  }
+
+  .input-prefix {
+    width: 45px;
+    font-size: 0.9rem;
+  }
+
+  .input-icon {
+    left: 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Custom dropdown mobile adjustments */
+  .custom-dropdown {
+    max-width: 100%;
+  }
+
+  .selected-option {
+    padding: 10px 12px 10px 35px;
+    font-size: 0.9rem;
+  }
+
+  .selected-option .input-icon {
+    left: 10px;
+    font-size: 0.9rem;
+  }
+
   .dropdown-menu {
     max-height: 180px;
   }
-}
 
-@media (min-height: 900px) {
-  .dropdown-menu {
-    max-height: 260px;
+  .dropdown-option {
+    padding: 10px 12px;
+    padding-left: 35px;
+    font-size: 0.9rem;
+  }
+
+  /* Privacy notice mobile adjustments */
+  .form-privacy-notice {
+    padding: 0.8rem;
+    flex-direction: column;
+    text-align: center;
+    border-left: none;
+    border-top: 3px solid #02163b;
+  }
+
+  .form-privacy-notice i {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .form-privacy-notice p {
+    font-size: 0.8rem;
+  }
+
+  /* Submit button mobile adjustments */
+  .submit-btn {
+    padding: 12px;
+    font-size: 0.9rem;
   }
 }
 
-/* Fix focus styles */
-.dropdown-option:focus-visible {
-  outline: 2px solid #02163b;
-  outline-offset: -2px;
+/* Small Mobile - 480px and below */
+@media (max-width: 480px) {
+  .profile-completion-container {
+    padding: 0.5rem;
+  }
+
+  .info-section {
+    padding: 1.5rem 1rem;
+    align-items: center; /* Pastikan center horizontal */
+    justify-content: center; /* Pastikan center vertikal */
+  }
+
+  .logo-wrapper {
+    width: 70%;
+    padding: 0.8rem;
+    margin: 0 auto 0.8rem auto; /* Double ensure centering */
+  }
+
+  .difia-logo {
+    max-height: 100px;
+    margin: 0 auto; /* Ensure logo centering */
+  }
+
+  .info-text h2 {
+    font-size: 1.2rem;
+    margin: 0 auto 0.8rem auto;
+    text-align: center;
+  }
+
+  .info-text p {
+    font-size: 0.85rem;
+    margin: 0 auto;
+    text-align: center;
+    max-width: 95%; /* Slightly wider pada mobile kecil */
+  }
 }
 
-/* Support for ultra-wide screens */
-@media (min-width: 1920px) {
-  .custom-dropdown,
-  .dropdown-menu {
-    max-width: 100%;
+/* Extra Small Mobile - 360px and below */
+@media (max-width: 360px) {
+  .info-section {
+    padding: 1rem 0.8rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-wrapper {
+    width: 80%;
+    padding: 0.6rem;
+    margin: 0 auto 0.6rem auto;
+  }
+
+  .difia-logo {
+    max-height: 80px;
+    margin: 0 auto;
+  }
+
+  .info-text h2 {
+    font-size: 1.1rem;
+    margin: 0 auto 0.6rem auto;
+  }
+
+  .info-text p {
+    margin: 0 auto;
+    max-width: 98%;
+  }
+}
+
+/* Landscape orientation - pastikan centering tetap baik */
+@media (max-height: 600px) and (orientation: landscape) {
+  .info-section {
+    padding: 1rem;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-wrapper {
+    margin: 0 auto 0.5rem auto;
+  }
+
+  .info-text h2 {
+    margin: 0 auto 0.5rem auto;
+  }
+
+  .info-text p {
+    margin: 0 auto 0.5rem auto;
   }
 }
 </style>
