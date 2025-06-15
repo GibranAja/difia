@@ -172,12 +172,6 @@
                   <span class="nav-link-text">{{ item.text }}</span>
                 </a>
               </li>
-              <li v-if="authStore.currentUser?.isAdmin" class="nav-item admin-item">
-                <router-link to="/admin" class="nav-link admin-link">
-                  <i class="fas fa-chart-line admin-icon"></i>
-                  <span class="nav-link-text">Dashboard</span>
-                </router-link>
-              </li>
             </ul>
           </div>
 

@@ -69,10 +69,13 @@ export const useCartStore = defineStore('cart', () => {
         purchaseType: cartItem.customOptions.purchaseType,
         budgetPrice: cartItem.customOptions.budgetPrice,
         note: cartItem.customOptions.note,
-        // Handle the logo reference but not the actual data
+        // CRITICAL: Pastikan logo PDF tersimpan dengan benar
+        uploadedLogo: cartItem.customOptions.uploadedLogo || null,
+        // Keep metadata for reference and debugging
         hasLogo: cartItem.customOptions.uploadedLogo ? true : false,
-        logoFileName: cartItem.customOptions.uploadedLogo ? 
-          `logo_${Date.now()}_${authStore.currentUser?.id?.substring(0, 5)}` : null
+        logoFileName: cartItem.customOptions.uploadedLogo
+          ? `logo_${Date.now()}_${authStore.currentUser?.id?.substring(0, 5)}`
+          : null,
       }
 
       const newItem = {
@@ -87,7 +90,7 @@ export const useCartStore = defineStore('cart', () => {
         updatedAt: serverTimestamp(),
       }
 
-      // Add validation for required fields
+      // Enhanced validation with specific logo check
       if (
         !newItem.customOptions.bahanLuar ||
         !newItem.customOptions.bahanDalam ||
@@ -96,17 +99,29 @@ export const useCartStore = defineStore('cart', () => {
         throw new Error('Mohon lengkapi semua detail produk')
       }
 
+      // CRITICAL: Validasi logo untuk tipe Souvenir
+      if (
+        newItem.customOptions.purchaseType === 'Souvenir' &&
+        !newItem.customOptions.uploadedLogo
+      ) {
+        throw new Error('Logo PDF wajib diupload untuk pembelian tipe Souvenir')
+      }
+
+      // Debug logging untuk memastikan data tersimpan
+      console.log('Saving to Firestore with logo:', {
+        hasLogo: !!newItem.customOptions.uploadedLogo,
+        logoSize: newItem.customOptions.uploadedLogo
+          ? newItem.customOptions.uploadedLogo.length
+          : 0,
+        purchaseType: newItem.customOptions.purchaseType,
+      })
+
       const docRef = await addDoc(collection(db, 'cart'), newItem)
-      
-      // For UI purposes, we'll keep the logo in the local state but not in Firestore
-      cartItems.value.push({ 
-        id: docRef.id, 
+
+      // Simpan ke state lokal dengan data lengkap
+      cartItems.value.push({
+        id: docRef.id,
         ...newItem,
-        customOptions: {
-          ...newItem.customOptions,
-          // Keep the logo data in local state only
-          uploadedLogo: cartItem.customOptions.uploadedLogo
-        }
       })
 
       toast.success('Item berhasil ditambahkan ke keranjang')

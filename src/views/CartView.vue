@@ -51,6 +51,34 @@
               <p>Bahan Luar: {{ item.customOptions.bahanLuar }}</p>
               <p>Bahan Dalam: {{ item.customOptions.bahanDalam }}</p>
               <p>Aksesoris: {{ item.customOptions.aksesoris.join(', ') }}</p>
+              <!-- Enhanced logo indicator dengan debugging -->
+              <p
+                v-if="item.customOptions.purchaseType === 'Souvenir'"
+                class="logo-indicator"
+                :class="{
+                  'has-logo': item.customOptions.uploadedLogo,
+                  'no-logo': !item.customOptions.uploadedLogo,
+                }"
+              >
+                <i
+                  :class="[
+                    'fas',
+                    item.customOptions.uploadedLogo ? 'fa-file-pdf' : 'fa-exclamation-triangle',
+                  ]"
+                ></i>
+                {{
+                  item.customOptions.uploadedLogo ? 'Logo PDF tersedia' : 'Logo PDF tidak tersedia'
+                }}
+                <!-- Debug info (hapus setelah testing) -->
+                <small
+                  v-if="item.customOptions.hasLogo !== undefined"
+                  style="display: block; color: #999"
+                >
+                  Debug: hasLogo={{ item.customOptions.hasLogo }}, logoSize={{
+                    item.customOptions.uploadedLogo ? item.customOptions.uploadedLogo.length : 0
+                  }}
+                </small>
+              </p>
             </div>
 
             <div class="cart-card__controls">
@@ -329,12 +357,25 @@ onMounted(async () => {
     const cachedCart = getCartFromCache()
     if (cachedCart) {
       cartStore.cartItems = cachedCart
+      console.log('Loaded cart from cache:', cachedCart.length, 'items')
+
+      // Debug setiap item
+      cachedCart.forEach((item, index) => {
+        if (item.customOptions.purchaseType === 'Souvenir') {
+          console.log(`Cart item ${index}:`, {
+            name: item.name,
+            hasLogo: !!item.customOptions.uploadedLogo,
+            logoSize: item.customOptions.uploadedLogo ? item.customOptions.uploadedLogo.length : 0,
+          })
+        }
+      })
     }
 
     // Fetch fresh cart data in background
     const freshData = await cartStore.fetchCartItems()
     if (freshData) {
       saveCartToCache(cartStore.cartItems)
+      console.log('Refreshed cart from Firestore:', cartStore.cartItems.length, 'items')
     }
 
     // Fetch vouchers and setup real-time listener
@@ -1042,5 +1083,22 @@ const formatPrice = (price) => {
   transform: none;
   box-shadow: none;
   background-color: #f8f9fa;
+}
+
+/* Enhanced logo indicator styles */
+.logo-indicator.has-logo {
+  color: #28a745;
+}
+
+.logo-indicator.has-logo i {
+  color: #dc3545;
+}
+
+.logo-indicator.no-logo {
+  color: #dc3545;
+}
+
+.logo-indicator.no-logo i {
+  color: #dc3545;
 }
 </style>

@@ -311,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { onBeforeRouteLeave } from 'vue-router'
@@ -649,6 +649,10 @@ const saveAddress = async (addressData) => {
     }
 
     if (result.success) {
+      // Check if we're editing the currently selected address
+      const isEditingSelectedAddress =
+        isEditingAddress.value && addressData.id === selectedAddressId.value
+
       if (isFirstAddress.value || result.address?.id === selectedAddressId.value) {
         const addressToUse = isEditingAddress.value
           ? addressStore.addresses.find((a) => a.id === addressData.id)
@@ -664,6 +668,9 @@ const saveAddress = async (addressData) => {
         selectedAddressId.value = result.address.id
         await calculateShipping(result.address)
       }
+
+      // If editing selected address but not first address, the watcher will handle the recalculation
+      // So we don't need to manually calculate here as it will be done by the watcher
 
       closeAddressModal()
       toast.success(
@@ -982,6 +989,42 @@ const isMobileSummaryExpanded = ref(false)
 const toggleMobileSummary = () => {
   isMobileSummaryExpanded.value = !isMobileSummaryExpanded.value
 }
+
+// Add this watcher after the existing computed and ref declarations
+watch(
+  () => {
+    const selectedAddr = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
+    return selectedAddr
+      ? {
+          id: selectedAddr.id,
+          province: selectedAddr.province,
+          city: selectedAddr.city,
+        }
+      : null
+  },
+  async (newAddress, oldAddress) => {
+    // Only recalculate if the selected address province or city changed
+    if (
+      newAddress &&
+      oldAddress &&
+      (newAddress.province !== oldAddress.province || newAddress.city !== oldAddress.city)
+    ) {
+      const fullAddress = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
+      if (fullAddress) {
+        // Load cities if province changed
+        if (newAddress.province !== oldAddress.province) {
+          await loadCities(newAddress.province)
+        }
+
+        // Recalculate shipping
+        await calculateShipping(fullAddress)
+
+        toast.info('Ongkos kirim telah diperbarui')
+      }
+    }
+  },
+  { deep: true },
+)
 
 onMounted(async () => {
   try {

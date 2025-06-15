@@ -249,24 +249,42 @@ const addToCart = async () => {
       productId: selectedProduct.value.id,
       name: selectedProduct.value.nama,
       image: selectedProduct.value.images[0],
-      price: getSelectedPrice(), // Use the helper function
-      quantity: quantity.value, // Use quantity ref
+      price: getSelectedPrice(),
+      quantity: quantity.value,
       customOptions: {
         priceType: selectedPrice.value,
         bahanLuar: selectedBahanLuar.value,
         bahanDalam: selectedBahanDalam.value,
         aksesoris: selectedAksesoris.value,
         color: selectedColor.value,
-        uploadedLogo: purchaseType.value === 'Souvenir' ? uploadedLogo.value : null, // Changed from uploadedImage
+        uploadedLogo: purchaseType.value === 'Souvenir' ? uploadedLogo.value : null,
         purchaseType: purchaseType.value,
-        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null, // Store budget price if selected
+        budgetPrice: selectedPrice.value === 'budget' ? budgetInput.value : null,
         note: note.value,
       },
       createdAt: new Date(),
     }
 
-    await cartStore.addToCart(cartItem)
-    router.push('/cart')
+    // Debug logging untuk memastikan data dikirim dengan benar
+    console.log('Sending to cart with logo:', {
+      hasLogo: !!cartItem.customOptions.uploadedLogo,
+      logoSize: cartItem.customOptions.uploadedLogo
+        ? cartItem.customOptions.uploadedLogo.length
+        : 0,
+      purchaseType: cartItem.customOptions.purchaseType,
+      logoData: cartItem.customOptions.uploadedLogo
+        ? cartItem.customOptions.uploadedLogo.substring(0, 50) + '...'
+        : null,
+    })
+
+    const result = await cartStore.addToCart(cartItem)
+
+    if (result.success) {
+      console.log('Successfully added to cart')
+      router.push('/cart')
+    } else {
+      console.error('Failed to add to cart:', result.error)
+    }
   } catch (error) {
     console.error('Error adding to cart:', error)
   } finally {
@@ -1089,7 +1107,7 @@ const isActionDisabled = computed(() => {
 
 .quantity-btn:hover {
   background: #f5f5f5;
-  color: var(--accent-color);
+  color: #e8ba38;
 }
 
 /* Add these styles to the existing .quantity-btn styles */
