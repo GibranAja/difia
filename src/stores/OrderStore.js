@@ -104,24 +104,26 @@ export const useOrderStore = defineStore('order', () => {
 
       const docRef = await addDoc(collection(db, 'orders'), newOrder)
 
-      // After successful order creation, create a notification
+      // 1. Create USER notification
       await notificationStore.createNotification({
         title: 'Pesanan Berhasil Dibuat! ✨',
         message: `Pesanan #${docRef.id.slice(-6)} telah dibuat dan menunggu konfirmasi. Kami akan segera memprosesnya!`,
         type: 'order',
-        userId: authStore.currentUser?.id,
+        userId: authStore.currentUser?.id, // EKSPLISIT: untuk user
+        forAdmin: false, // EKSPLISIT: bukan untuk admin
         orderId: docRef.id,
         icon: 'fas fa-shopping-bag',
         color: '#16a34a',
         link: `/my-account/orders?search=${docRef.id}`,
       })
 
-      // Create admin notification for new order
+      // 2. Create ADMIN notification (terpisah dan eksplisit)
       await notificationStore.createNotification({
         title: 'Pesanan Baru Masuk! 🛒',
         message: `Pesanan baru #${docRef.id.slice(-6)} untuk ${currentOrder.value.name} (${currentOrder.value.quantity} pcs) telah masuk.`,
         type: 'order',
-        forAdmin: true,
+        userId: null, // EKSPLISIT: null untuk admin
+        forAdmin: true, // EKSPLISIT: untuk admin
         orderId: docRef.id,
         icon: 'fas fa-shopping-bag',
         color: '#0ea5e9',
@@ -142,48 +144,72 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  // Update the sendOrderStatusNotification function
+  // Update sendOrderStatusNotification di sekitar baris 188-215
   const sendOrderStatusNotification = async (orderId, status, userId) => {
-    let notifData = {
+    let userNotifData = {
       userId: userId,
       orderId: orderId,
       type: 'order',
+      forAdmin: false, // EKSPLISIT: untuk user
+    }
+
+    let adminNotifData = {
+      userId: null,
+      orderId: orderId,
+      type: 'order',
+      forAdmin: true, // EKSPLISIT: untuk admin
     }
 
     // Create user notification data
     switch (status) {
       case 'process':
-        notifData = {
-          ...notifData,
+        userNotifData = {
+          ...userNotifData,
           title: 'Pesanan Diproses! 🛠️',
           message: `Pesanan #${orderId.slice(-6)} sedang diproses dengan penuh kehati-hatian. Kami memastikan kualitas terbaik untuk Anda!`,
           icon: 'fas fa-cog',
           color: '#0ea5e9',
         }
+        // Tidak perlu admin notification untuk process
         break
       case 'delivery':
-        notifData = {
-          ...notifData,
+        userNotifData = {
+          ...userNotifData,
           title: 'Pesanan Dikirim! 🚚',
           message: `Kabar gembira! Pesanan #${orderId.slice(-6)} sedang dalam perjalanan ke alamat Anda. Siap-siap untuk menerima produk istimewa kami!`,
           icon: 'fas fa-truck',
           color: '#9333ea',
         }
+        // Tidak perlu admin notification untuk delivery
         break
       case 'complete':
-        notifData = {
-          ...notifData,
+        userNotifData = {
+          ...userNotifData,
           title: 'Pesanan Selesai! 🎉',
           message: `Terima kasih! Pesanan #${orderId.slice(-6)} telah selesai. Bagaimana pengalaman berbelanja Anda? Kami menunggu pesanan berikutnya!`,
           icon: 'fas fa-check-circle',
           color: '#16a34a',
         }
+        adminNotifData = {
+          ...adminNotifData,
+          title: 'Pesanan Selesai ✅',
+          message: `Pesanan #${orderId.slice(-6)} telah dikonfirmasi selesai oleh pelanggan.`,
+          icon: 'fas fa-check-circle',
+          color: '#16a34a',
+        }
         break
       case 'cancelled':
-        notifData = {
-          ...notifData,
+        userNotifData = {
+          ...userNotifData,
           title: 'Pesanan Dibatalkan',
           message: `Pesanan #${orderId.slice(-6)} telah dibatalkan. Jika ini tidak sesuai harapan Anda, mohon hubungi kami untuk klarifikasi.`,
+          icon: 'fas fa-times-circle',
+          color: '#dc2626',
+        }
+        adminNotifData = {
+          ...adminNotifData,
+          title: 'Pesanan Dibatalkan ❌',
+          message: `Pesanan #${orderId.slice(-6)} telah dibatalkan oleh admin.`,
           icon: 'fas fa-times-circle',
           color: '#dc2626',
         }
@@ -193,29 +219,11 @@ export const useOrderStore = defineStore('order', () => {
     }
 
     // Send user notification
-    await notificationStore.createNotification(notifData)
+    await notificationStore.createNotification(userNotifData)
 
-    // Create separate admin notification for specific status changes
-    if (status === 'cancelled') {
-      await notificationStore.createNotification({
-        title: 'Pesanan Dibatalkan ❌',
-        message: `Pesanan #${orderId.slice(-6)} telah dibatalkan oleh pelanggan.`,
-        type: 'order',
-        forAdmin: true,
-        orderId: orderId,
-        icon: 'fas fa-times-circle',
-        color: '#dc2626',
-      })
-    } else if (status === 'complete') {
-      await notificationStore.createNotification({
-        title: 'Pesanan Selesai ✅',
-        message: `Pesanan #${orderId.slice(-6)} telah dikonfirmasi selesai oleh pelanggan.`,
-        type: 'order',
-        forAdmin: true,
-        orderId: orderId,
-        icon: 'fas fa-check-circle',
-        color: '#16a34a',
-      })
+    // Send admin notification untuk status tertentu
+    if (status === 'cancelled' || status === 'complete') {
+      await notificationStore.createNotification(adminNotifData)
     }
   }
 

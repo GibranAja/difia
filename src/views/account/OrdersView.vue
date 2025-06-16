@@ -533,16 +533,29 @@ const completeOrder = async (orderId) => {
       status: 'complete',
     })
 
-    // Create a completion notification
+    // Create USER notification
     await notificationStore.createNotification({
       title: 'Pesanan Selesai! 🎉',
       message: `Terima kasih! Pesanan #${orderId.slice(-6)} untuk ${orderData.productName} telah dikonfirmasi selesai. Semoga Anda puas dengan produk kami!`,
       type: 'order',
       userId: authStore.currentUser?.id,
+      forAdmin: false, // EKSPLISIT: untuk user
       orderId: orderId,
       icon: 'fas fa-check-circle',
       color: '#16a34a',
       link: `/my-account/orders?search=${orderId}`,
+    })
+
+    // TAMBAHKAN: Create ADMIN notification untuk pesanan selesai
+    await notificationStore.createNotification({
+      title: 'Pesanan Selesai ✅',
+      message: `Pesanan #${orderId.slice(-6)} untuk ${orderData.productName} telah dikonfirmasi selesai oleh pelanggan.`,
+      type: 'order',
+      userId: null, // EKSPLISIT: null untuk admin
+      forAdmin: true, // EKSPLISIT: untuk admin
+      orderId: orderId,
+      icon: 'fas fa-check-circle',
+      color: '#16a34a',
     })
 
     toast.success('Pesanan telah selesai')
@@ -1447,4 +1460,3 @@ input:focus {
   }
 }
 </style>
-```

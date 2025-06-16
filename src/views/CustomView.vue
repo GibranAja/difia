@@ -265,24 +265,16 @@ const addToCart = async () => {
       createdAt: new Date(),
     }
 
-    // Debug logging untuk memastikan data dikirim dengan benar
-    console.log('Sending to cart with logo:', {
-      hasLogo: !!cartItem.customOptions.uploadedLogo,
-      logoSize: cartItem.customOptions.uploadedLogo
-        ? cartItem.customOptions.uploadedLogo.length
-        : 0,
-      purchaseType: cartItem.customOptions.purchaseType,
-      logoData: cartItem.customOptions.uploadedLogo
-        ? cartItem.customOptions.uploadedLogo.substring(0, 50) + '...'
-        : null,
-    })
+    // HAPUS: Debug logging untuk production
+    // Validasi tetap berjalan di backend tanpa console.log
 
     const result = await cartStore.addToCart(cartItem)
 
     if (result.success) {
-      console.log('Successfully added to cart')
+      // HAPUS: Success logging untuk production
       router.push('/cart')
     } else {
+      // Error handling tetap ada untuk debugging internal
       console.error('Failed to add to cart:', result.error)
     }
   } catch (error) {

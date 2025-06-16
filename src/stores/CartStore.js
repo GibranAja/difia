@@ -107,15 +107,6 @@ export const useCartStore = defineStore('cart', () => {
         throw new Error('Logo PDF wajib diupload untuk pembelian tipe Souvenir')
       }
 
-      // Debug logging untuk memastikan data tersimpan
-      console.log('Saving to Firestore with logo:', {
-        hasLogo: !!newItem.customOptions.uploadedLogo,
-        logoSize: newItem.customOptions.uploadedLogo
-          ? newItem.customOptions.uploadedLogo.length
-          : 0,
-        purchaseType: newItem.customOptions.purchaseType,
-      })
-
       const docRef = await addDoc(collection(db, 'cart'), newItem)
 
       // Simpan ke state lokal dengan data lengkap

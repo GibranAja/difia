@@ -34,7 +34,6 @@ export const useNotificationStore = defineStore('notification', () => {
       // Admin gets notifications marked with forAdmin = true
       notificationsRef = dbRef(rtdb, 'notifications')
 
-      // Use onValue to listen for changes
       unsubscribeListener = onValue(
         notificationsRef,
         (snapshot) => {
@@ -42,8 +41,11 @@ export const useNotificationStore = defineStore('notification', () => {
 
           snapshot.forEach((childSnapshot) => {
             const notification = childSnapshot.val()
-            // Only include admin notifications
-            if (notification.forAdmin === true) {
+            // PERBAIKAN: Filter lebih ketat untuk admin notifications
+            if (
+              notification.forAdmin === true &&
+              (notification.userId === null || notification.userId === undefined)
+            ) {
               notificationsData.push({
                 id: childSnapshot.key,
                 ...notification,
@@ -108,29 +110,18 @@ export const useNotificationStore = defineStore('notification', () => {
       const notification = {
         title: data.title,
         message: data.message,
-        type: data.type, // 'order', 'voucher', 'system', etc.
-        userId: data.userId || null, // null for global notifications
+        type: data.type,
+        userId: data.userId || null,
         orderId: data.orderId || null,
         icon: data.icon || 'fas fa-bell',
         color: data.color || '#e8ba38',
         link: data.link || null,
-        forAdmin: data.forAdmin === true, // Explicitly boolean, defaults to false
+        forAdmin: data.forAdmin === true,
         read: false,
         timestamp: rtdbServerTimestamp(),
       }
 
       await push(notificationRef, notification)
-
-      // Also create admin version of notification if this is an order notification
-      if (data.type === 'order' && !data.forAdmin) {
-        const adminNotification = {
-          ...notification,
-          forAdmin: true, // Mark for admin
-          userId: null, // Clear userId for admin notifications
-          title: `${data.title} (#${data.orderId?.slice(-6) || 'N/A'})`,
-        }
-        await push(notificationRef, adminNotification)
-      }
 
       return { success: true }
     } catch (err) {
@@ -264,6 +255,26 @@ export const useNotificationStore = defineStore('notification', () => {
     return notifTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
+  // Tambahkan di NotificationStore.js untuk debugging
+  const debugNotificationStructure = () => {
+    console.log('=== NOTIFICATION DEBUG ===')
+    console.log('Total notifications:', notifications.value.length)
+
+    const adminNotifs = notifications.value.filter((n) => n.forAdmin === true)
+    const userNotifs = notifications.value.filter((n) => n.forAdmin !== true && n.userId)
+    const problematicNotifs = notifications.value.filter((n) => n.forAdmin === true && n.userId)
+
+    console.log('Admin notifications:', adminNotifs.length)
+    console.log('User notifications:', userNotifs.length)
+    console.log('Problematic notifications (admin=true but has userId):', problematicNotifs.length)
+
+    if (problematicNotifs.length > 0) {
+      console.warn('Problematic notifications:', problematicNotifs)
+    }
+
+    console.log('=== END DEBUG ===')
+  }
+
   return {
     notifications,
     loading,
@@ -274,5 +285,6 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllAsRead,
     deleteNotifications, // Add this line
     getTimeElapsed,
+    debugNotificationStructure, // Tambahkan ini untuk mengakses fungsi debug
   }
 })

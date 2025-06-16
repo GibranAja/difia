@@ -222,16 +222,29 @@ const submitForm = async () => {
         },
       })
 
-      // Send notification
+      // Send USER notification
       await notificationStore.createNotification({
         title: 'Pesanan Dibatalkan',
         message: `Pesanan #${props.order.id.slice(-6)} telah dibatalkan oleh Anda. Permintaan refund sedang diproses.`,
         type: 'order',
         userId: authStore.currentUser?.id,
+        forAdmin: false, // EKSPLISIT: untuk user
         orderId: props.order.id,
         icon: 'fas fa-times-circle',
         color: '#ef4444',
         link: `/my-account/orders?search=${props.order.id}`,
+      })
+
+      // TAMBAHKAN: Send ADMIN notification untuk pembatalan
+      await notificationStore.createNotification({
+        title: 'Pesanan Dibatalkan ❌',
+        message: `Pesanan #${props.order.id.slice(-6)} telah dibatalkan oleh pelanggan. Alasan: ${formData.value.cancellationReason}`,
+        type: 'order',
+        userId: null, // EKSPLISIT: null untuk admin
+        forAdmin: true, // EKSPLISIT: untuk admin
+        orderId: props.order.id,
+        icon: 'fas fa-times-circle',
+        color: '#dc2626',
       })
 
       toast.success('Pesanan berhasil dibatalkan dan permintaan refund sedang diproses')
@@ -560,4 +573,3 @@ const navigateToPaymentEdit = () => {
   }
 }
 </style>
-```

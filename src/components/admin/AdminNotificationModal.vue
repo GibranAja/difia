@@ -101,13 +101,32 @@ if (!authStore.isAdmin) {
 
 // Computed properties
 const adminNotifications = computed(() => {
-  // Filter for notifications that have forAdmin=true
+  // PERBAIKAN: Filter dengan sangat ketat
   return notificationStore.notifications
-    .filter(notification => {
-      // Only include notifications explicitly marked for admin
-      return notification.forAdmin === true && 
-             // Exclude any notifications that might have a userId (these are user-specific)
-             (notification.userId === null || notification.userId === undefined)
+    .filter((notification) => {
+      const isForAdmin = notification.forAdmin === true
+      const hasNoUserId = notification.userId === null || notification.userId === undefined
+      const isValidType = ['order', 'system', 'staff', 'backup', 'voucher'].includes(
+        notification.type,
+      )
+
+      // Debug logging (hapus setelah testing)
+      if (!isForAdmin) {
+        console.warn(
+          'Filtered out notification (not for admin):',
+          notification.id,
+          notification.forAdmin,
+        )
+      }
+      if (!hasNoUserId) {
+        console.warn(
+          'Filtered out notification (has userId):',
+          notification.id,
+          notification.userId,
+        )
+      }
+
+      return isForAdmin && hasNoUserId && isValidType
     })
     .slice(0, limit.value)
 })
