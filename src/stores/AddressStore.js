@@ -81,7 +81,13 @@ export const useAddressStore = defineStore('address', () => {
 
       const newAddress = {
         userId: authStore.currentUser.id,
-        ...addressData,
+        name: addressData.name,
+        email: addressData.email,
+        phone: addressData.phone,
+        label: addressData.label,
+        destination: addressData.destination, // Simpan destination object
+        address: addressData.address,
+        isPrimary: addressData.isPrimary,
         createdAt: new Date(),
       }
 

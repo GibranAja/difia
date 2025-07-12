@@ -144,14 +144,17 @@
           <div class="shipping-info-column">
             <span v-if="isLoadingShipping">Menghitung...</span>
             <template v-else>
-              <span>Rp {{ formatPrice(shippingCost) }}</span>
+              <span>Rp {{ komerceAPI.formatPrice(shippingCost) }}</span>
               <div class="shipping-details">
                 <span class="shipping-method">
                   <i class="fas fa-truck"></i>
-                  {{ orderStore.currentOrder?.quantity >= 20 ? 'JNE Cargo' : 'JNE Reguler' }}
+                  {{ shippingService || 'Belum dipilih' }}
                 </span>
                 <span class="shipping-weight" v-if="itemWeight > 0">
                   Berat: {{ totalWeight }}g
+                </span>
+                <span class="shipping-etd" v-if="shippingEtd">
+                  Estimasi: {{ shippingEtd }}
                 </span>
               </div>
             </template>
@@ -324,6 +327,7 @@ import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
 import AddressModalComponent from '@/components/AddressModalComponent.vue'
 import OrderSummaryComponent from '@/components/checkout/OrderSummaryComponent.vue' // Import the new component
+import komerceAPI from '@/api/KomerceAPI'
 
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
@@ -331,6 +335,8 @@ const addressStore = useAddressStore()
 const router = useRouter()
 const voucherStore = useVoucherStore()
 const toast = useToast()
+const shippingService = ref('')
+const shippingEtd = ref('')
 
 const provinces = ref([])
 const cities = ref([])
@@ -422,101 +428,62 @@ const loadAddressCities = async (provinceName) => {
 }
 
 const calculateShipping = async (address) => {
-  if (!address?.city) return
+  if (!address?.destination?.id) return
 
   try {
     isLoadingShipping.value = true
 
-    const cityMatch = address.city.match(/([A-Za-z]+)\s+(.+)/)
-    if (!cityMatch) {
-      console.error('Invalid city format:', address.city)
-      return
+    // Get the item weight from product data (in grams)
+    itemWeight.value = 0
+    if (orderStore.currentOrder?.productId) {
+      try {
+        const productRef = doc(db, 'katalog', orderStore.currentOrder.productId)
+        const productDoc = await getDoc(productRef)
+
+        if (productDoc.exists()) {
+          itemWeight.value = productDoc.data().detail?.berat || 0
+        }
+      } catch (err) {
+        console.error('Error fetching product weight:', err)
+        itemWeight.value = 0
+      }
     }
 
-    const cityType = cityMatch[1]
-    const cityName = cityMatch[2]
+    // Calculate total weight in grams
+    const quantity = orderStore.currentOrder?.quantity || 1
+    const totalWeightInGrams = Math.max(itemWeight.value * quantity, 100) // Minimum 100g
+    totalWeight.value = totalWeightInGrams
 
-    const city = cities.value.find(
-      (c) =>
-        c.type.toLowerCase() === cityType.toLowerCase() &&
-        c.city_name.toLowerCase() === cityName.toLowerCase(),
+    // Get item value
+    const itemValue = orderStore.currentOrder?.price * quantity || 0
+
+    // Get purchase type
+    const purchaseType = orderStore.currentOrder?.customOptions?.purchaseType || 'Satuan'
+
+    // Calculate shipping using Komerce API
+    const shippingResult = await komerceAPI.calculateShipping(
+      address.destination.id,
+      totalWeightInGrams,
+      itemValue,
+      purchaseType
     )
 
-    if (city) {
-      // Determine shipping method based on quantity
-      const quantity = orderStore.currentOrder?.quantity || 0
-      const isPurchaseBulk = quantity >= 20
-
-      // Set courier based on order size
-      const shippingCourier = isPurchaseBulk ? 'jne' : courier.value // Use JNE cargo for bulk orders
-      const shippingService = isPurchaseBulk ? 'cargo' : 'reg'
-
-      // Get the item weight from product data (in grams)
-      itemWeight.value = 0
-      if (orderStore.currentOrder?.productId) {
-        try {
-          const productRef = doc(db, 'katalog', orderStore.currentOrder.productId)
-          const productDoc = await getDoc(productRef)
-
-          if (productDoc.exists()) {
-            // Get weight from product data - default to 0 if not available
-            itemWeight.value = productDoc.data().detail?.berat || 0
-          }
-        } catch (err) {
-          console.error('Error fetching product weight:', err)
-          itemWeight.value = 0
-        }
-      }
-
-      // Calculate total weight in grams - gunakan ref totalWeight yang sudah didefinisikan
-      totalWeight.value = Math.max(itemWeight.value * quantity, 100) // Minimum 100g
-
-      // Calculate shipping
-      const costs = await rajaOngkir.calculateShipping(
-        city.city_id,
-        totalWeight.value,
-        shippingCourier,
-        isPurchaseBulk ? shippingService : null,
-      )
-
-      console.log('Shipping response costs:', costs)
-
-      if (costs && costs.length > 0) {
-        // Jika service adalah cargo atau ada service spesifik yang ditentukan
-        if (isPurchaseBulk && shippingService) {
-          // Temukan service yang sesuai (cargo)
-          const serviceData = costs.find(
-            (service) => service.service.toLowerCase() === shippingService.toLowerCase(),
-          )
-          if (serviceData && serviceData.cost && serviceData.cost.length > 0) {
-            shippingCost.value = serviceData.cost[0].value
-          } else {
-            // Fallback ke service pertama jika tidak menemukan cargo
-            shippingCost.value = costs[0].cost[0].value
-          }
-        } else {
-          // Untuk reguler, gunakan service REG atau service pertama
-          const regService = costs.find((service) => service.service === 'REG')
-
-          // Gunakan REG jika ada, jika tidak gunakan service pertama
-          if (regService && regService.cost && regService.cost.length > 0) {
-            shippingCost.value = regService.cost[0].value
-          } else if (costs[0].cost && costs[0].cost.length > 0) {
-            shippingCost.value = costs[0].cost[0].value
-          } else {
-            shippingCost.value = 0
-          }
-        }
-
-        console.log('Selected shipping cost:', shippingCost.value)
-      } else {
-        console.error('No shipping costs returned', costs)
-        shippingCost.value = 0
-      }
+    if (shippingResult) {
+      shippingCost.value = shippingResult.shipping_cost
+      shippingService.value = shippingResult.service_name
+      shippingEtd.value = shippingResult.etd
+      console.log('Selected shipping:', shippingResult)
+    } else {
+      console.error('No shipping service available')
+      shippingCost.value = 0
+      shippingService.value = ''
+      shippingEtd.value = ''
     }
   } catch (error) {
     console.error('Error calculating shipping:', error)
     shippingCost.value = 0
+    shippingService.value = ''
+    shippingEtd.value = ''
   } finally {
     isLoadingShipping.value = false
   }

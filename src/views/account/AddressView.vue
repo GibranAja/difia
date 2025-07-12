@@ -29,8 +29,9 @@
           <p class="recipient">{{ address.name }}</p>
           <p class="phone">{{ address.phone }}</p>
           <p class="full-address">
-            {{ address.address }}, {{ address.city }}, {{ address.province }}, {{ address.zip }}
+            {{ address.address }}
           </p>
+          <p class="destination-info">{{ address.destination.label }}</p>
         </div>
         <div class="address-actions">
           <button @click="editAddress(address)" class="edit-btn">
@@ -56,26 +57,21 @@
         </div>
       </div>
 
-      <!-- Add Address Card -->
-      <div class="address-card add-card" @click="openAddressModal">
-        <div class="add-card-content">
-          <i class="fas fa-plus-circle"></i>
-          <p>Tambah Alamat Baru</p>
+      <div class="add-address-card" @click="openAddressModal">
+        <div class="add-content">
+          <i class="fas fa-plus add-icon"></i>
+          <span>Tambah Alamat Baru</span>
         </div>
       </div>
     </div>
 
-    <!-- Floating action button (for mobile) -->
-    <button @click="openAddressModal" class="floating-add-btn">
-      <i class="fas fa-plus"></i>
-    </button>
-
     <!-- Address Modal -->
     <div v-if="showAddressModal" class="modal-overlay" @click="closeAddressModal">
       <div class="modal-content" @click.stop>
-        <h2 class="modal-title">{{ isEditingAddress ? 'Edit Alamat' : 'Tambah Alamat Baru' }}</h2>
-
-        <form @submit.prevent="saveAddress" class="address-form">
+        <h2 class="modal-title">
+          {{ isEditingAddress ? 'Edit Alamat' : 'Tambah Alamat' }}
+        </h2>
+        <form @submit.prevent="saveAddress">
           <!-- Name -->
           <div class="form-group">
             <label for="address-name">Nama Penerima</label>
@@ -131,55 +127,9 @@
             </div>
           </div>
 
-          <!-- Province -->
+          <!-- Destination Search - Ganti bagian provinsi, kota, kode pos -->
           <div class="form-group">
-            <label for="address-province">Provinsi</label>
-            <select
-              id="address-province"
-              v-model="addressForm.province"
-              @change="loadCities(addressForm.province)"
-              :disabled="isLoadingProvinces"
-              required
-            >
-              <option value="">
-                {{ isLoadingProvinces ? 'Loading provinsi...' : 'Pilih Provinsi' }}
-              </option>
-              <option
-                v-for="province in provinces"
-                :key="province.province_id"
-                :value="province.province"
-              >
-                {{ province.province }}
-              </option>
-            </select>
-          </div>
-
-          <!-- City -->
-          <div class="form-group">
-            <label for="address-city">Kota/Kabupaten</label>
-            <select
-              id="address-city"
-              v-model="addressForm.city"
-              :disabled="!addressForm.province || isLoadingCities"
-              required
-            >
-              <option value="">
-                {{
-                  isLoadingCities
-                    ? 'Loading kota...'
-                    : !addressForm.province
-                      ? 'Pilih provinsi terlebih dahulu'
-                      : 'Pilih Kota'
-                }}
-              </option>
-              <option
-                v-for="city in cities"
-                :key="city.city_id"
-                :value="`${city.type} ${city.city_name}`"
-              >
-                {{ city.type }} {{ city.city_name }}
-              </option>
-            </select>
+            <DestinationSearch v-model="addressForm.destination" />
           </div>
 
           <!-- Full Address -->
@@ -192,21 +142,6 @@
               required
               placeholder="Alamat Lengkap (Jalan, RT/RW, Kelurahan, Kecamatan)"
             ></textarea>
-          </div>
-
-          <!-- ZIP Code -->
-          <div class="form-group">
-            <label for="address-zip">Kode Pos</label>
-            <input
-              type="text"
-              id="address-zip"
-              v-model="addressForm.zip"
-              required
-              placeholder="Kode Pos"
-              maxlength="5"
-              inputmode="numeric"
-              @input="validateZipCode"
-            />
           </div>
 
           <!-- Primary Address Checkbox -->
@@ -255,8 +190,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useAddressStore } from '@/stores/AddressStore'
 import { useAuthStore } from '@/stores/AuthStore'
 import { useToast } from 'vue-toastification'
-import rajaOngkir from '@/api/RajaOngkir'
 import LoadComponent from '@/components/LoadComponent.vue'
+import DestinationSearch from '@/components/DestinationSearch.vue'
 
 const addressStore = useAddressStore()
 const authStore = useAuthStore()
@@ -268,10 +203,6 @@ const showAddressModal = ref(false)
 const isEditingAddress = ref(false)
 const isSavingAddress = ref(false)
 const isDeleting = ref(false)
-const provinces = ref([])
-const cities = ref([])
-const isLoadingProvinces = ref(false)
-const isLoadingCities = ref(false)
 const addressToDelete = ref(null)
 const showConfirmDeleteModal = ref(false)
 
@@ -279,17 +210,15 @@ const showConfirmDeleteModal = ref(false)
 const addresses = computed(() => addressStore.addresses)
 const hasAddresses = computed(() => addresses.value && addresses.value.length > 0)
 
-// Form data
+// Form data - Update structure untuk destination
 const addressForm = ref({
   id: '',
   name: '',
   email: '',
   phone: '',
   label: 'home',
-  province: '',
-  city: '',
+  destination: {}, // Ganti dari province, city, zip
   address: '',
-  zip: '',
   isPrimary: false,
 })
 
@@ -322,7 +251,6 @@ onMounted(async () => {
   try {
     // Fetch user addresses
     await addressStore.fetchUserAddresses()
-    await loadProvinces()
 
     // If we have addresses, hide loading immediately
     if (addressStore.addresses.length > 0) {
@@ -352,10 +280,8 @@ const openAddressModal = () => {
     email: authStore.currentUser?.email || '',
     phone: authStore.currentUser?.phone || '',
     label: 'home',
-    province: '',
-    city: '',
+    destination: {}, // Reset destination
     address: '',
-    zip: '',
     isPrimary: !hasAddresses.value, // Make primary if first address
   }
   showAddressModal.value = true
@@ -369,11 +295,6 @@ const editAddress = (address) => {
   isEditingAddress.value = true
   addressForm.value = { ...address }
   showAddressModal.value = true
-
-  // Load cities for the selected province
-  if (address.province) {
-    loadCities(address.province)
-  }
 }
 
 const saveAddress = async () => {
@@ -388,9 +309,9 @@ const saveAddress = async () => {
       return
     }
 
-    // Validate zip code
-    if (!/^\d{5}$/.test(addressData.zip)) {
-      toast.error('Kode pos harus 5 digit')
+    // Validate destination
+    if (!addressData.destination || !addressData.destination.id) {
+      toast.error('Pilih alamat tujuan')
       return
     }
 
@@ -416,52 +337,25 @@ const saveAddress = async () => {
   }
 }
 
-// Load provinces and cities
-const loadProvinces = async () => {
+// Set primary address
+const setPrimaryAddress = async (addressId) => {
   try {
-    isLoadingProvinces.value = true
-    provinces.value = await rajaOngkir.getProvinces()
-  } catch (error) {
-    console.error('Error loading provinces:', error)
-    toast.error('Gagal memuat daftar provinsi')
-  } finally {
-    isLoadingProvinces.value = false
-  }
-}
-
-const loadCities = async (provinceName) => {
-  if (!provinceName) return
-
-  try {
-    isLoadingCities.value = true
-    const province = provinces.value.find((p) => p.province === provinceName)
-
-    if (province) {
-      cities.value = await rajaOngkir.getCities(province.province_id)
+    const address = addresses.value.find((addr) => addr.id === addressId)
+    if (address) {
+      const result = await addressStore.updateAddress(addressId, {
+        ...address,
+        isPrimary: true,
+      })
+      
+      if (result.success) {
+        toast.success('Alamat utama berhasil diubah')
+      }
     }
   } catch (error) {
-    console.error('Error loading cities:', error)
-    toast.error('Gagal memuat data kota')
-  } finally {
-    isLoadingCities.value = false
+    console.error('Error setting primary address:', error)
+    toast.error('Gagal mengatur alamat utama')
   }
 }
-
-// Set primary address
-// const setPrimaryAddress = async (addressId) => {
-//   try {
-//     const address = addresses.value.find((addr) => addr.id === addressId)
-//     if (address) {
-//       const result = await addressStore.updateAddress(addressId, {
-//         ...address,
-//         isPrimary: true,
-//       })
-//     }
-//   } catch (error) {
-//     console.error('Error setting primary address:', error)
-//     toast.error('Gagal mengatur alamat utama')
-//   }
-// }
 
 // Delete address functions
 const confirmDeleteAddress = (address) => {
@@ -492,11 +386,6 @@ const deleteAddress = async () => {
 const validateAddressPhone = (event) => {
   // Allow only digits
   addressForm.value.phone = event.target.value.replace(/\D/g, '')
-}
-
-const validateZipCode = (event) => {
-  // Allow only digits
-  addressForm.value.zip = event.target.value.replace(/\D/g, '')
 }
 </script>
 
@@ -653,6 +542,13 @@ const validateZipCode = (event) => {
   margin-bottom: 1.25rem;
 }
 
+.destination-info {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 4px;
+  font-style: italic;
+}
+
 .address-actions {
   display: flex;
   gap: 0.5rem;
@@ -698,8 +594,8 @@ const validateZipCode = (event) => {
   filter: brightness(0.95);
 }
 
-/* Add card styling */
-.add-card {
+/* Add card styling - Update dengan styling yang konsisten */
+.add-address-card {
   border: 2px dashed #ddd;
   display: flex;
   align-items: center;
@@ -707,54 +603,60 @@ const validateZipCode = (event) => {
   cursor: pointer;
   background-color: #f9f9f9;
   min-height: 180px;
+  border-radius: 12px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
-.add-card:hover {
+.add-address-card:hover {
   border-color: #e8ba38;
   background-color: #fffbf0;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
-.add-card-content {
+.add-content {
   text-align: center;
   color: #888;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.add-card-content i {
+.add-content i {
   font-size: 2.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
   color: #ccc;
+  transition: all 0.3s;
 }
 
-.add-card:hover .add-card-content i {
+.add-content span {
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.add-address-card:hover .add-content {
   color: #e8ba38;
 }
 
-/* Floating add button for mobile */
-.floating-add-btn {
-  position: fixed;
-  bottom: 5rem;
-  right: 1rem;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background-color: #e8ba38;
-  color: white;
-  border: none;
-  box-shadow: 0 4px 12px rgba(232, 186, 56, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s;
-  z-index: 100;
-  display: none;
+.add-address-card:hover .add-content i {
+  color: #e8ba38;
+  transform: scale(1.1);
 }
 
-.floating-add-btn:hover {
-  background-color: #d5a832;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(232, 186, 56, 0.5);
+.add-address-card:hover .add-content span {
+  color: #e8ba38;
+  font-weight: 600;
+}
+
+/* Add active state for better feedback */
+.add-address-card:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Modal styling */
@@ -800,6 +702,12 @@ const validateZipCode = (event) => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 1.25rem; /* Tambahkan ini untuk jarak antar form-group */
+}
+
+/* Khusus untuk form-group terakhir, hilangkan margin-bottom */
+.form-group:last-child {
+  margin-bottom: 0;
 }
 
 .form-group label {

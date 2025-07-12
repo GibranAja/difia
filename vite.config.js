@@ -23,11 +23,17 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        '/api/rajaongkir': {
-          target: 'https://api.rajaongkir.com/starter',
+        '/api/komerce': {
+          target: 'https://api-sandbox.collaborator.komerce.id',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/rajaongkir/, ''),
-        },
+          rewrite: (path) => path.replace(/^\/api\/komerce/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              // Add headers if needed
+              proxyReq.setHeader('x-api-key', 'mwq9IElVe3c4f49264529b58feSYcddl')
+            })
+          }
+        }
       },
     },
     build: {

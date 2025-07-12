@@ -1,7 +1,7 @@
 <template>
   <div class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
-      <h2 class="modal-title">{{ isEditing ? 'Edit Alamat' : 'Tambah Alamat Baru' }}</h2>
+      <h2 class="modal-title">{{ isEditing ? 'Edit Alamat' : 'Tambah Alamat' }}</h2>
 
       <form @submit.prevent="handleSave" class="address-form">
         <!-- Name -->
@@ -59,55 +59,9 @@
           </div>
         </div>
 
-        <!-- Province -->
+        <!-- Destination Search - Ganti bagian provinsi, kota, kode pos -->
         <div class="form-group">
-          <label for="address-province">Provinsi</label>
-          <select
-            id="address-province"
-            v-model="addressForm.province"
-            @change="loadCities(addressForm.province)"
-            :disabled="isLoadingProvinces"
-            required
-          >
-            <option value="">
-              {{ isLoadingProvinces ? 'Loading provinsi...' : 'Pilih Provinsi' }}
-            </option>
-            <option
-              v-for="province in provinces"
-              :key="province.province_id"
-              :value="province.province"
-            >
-              {{ province.province }}
-            </option>
-          </select>
-        </div>
-
-        <!-- City -->
-        <div class="form-group">
-          <label for="address-city">Kota/Kabupaten</label>
-          <select
-            id="address-city"
-            v-model="addressForm.city"
-            :disabled="!addressForm.province || isLoadingCities"
-            required
-          >
-            <option value="">
-              {{
-                isLoadingCities
-                  ? 'Loading kota...'
-                  : !addressForm.province
-                    ? 'Pilih provinsi terlebih dahulu'
-                    : 'Pilih Kota'
-              }}
-            </option>
-            <option
-              v-for="city in cities"
-              :key="city.city_id"
-              :value="`${city.type} ${city.city_name}`"
-            >
-              {{ city.type }} {{ city.city_name }}
-            </option>
-          </select>
+          <DestinationSearch v-model="addressForm.destination" />
         </div>
 
         <!-- Full Address -->
@@ -120,21 +74,6 @@
             required
             placeholder="Alamat Lengkap (Jalan, RT/RW, Kelurahan, Kecamatan)"
           ></textarea>
-        </div>
-
-        <!-- ZIP Code -->
-        <div class="form-group">
-          <label for="address-zip">Kode Pos</label>
-          <input
-            type="text"
-            id="address-zip"
-            v-model="addressForm.zip"
-            required
-            placeholder="Kode Pos"
-            maxlength="5"
-            inputmode="numeric"
-            @input="validateZipCode"
-          />
         </div>
 
         <!-- Primary Address Checkbox -->
@@ -158,8 +97,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import rajaOngkir from '@/api/RajaOngkir'
+import { ref, watch } from 'vue'
+import DestinationSearch from '@/components/DestinationSearch.vue'
 
 const props = defineProps({
   isEditing: {
@@ -178,17 +117,15 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save', 'error'])
 
-// Form data
+// Form data - Update structure untuk destination
 const addressForm = ref({
   id: '',
   name: '',
   email: '',
   phone: '',
   label: 'home',
-  province: '',
-  city: '',
+  destination: {}, // Ganti dari province, city, zip
   address: '',
-  zip: '',
   isPrimary: props.isFirstAddress,
 })
 
@@ -202,10 +139,6 @@ const addressLabelOptions = [
 ]
 
 // States
-const provinces = ref([])
-const cities = ref([])
-const isLoadingProvinces = ref(false)
-const isLoadingCities = ref(false)
 const isSaving = ref(false)
 
 // Watch for changes to initialData
@@ -215,66 +148,31 @@ watch(() => props.initialData, (newValue) => {
   }
 }, { immediate: true, deep: true })
 
-// Load provinces
-const loadProvinces = async () => {
-  try {
-    isLoadingProvinces.value = true
-    provinces.value = await rajaOngkir.getProvinces()
-  } catch (error) {
-    console.error('Error loading provinces:', error)
-    emit('error', 'Gagal memuat daftar provinsi')
-  } finally {
-    isLoadingProvinces.value = false
-  }
-}
-
-// Load cities based on selected province
-const loadCities = async (provinceName) => {
-  if (!provinceName) return
-
-  try {
-    isLoadingCities.value = true
-    const province = provinces.value.find((p) => p.province === provinceName)
-
-    if (province) {
-      cities.value = await rajaOngkir.getCities(province.province_id)
-    }
-  } catch (error) {
-    console.error('Error loading cities:', error)
-    emit('error', 'Gagal memuat data kota')
-  } finally {
-    isLoadingCities.value = false
-  }
-}
-
 // Form validation
 const validateAddressPhone = (event) => {
   // Allow only digits
   addressForm.value.phone = event.target.value.replace(/\D/g, '')
 }
 
-const validateZipCode = (event) => {
-  // Allow only digits
-  addressForm.value.zip = event.target.value.replace(/\D/g, '')
-}
-
 const handleSave = async () => {
   try {
     isSaving.value = true
 
+    const addressData = { ...addressForm.value }
+
     // Validate phone
-    if (!/^(62|0)\d{9,12}$/.test(addressForm.value.phone)) {
+    if (!/^(62|0)\d{9,12}$/.test(addressData.phone)) {
       emit('error', 'Format nomor telepon tidak valid')
       return
     }
 
-    // Validate zip code
-    if (!/^\d{5}$/.test(addressForm.value.zip)) {
-      emit('error', 'Kode pos harus 5 digit')
+    // Validate destination
+    if (!addressData.destination || !addressData.destination.id) {
+      emit('error', 'Pilih alamat tujuan')
       return
     }
 
-    emit('save', { ...addressForm.value })
+    emit('save', addressData)
   } catch (error) {
     console.error('Error saving address:', error)
     emit('error', 'Gagal menyimpan alamat')
@@ -286,14 +184,6 @@ const handleSave = async () => {
 const closeModal = () => {
   emit('close')
 }
-
-onMounted(async () => {
-  await loadProvinces()
-  
-  if (props.isEditing && addressForm.value.province) {
-    await loadCities(addressForm.value.province)
-  }
-})
 </script>
 
 <style scoped>
@@ -317,7 +207,6 @@ onMounted(async () => {
   background-color: white;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
@@ -342,6 +231,12 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 1.25rem; /* Tambahkan ini untuk jarak antar form-group */
+}
+
+/* Khusus untuk form-group terakhir, hilangkan margin-bottom */
+.form-group:last-child {
+  margin-bottom: 0;
 }
 
 .form-group label {
@@ -401,9 +296,10 @@ onMounted(async () => {
 .custom-checkbox {
   display: flex;
   align-items: center;
-  user-select: none;
+  position: relative;
+  padding-left: 30px;
   cursor: pointer;
-  font-weight: normal;
+  user-select: none;
 }
 
 .custom-checkbox.disabled {
@@ -420,15 +316,17 @@ onMounted(async () => {
 }
 
 .checkmark {
+  position: absolute;
+  left: 0;
   height: 20px;
   width: 20px;
-  background-color: #f0f0f0;
+  background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 4px;
-  display: inline-block;
-  position: relative;
-  cursor: pointer;
-  margin-right: 8px;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+  border-color: #ccc;
 }
 
 .custom-checkbox input:checked ~ .checkmark {
@@ -437,20 +335,23 @@ onMounted(async () => {
 }
 
 .checkmark:after {
-  content: "";
+  content: '';
   position: absolute;
   display: none;
-  left: 6px;
-  top: 2px;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.custom-checkbox .checkmark:after {
+  left: 7px;
+  top: 3px;
   width: 5px;
   height: 10px;
   border: solid white;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
-}
-
-.custom-checkbox input:checked ~ .checkmark:after {
-  display: block;
 }
 
 .checkbox-text {
