@@ -43,14 +43,23 @@
                   class="full-address"
                   v-html="highlightMatch(order.shippingDetails.address, searchQuery)"
                 ></div>
-                <div class="location">
-                  <span v-html="highlightMatch(order.shippingDetails.city, searchQuery)"></span>,
-                  <span v-html="highlightMatch(order.shippingDetails.province, searchQuery)"></span>
+                <!-- UPDATE: Gunakan destination.label instead of city, province, zip -->
+                <div class="destination-info" v-if="order.shippingDetails.destination?.label">
+                  <span v-html="highlightMatch(order.shippingDetails.destination.label, searchQuery)"></span>
                 </div>
-                <div
-                  class="postal-code"
-                  v-html="highlightMatch(order.shippingDetails.zip, searchQuery)"
-                ></div>
+                <!-- FALLBACK: Tetap support struktur lama untuk data yang belum migrate -->
+                <div v-else-if="order.shippingDetails.city || order.shippingDetails.province" class="location-fallback">
+                  <div class="location">
+                    <span v-if="order.shippingDetails.city" v-html="highlightMatch(order.shippingDetails.city, searchQuery)"></span>
+                    <span v-if="order.shippingDetails.city && order.shippingDetails.province">, </span>
+                    <span v-if="order.shippingDetails.province" v-html="highlightMatch(order.shippingDetails.province, searchQuery)"></span>
+                  </div>
+                  <div v-if="order.shippingDetails.zip" class="postal-code" v-html="highlightMatch(order.shippingDetails.zip, searchQuery)"></div>
+                </div>
+                <!-- CASE: Tidak ada data alamat sama sekali -->
+                <div v-else class="no-address">
+                  <span class="text-muted">Alamat tidak tersedia</span>
+                </div>
               </div>
             </td>
             <td>
@@ -291,6 +300,22 @@ const openPdfInNewTab = (base64Data) => {
   max-width: 250px;
 }
 
+/* UPDATE: Style untuk destination info (struktur baru) */
+.destination-info {
+  color: #666;
+  font-size: 0.9em;
+  line-height: 1.3;
+  padding-left: 0.2rem;
+  border-left: 2px solid rgba(232, 186, 56, 0.3);
+}
+
+/* Style untuk fallback (struktur lama) */
+.location-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .location {
   color: #666;
   font-size: 0.9em;
@@ -299,6 +324,17 @@ const openPdfInNewTab = (base64Data) => {
 .postal-code {
   color: #666;
   font-size: 0.85em;
+}
+
+/* Style untuk case tidak ada alamat */
+.no-address {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85em;
+}
+
+.text-muted {
+  color: #6c757d;
 }
 
 /* Action button styles */

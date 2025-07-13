@@ -48,8 +48,9 @@
               <p class="recipient">{{ address.name }}</p>
               <p class="phone">{{ address.phone }}</p>
               <p class="full-address">
-                {{ address.address }}, {{ address.city }}, {{ address.province }}, {{ address.zip }}
+                {{ address.address }}
               </p>
+              <p class="destination-info">{{ address.destination.label }}</p>
             </div>
             <div class="address-actions">
               <button class="edit-address-btn" @click.stop="editAddress(address)">
@@ -239,9 +240,9 @@
               <p class="recipient">{{ selectedAddress.name }}</p>
               <p class="phone">{{ selectedAddress.phone }}</p>
               <p class="full-address">
-                {{ selectedAddress.address }}, {{ selectedAddress.city }},
-                {{ selectedAddress.province }}, {{ selectedAddress.zip }}
+                {{ selectedAddress.address }}
               </p>
+              <p class="destination-info">{{ selectedAddress.destination.label }}</p>
             </div>
           </div>
 
@@ -322,11 +323,11 @@ import { useAuthStore } from '@/stores/AuthStore'
 import { useOrderStore } from '@/stores/OrderStore'
 import { useAddressStore } from '@/stores/AddressStore'
 import { useRouter } from 'vue-router'
-import rajaOngkir from '@/api/RajaOngkir'
+// DIHAPUS: import rajaOngkir from '@/api/RajaOngkir'
 import { useVoucherStore } from '@/stores/VoucherStore'
 import { useToast } from 'vue-toastification'
 import AddressModalComponent from '@/components/AddressModalComponent.vue'
-import OrderSummaryComponent from '@/components/checkout/OrderSummaryComponent.vue' // Import the new component
+import OrderSummaryComponent from '@/components/checkout/OrderSummaryComponent.vue'
 import komerceAPI from '@/api/KomerceAPI'
 
 const authStore = useAuthStore()
@@ -338,13 +339,13 @@ const toast = useToast()
 const shippingService = ref('')
 const shippingEtd = ref('')
 
-const provinces = ref([])
-const cities = ref([])
+// DIHAPUS: const provinces = ref([])
+// DIHAPUS: const cities = ref([])
 const shippingCost = ref(0)
-const courier = ref('jne')
+// DIHAPUS: const courier = ref('jne')
 const isLoadingShipping = ref(false)
-const isLoadingProvinces = ref(false)
-const isLoadingCities = ref(false)
+// DIHAPUS: const isLoadingProvinces = ref(false)
+// DIHAPUS: const isLoadingCities = ref(false)
 const isProcessing = ref(false)
 const acceptedTerms = ref(false)
 
@@ -363,10 +364,8 @@ const addressForm = ref({
   email: '',
   phone: '',
   label: 'home',
-  province: '',
-  city: '',
+  destination: {}, // DIUBAH: dari province/city ke destination object
   address: '',
-  zip: '',
   isPrimary: false,
 })
 
@@ -393,42 +392,15 @@ const getLabelIcon = (label) => {
 const itemWeight = ref(0)
 const totalWeight = ref(0)
 
-const loadProvinces = async () => {
-  try {
-    isLoadingProvinces.value = true
-    provinces.value = await rajaOngkir.getProvinces()
-  } catch (error) {
-    console.error('Error loading provinces:', error)
-  } finally {
-    isLoadingProvinces.value = false
-  }
-}
-
-const loadCities = async (provinceName) => {
-  if (!provinceName) return
-
-  try {
-    isLoadingCities.value = true
-    const province = provinces.value.find((p) => p.province === provinceName)
-
-    if (province) {
-      cities.value = await rajaOngkir.getCities(province.province_id)
-    }
-  } catch (error) {
-    console.error('Error loading cities:', error)
-    toast.error('Gagal memuat data kota')
-  } finally {
-    isLoadingCities.value = false
-  }
-}
-
-const loadAddressCities = async (provinceName) => {
-  await loadCities(provinceName)
-  addressForm.value.city = ''
-}
+// DIHAPUS: loadProvinces function
+// DIHAPUS: loadCities function
+// DIHAPUS: loadAddressCities function
 
 const calculateShipping = async (address) => {
-  if (!address?.destination?.id) return
+  if (!address?.destination?.id) {
+    console.error('Address destination ID is missing')
+    return
+  }
 
   try {
     isLoadingShipping.value = true
@@ -565,9 +537,7 @@ const selectAddress = async (address) => {
   isLoadingShipping.value = true
 
   try {
-    if (address.province) {
-      await loadCities(address.province)
-    }
+    // DIHAPUS: loadCities call
     await calculateShipping(address)
   } catch (error) {
     console.error('Error selecting address:', error)
@@ -590,10 +560,8 @@ const openAddressModal = () => {
     email: authStore.currentUser?.email || '',
     phone: authStore.currentUser?.phone || '',
     label: 'home',
-    province: '',
-    city: '',
+    destination: {}, // DIUBAH: dari province/city ke destination object
     address: '',
-    zip: '',
     isPrimary: isFirstAddress.value,
   }
   showAddressModal.value = true
@@ -853,6 +821,12 @@ const processOrderAfterConfirmation = async () => {
       return
     }
 
+    // DITAMBAHKAN: Validasi struktur destination
+    if (!address.destination || !address.destination.id) {
+      toast.error('Format alamat tidak sesuai. Mohon perbarui alamat Anda')
+      return
+    }
+
     // Array untuk menyimpan ID pesanan yang berhasil dibuat
     const successfulOrders = []
 
@@ -865,9 +839,7 @@ const processOrderAfterConfirmation = async () => {
         email: address.email,
         phone: address.phone,
         address: address.address,
-        province: address.province,
-        city: address.city,
-        zip: address.zip,
+        destination: address.destination, // DIUBAH: dari province/city ke destination object
         shippingCost: shippingCost.value,
         finalTotal: item.price * item.quantity + shippingCost.value,
         voucher: currentItemIndex.value === 0 ? appliedVoucher.value : null,
@@ -957,35 +929,28 @@ const toggleMobileSummary = () => {
   isMobileSummaryExpanded.value = !isMobileSummaryExpanded.value
 }
 
-// Add this watcher after the existing computed and ref declarations
+// DIUBAH: watcher untuk menghilangkan referensi province dan city
 watch(
   () => {
     const selectedAddr = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
     return selectedAddr
       ? {
           id: selectedAddr.id,
-          province: selectedAddr.province,
-          city: selectedAddr.city,
+          destination: selectedAddr.destination,
         }
       : null
   },
   async (newAddress, oldAddress) => {
-    // Only recalculate if the selected address province or city changed
+    // Only recalculate if the selected address destination changed
     if (
       newAddress &&
       oldAddress &&
-      (newAddress.province !== oldAddress.province || newAddress.city !== oldAddress.city)
+      newAddress.destination?.id !== oldAddress.destination?.id
     ) {
       const fullAddress = addressStore.addresses.find((addr) => addr.id === selectedAddressId.value)
       if (fullAddress) {
-        // Load cities if province changed
-        if (newAddress.province !== oldAddress.province) {
-          await loadCities(newAddress.province)
-        }
-
         // Recalculate shipping
         await calculateShipping(fullAddress)
-
         toast.info('Ongkos kirim telah diperbarui')
       }
     }
@@ -1024,16 +989,13 @@ onMounted(async () => {
 
     await orderStore.setCurrentOrder(checkoutItems.value[0])
 
-    await loadProvinces()
+    // DIHAPUS: await loadProvinces()
     await addressStore.fetchUserAddresses()
 
     if (addressStore.primaryAddress) {
       selectedAddressId.value = addressStore.primaryAddress.id
 
-      if (addressStore.primaryAddress.province) {
-        await loadCities(addressStore.primaryAddress.province)
-      }
-
+      // DIHAPUS: loadCities call
       await calculateShipping(addressStore.primaryAddress)
     } else if (addressStore.addresses.length === 0) {
       openAddressModal()
@@ -1328,6 +1290,14 @@ onMounted(async () => {
   font-size: 0.9rem;
   line-height: 1.6;
   color: #555;
+  padding-left: 0.2rem;
+  border-left: 2px solid rgba(232, 186, 56, 0.3);
+}
+
+.destination-info {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
   padding-left: 0.2rem;
   border-left: 2px solid rgba(232, 186, 56, 0.3);
 }

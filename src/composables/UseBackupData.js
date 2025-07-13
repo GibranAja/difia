@@ -81,7 +81,7 @@ export function useBackupData() {
         backupData.vouchers = voucherStore.voucherItems
       }
 
-      // Add new customer backup functionality
+      // UPDATE: Enhanced customer backup functionality with destination support
       if (selectedDataTypes.includes('customers')) {
         try {
           // Get orders if not already loaded
@@ -100,13 +100,34 @@ export function useBackupData() {
               const key = shipping.email.toLowerCase()
 
               if (!customerMap.has(key)) {
+                // UPDATE: Create full address with priority to destination
+                let fullAddress = ''
+                
+                if (shipping.destination?.label) {
+                  // NEW: Use destination structure (Komerce API)
+                  fullAddress = [
+                    shipping.address || '',
+                    shipping.destination.label
+                  ].filter((part) => part).join(', ')
+                } else {
+                  // FALLBACK: Use old structure (RajaOngkir) for backward compatibility
+                  fullAddress = [
+                    shipping.address || '',
+                    shipping.city || '',
+                    shipping.province || '',
+                    shipping.zip || '',
+                  ].filter((part) => part).join(', ')
+                }
+
                 customerMap.set(key, {
                   name: shipping.name || '',
                   email: shipping.email || '',
                   phone: shipping.phone || '',
-                  address: shipping.address || '',
-                  city: shipping.city || '',
-                  province: shipping.province || '',
+                  // UPDATE: Use computed full address instead of separate fields
+                  address: fullAddress,
+                  // LEGACY: Keep old fields for backward compatibility (will be used by existing Excel format)
+                  city: shipping.destination?.label || shipping.city || '',
+                  province: shipping.destination?.label || shipping.province || '',
                   zip: shipping.zip || '',
                 })
               }

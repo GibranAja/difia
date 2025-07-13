@@ -3,7 +3,7 @@
     <h2 class="section-title">Ringkasan Order ({{ totalItems }} item)</h2>
 
     <!-- First one or two items always visible -->
-    <div v-for="(item, index) in visibleItems" :key="item.id" class="order-card">
+    <div v-for="(item) in visibleItems" :key="item.id" class="order-card">
       <img :src="item.image" :alt="item.name" class="order-image" />
       <div class="order-info">
         <div class="order-header">

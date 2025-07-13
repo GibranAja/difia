@@ -125,17 +125,25 @@ export const useAddressStore = defineStore('address', () => {
         await updatePrimaryStatus(id)
       }
 
-      await updateDoc(addressRef, {
-        ...addressData,
+      const updateData = {
+        name: addressData.name,
+        email: addressData.email,
+        phone: addressData.phone,
+        label: addressData.label,
+        destination: addressData.destination, // GUNAKAN: destination object
+        address: addressData.address,
+        isPrimary: addressData.isPrimary,
         updatedAt: new Date(),
-      })
+      }
+
+      await updateDoc(addressRef, updateData)
 
       // Update local state
       const index = addresses.value.findIndex((addr) => addr.id === id)
       if (index !== -1) {
         addresses.value[index] = {
           ...addresses.value[index],
-          ...addressData,
+          ...updateData,
         }
       }
 
@@ -143,7 +151,6 @@ export const useAddressStore = defineStore('address', () => {
       if (addressData.isPrimary) {
         primaryAddress.value = addresses.value[index]
       } else if (primaryAddress.value?.id === id) {
-        // This was the primary but no longer is
         primaryAddress.value = addresses.value.find((addr) => addr.isPrimary) || null
       }
 

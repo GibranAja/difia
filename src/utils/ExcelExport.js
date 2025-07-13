@@ -37,15 +37,24 @@ export const exportToExcel = async (data, filename) => {
 
     if (data.orders && Array.isArray(data.orders) && data.orders.length > 0) {
       const ordersForExcel = data.orders.map((order) => {
-        // Ensure all addresses are strings to avoid undefined concatenation issues
-        const address = [
-          order.shippingDetails?.address || '',
-          order.shippingDetails?.city || '',
-          order.shippingDetails?.province || '',
-          order.shippingDetails?.zip || '',
-        ]
-          .filter((part) => part)
-          .join(', ')
+        // UPDATE: Prioritize destination over old address structure
+        let address = ''
+        
+        if (order.shippingDetails?.destination?.label) {
+          // NEW: Use destination structure (Komerce API)
+          address = [
+            order.shippingDetails?.address || '',
+            order.shippingDetails.destination.label
+          ].filter((part) => part).join(', ')
+        } else {
+          // FALLBACK: Use old structure (RajaOngkir) for backward compatibility
+          address = [
+            order.shippingDetails?.address || '',
+            order.shippingDetails?.city || '',
+            order.shippingDetails?.province || '',
+            order.shippingDetails?.zip || '',
+          ].filter((part) => part).join(', ')
+        }
 
         // Handle accessories properly - convert to string safely
         let aksesorisTxt = '-'
@@ -133,21 +142,15 @@ export const exportToExcel = async (data, filename) => {
 
     if (data.customers && Array.isArray(data.customers) && data.customers.length > 0) {
       const customersForExcel = data.customers.map((customer) => {
-        // Format full address
-        const fullAddress = [
-          customer.address || '',
-          customer.city || '',
-          customer.province || '',
-          customer.zip || '',
-        ]
-          .filter((part) => part)
-          .join(', ')
+        // UPDATE: Use the pre-computed address from UseBackupData
+        // This now contains either destination.label or legacy city/province/zip format
+        const fullAddress = customer.address || '-'
 
         return {
           Nama: String(customer.name || '-'),
           Email: String(customer.email || '-'),
           'No. Telepon': String(customer.phone || '-'),
-          'Alamat Lengkap': fullAddress || '-',
+          'Alamat Lengkap': fullAddress,
         }
       })
 
@@ -302,19 +305,25 @@ function addWorksheetWithStyles(workbook, sheetName, data) {
 function formatDate(dateValue) {
   if (!dateValue) return '-'
 
-  try {
-    const date = new Date(dateValue)
-    if (isNaN(date.getTime())) return '-'
-
-    return date.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  } catch (e) {
-    console.error('Error formatting date:', e)
-    return '-'
+  let date
+  if (dateValue.toDate) {
+    // Firestore timestamp
+    date = dateValue.toDate()
+  } else if (dateValue instanceof Date) {
+    date = dateValue
+  } else {
+    try {
+      date = new Date(dateValue)
+    } catch {
+      return '-'
+    }
   }
+
+  return date.toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 }
 
 // Helper function to save Excel file to the client

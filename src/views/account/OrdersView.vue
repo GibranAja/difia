@@ -124,9 +124,7 @@
                   <p><strong>Email:</strong> {{ order.shippingDetails?.email }}</p>
                   <p><strong>Telepon:</strong> {{ order.shippingDetails?.phone }}</p>
                   <p><strong>Alamat:</strong> {{ order.shippingDetails?.address }}</p>
-                  <p><strong>Kota:</strong> {{ order.shippingDetails?.city }}</p>
-                  <p><strong>Provinsi:</strong> {{ order.shippingDetails?.province }}</p>
-                  <p><strong>Kode Pos:</strong> {{ order.shippingDetails?.zip }}</p>
+                  <p><strong>Tujuan:</strong> {{ order.shippingDetails?.destination?.label }}</p>
                 </div>
               </div>
 

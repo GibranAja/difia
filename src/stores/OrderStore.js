@@ -81,17 +81,15 @@ export const useOrderStore = defineStore('order', () => {
         price: currentOrder.value.price,
         totalAmount: orderDetails.finalTotal,
         customOptions: {
-          ...currentOrder.value.customOptions, // Spread operator untuk menyertakan semua customOptions
-          note: currentOrder.value.customOptions.note || '', // Pastikan note ada
+          ...currentOrder.value.customOptions,
+          note: currentOrder.value.customOptions.note || '',
         },
         shippingDetails: {
           name: orderDetails.name,
           email: orderDetails.email,
           phone: orderDetails.phone,
           address: orderDetails.address,
-          province: orderDetails.province,
-          city: orderDetails.city,
-          zip: orderDetails.zip,
+          destination: orderDetails.destination, // GUNAKAN: destination object
         },
         shippingCost: orderDetails.shippingCost,
         paymentProof: paymentProof.value,

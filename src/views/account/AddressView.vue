@@ -543,10 +543,11 @@ const validateAddressPhone = (event) => {
 }
 
 .destination-info {
+  font-size: 0.9rem;
   color: #666;
-  font-size: 0.9em;
-  margin-top: 4px;
-  font-style: italic;
+  margin-top: 0.5rem;
+  padding-left: 0.2rem;
+  border-left: 2px solid rgba(232, 186, 56, 0.3);
 }
 
 .address-actions {
